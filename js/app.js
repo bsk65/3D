@@ -109,6 +109,27 @@ document.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW error:', e));
   }
+
+  // PWA install prompt
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const banner = document.getElementById('pwa-banner');
+    if (banner) banner.style.display = 'flex';
+  });
+
+  document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById('pwa-banner').style.display = 'none';
+  });
+
+  document.getElementById('pwa-dismiss-btn')?.addEventListener('click', () => {
+    document.getElementById('pwa-banner').style.display = 'none';
+  });
 });
 
 // ─── AUTH HANDLERS ───────────────────────────────────────────────────────────
@@ -238,8 +259,7 @@ function populateCourseDropdown() {
 }
 
 function getSetupNumTargets() {
-  const active = document.querySelector('#target-count-group .btn-count.active');
-  return active ? Number(active.dataset.count) : 24;
+  return Number(document.getElementById('target-count-select').value) || 24;
 }
 
 function addParticipant(id, name, isGuest = false) {
@@ -279,8 +299,8 @@ async function startRound() {
   const courseId = document.getElementById('course-select').value;
   const numTargets = getSetupNumTargets();
   const startTarget = Number(document.getElementById('start-target-select').value) || 1;
-  const gpsAutoFind = document.getElementById('gps-auto-find').checked;
-  const gpsTrack = document.getElementById('gps-track-route').checked;
+  const gpsAutoFind = document.getElementById('gps-auto-find-toggle').classList.contains('on');
+  const gpsTrack = document.getElementById('gps-track-toggle').classList.contains('on');
 
   const participants = getParticipants();
   // Always include logged-in user first
@@ -369,8 +389,8 @@ function updateStickyBar() {
   const targetNum = tIdx + 1;
   const totalTargets = state.round.numTargets;
 
-  document.getElementById('current-target-display').textContent =
-    `Mål ${targetNum} af ${totalTargets}`;
+  document.getElementById('target-num-big').textContent = targetNum;
+  document.getElementById('target-num-suffix').textContent = 'af ' + totalTargets;
   document.getElementById('round-name-badge').textContent = state.round.name;
 
   const scored = countScoredTargets(state.round.shooters, totalTargets);
@@ -385,7 +405,7 @@ function updateStickyBar() {
   ).length;
   const avgAll = totalArrows ? (sumAll / totalArrows).toFixed(1) : '0.0';
 
-  document.getElementById('stat-avg').textContent = avgAll;
+  document.getElementById('stat-avg').textContent = totalArrows ? avgAll : '—';
   document.getElementById('stat-total').textContent = sumAll;
   document.getElementById('stat-remaining').textContent = totalTargets - scored;
 
@@ -442,14 +462,22 @@ function renderShooters() {
 
     card.innerHTML = `
       <div class="shooter-header">
+        <span class="shooter-icon">🎯</span>
         ${warn ? '<span class="warning-dot"></span>' : ''}
         <span class="shooter-name">${shooter.name}</span>
-        <span class="shooter-score-display">${total} pt</span>
+        <div class="shooter-mini-box" style="margin-left:4px;">
+          <div class="shooter-mini-label">DETTE</div>
+          <div class="shooter-mini-val" id="this-score-${sIdx}">—</div>
+        </div>
+        <div class="shooter-mini-box">
+          <div class="shooter-mini-label">RUNDE</div>
+          <div class="shooter-mini-val">${total}</div>
+        </div>
       </div>
       <div class="arrows-row">
         ${[0, 1].map(arrowIdx => `
           <div class="arrow-group">
-            <div class="arrow-label">Pil ${arrowIdx + 1}</div>
+            <div class="arrow-label">🎯 PIL ${arrowIdx + 1}</div>
             <div class="score-btns" data-shooter="${sIdx}" data-arrow="${arrowIdx}">
               ${SCORE_VALUES.map(v => `
                 <button class="score-btn ${row[arrowIdx] === v ? `selected-${v}` : ''}"
@@ -925,11 +953,13 @@ function showQrModal() {
   document.getElementById('qr-modal').classList.remove('hidden');
   const canvas = document.getElementById('qr-canvas');
   canvas.innerHTML = '';
+  const url = window.location.origin + window.location.pathname;
   if (typeof QRCode !== 'undefined') {
     new QRCode(canvas, {
-      text: window.location.href,
+      text: url,
       width: 200, height: 200,
-      colorDark: '#000', colorLight: '#fff',
+      colorDark: '#1a3a1a',
+      colorLight: '#ffffff',
     });
   }
 }
@@ -949,22 +979,23 @@ function bindStaticEvents() {
 
   // Logo → QR
   document.getElementById('logo-btn').addEventListener('click', showQrModal);
+  document.getElementById('logo-btn-icon').addEventListener('click', showQrModal);
   document.getElementById('close-qr-btn').addEventListener('click', () => {
     document.getElementById('qr-modal').classList.add('hidden');
   });
 
   // Target count buttons in setup
-  document.querySelectorAll('#target-count-group .btn-count').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#target-count-group .btn-count').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      updateStartTargetDropdown(Number(btn.dataset.count));
-    });
+  document.getElementById('target-count-select').addEventListener('change', (e) => {
+    updateStartTargetDropdown(Number(e.target.value));
   });
+  updateStartTargetDropdown(24);
 
   // Course select → update target count
   document.getElementById('course-select').addEventListener('change', (e) => {
-    if (!e.target.value) return;
+    if (!e.target.value) {
+      updateStartTargetDropdown(Number(document.getElementById('target-count-select').value) || 24);
+      return;
+    }
     const course = state.courses.find(c => c.id === e.target.value);
     if (course) updateStartTargetDropdown(course.numTargets);
   });
@@ -1057,6 +1088,10 @@ function bindStaticEvents() {
   });
 
   // GPS pause
+  // Toggle switches
+  document.getElementById('gps-auto-find-toggle').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); });
+  document.getElementById('gps-track-toggle').addEventListener('click', (e) => { e.currentTarget.classList.toggle('on'); });
+
   document.getElementById('gps-pause-btn').addEventListener('click', () => {
     state.gpsPaused = togglePause();
     document.getElementById('gps-pause-btn').textContent = state.gpsPaused ? '▶' : '⏸';
@@ -1132,17 +1167,11 @@ function bindStaticEvents() {
   document.getElementById('create-course-cancel-btn').addEventListener('click', () => {
     document.getElementById('create-course-modal').classList.add('hidden');
   });
-  document.querySelectorAll('#new-course-targets .btn-count').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#new-course-targets .btn-count').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
+
   document.getElementById('create-course-confirm-btn').addEventListener('click', async () => {
     const name = document.getElementById('new-course-name').value.trim();
     const location = document.getElementById('new-course-location').value.trim();
-    const activeBtn = document.querySelector('#new-course-targets .btn-count.active');
-    const num = activeBtn ? Number(activeBtn.dataset.count) : 12;
+    const num = Number(document.getElementById('new-course-targets-select').value) || 24;
     if (!name) return;
     try {
       await createCourse(name, num, location);
@@ -1165,14 +1194,15 @@ function bindStaticEvents() {
   });
 
   // Show my position toggle
-  document.getElementById('show-my-pos').addEventListener('change', async (e) => {
+  document.getElementById('show-my-pos-toggle').addEventListener('click', async (e) => {
+    const el = e.currentTarget; el.classList.toggle('on');
     if (!state.courseMap) return;
-    if (e.target.checked) {
+    if (el.classList.contains('on')) {
       try {
         const pos = await getCurrentPosition();
         L.circle([pos.lat, pos.lng], { radius: 10, color: '#2a7ae8', fillColor: '#2a7ae8', fillOpacity: 0.7 }).addTo(state.courseMap);
         state.courseMap.panTo([pos.lat, pos.lng]);
-      } catch (err) { alert('GPS ikke tilgængeligt'); e.target.checked = false; }
+      } catch (err) { alert('GPS ikke tilgængeligt'); el.classList.remove('on'); }
     }
   });
 
