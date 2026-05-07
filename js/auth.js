@@ -94,7 +94,7 @@ export function initAuth({ onLogin, onLogout, getLang }) {
   });
 
   // Logout
-  document.getElementById('logout-btn').addEventListener('click', async () => {
+  document.getElementById('user-btn')?.addEventListener('click', async () => {
     try {
       await signOut(getAuth());
     } catch (err) {
