@@ -10,12 +10,14 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; }
-.screen { position: fixed; inset: 0; }
+.screen { position: fixed; inset: 0; background: var(--bg); }
 .screen.hidden { display: none !important; }
 .screen.active { display: flex; flex-direction: column; }
+#auth-screen.active { align-items: center; justify-content: center; }
 .hidden { display: none !important; }
-.auth-container { margin: auto; width: 100%; max-width: 400px; padding: 32px 24px; display: flex; flex-direction: column; gap: 14px; }
+.auth-container, .auth-box { margin: auto; width: 100%; max-width: 400px; padding: 32px 24px; display: flex; flex-direction: column; gap: 14px; }
 .auth-logo { text-align: center; margin-bottom: 12px; }
+.auth-logo img { width: 80px; height: 80px; object-fit: contain; }
 .logo-icon { font-size: 52px; display: block; margin-bottom: 10px; }
 .auth-logo h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
 .auth-tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
