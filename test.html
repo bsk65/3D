@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<title>Firebase Test</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  body{font-family:monospace;padding:20px;background:#111;color:#0f0;}
+  .ok{color:#0f0;}.err{color:#f00;}.warn{color:#ff0;}
+  button{padding:10px 20px;margin:5px;cursor:pointer;font-size:15px;}
+  input{padding:8px;margin:4px;font-size:15px;width:250px;}
+  #log{white-space:pre-wrap;margin-top:16px;}
+  #login-box{background:#222;padding:16px;border-radius:8px;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<h2>Firebase Diagnostik</h2>
+
+<div id="login-box">
+  <b id="auth-status" style="color:#ff0;">Ikke logget ind</b><br><br>
+  <input type="email" id="email" placeholder="Email" value="bsklausen@proton.me"/><br>
+  <input type="password" id="pw" placeholder="Kodeord"/><br>
+  <button onclick="doLogin()">Log ind</button>
+  <button onclick="doLogout()">Log ud</button>
+</div>
+
+<button onclick="testCourses()">Test Baner</button>
+<button onclick="testFriends()">Test Venner</button>
+<button onclick="testRounds()">Test Runder</button>
+<button onclick="testWrite()">Test Gem runde</button>
+<button onclick="document.getElementById('log').innerHTML=''">Ryd log</button>
+
+<div id="log"></div>
+
+<script>
+const cfg = {
+  apiKey:"AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
+  authDomain:"archery-app-70e20.firebaseapp.com",
+  projectId:"bueskydning-app-70e20",
+  storageBucket:"archery-app-70e20.firebasestorage.app",
+  messagingSenderId:"1025324581093",
+  appId:"1:1025324581093:web:03b41dbee9cc81c6eb540c"
+};
+firebase.initializeApp(cfg);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+function log(msg,type='ok'){
+  document.getElementById('log').innerHTML+=`<span class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</span>\n`;
+}
+
+auth.onAuthStateChanged(u=>{
+  document.getElementById('auth-status').textContent = u ? `✅ Logget ind: ${u.email} (uid: ${u.uid})` : '❌ Ikke logget ind';
+  document.getElementById('auth-status').style.color = u ? '#0f0' : '#f00';
+});
+
+async function doLogin(){
+  try{
+    const t=Date.now();
+    await auth.signInWithEmailAndPassword(
+      document.getElementById('email').value,
+      document.getElementById('pw').value
+    );
+    log(`✅ Login OK (${Date.now()-t}ms)`);
+  }catch(e){log(`❌ Login fejl: ${e.message}`,'err');}
+}
+
+async function doLogout(){
+  await auth.signOut();
+  log('Logget ud','warn');
+}
+
+async function testCourses(){
+  log('--- Test baner ---');
+  try{
+    const t=Date.now();
+    const snap=await db.collection('kurser').get();
+    log(`✅ ${snap.docs.length} baner (${Date.now()-t}ms)`);
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      log(`  ID:${d.id} | navn:${data.yam||data.name||'?'} | mål:${data.antalMål||data.numTargets||'?'}`);
+    });
+  }catch(e){log(`❌ ${e.message}`,'err');}
+}
+
+async function testFriends(){
+  log('--- Test venner ---');
+  const u=auth.currentUser;
+  if(!u){log('❌ Log ind først','err');return;}
+  try{
+    const t=Date.now();
+    const snap=await db.collection('brugere').doc(u.uid).collection('venner').get();
+    log(`✅ ${snap.docs.length} venner (${Date.now()-t}ms)`);
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      log(`  ${data.yam||data.name||'?'} | ${data['e-mail']||data.email||'?'}`);
+    });
+  }catch(e){log(`❌ ${e.message}`,'err');}
+}
+
+async function testRounds(){
+  log('--- Test runder ---');
+  const u=auth.currentUser;
+  if(!u){log('❌ Log ind først','err');return;}
+  try{
+    const t=Date.now();
+    const snap=await db.collection('brugere').doc(u.uid).collection('runder').get();
+    log(`✅ ${snap.docs.length} runder (${Date.now()-t}ms)`);
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      log(`  ${data.name||'?'} | skytte:${(data.shooters||[]).length}`);
+    });
+  }catch(e){log(`❌ ${e.message}`,'err');}
+}
+
+async function testWrite(){
+  log('--- Test skriv til aktiv ---');
+  const u=auth.currentUser;
+  if(!u){log('❌ Log ind først','err');return;}
+  try{
+    const t=Date.now();
+    await db.collection('brugere').doc(u.uid).collection('aktiv').doc('runde').set({test:true,ts:Date.now()});
+    log(`✅ Skrivning OK (${Date.now()-t}ms)`);
+    await db.collection('brugere').doc(u.uid).collection('aktiv').doc('runde').delete();
+    log('✅ Sletning OK');
+  }catch(e){log(`❌ ${e.message}`,'err');}
+}
+</script>
+</body>
+</html>
