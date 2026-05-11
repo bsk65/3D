@@ -1,146 +1,141 @@
-// js/courses.js — Baner, mål, billeder og besøg
+// js/courses.js
+import { db, storage } from './firebase-instance.js'
+import {
+  collection, doc, addDoc, getDoc, getDocs,
+  onSnapshot, updateDoc, deleteDoc, serverTimestamp
+} from 'firebase/firestore'
+import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
-async function loadCourses() {
-  try {
-    const snap = await db.collection('kurser').get();
-    return snap.docs.map(d => {
-      const data = d.data();
+export function subscribeCourses(callback) {
+  return onSnapshot(collection(db, 'kurser'), snap => {
+    const courses = snap.docs.map(d => {
+      const data = d.data()
       return {
         id:         d.id,
-        name:       data.name       || data.yam         || '—',
-        numTargets: data.numTargets || data.antalMål     || 24,
-        location:   data.location   || data.beliggenhed  || '',
-        targets:    data.targets    || data.mål          || [],
-        visits:     data.visits     || data.besøg        || [],
-        ...data
-      };
-    });
-  } catch (err) { console.error('loadCourses:', err); return []; }
+        name:       data.name       || data.yam        || '—',
+        numTargets: data.numTargets || data.antalMål    || 24,
+        location:   data.location   || data.beliggenhed || '',
+        targets:    data.targets    || data.mål         || [],
+        visits:     data.visits     || data.besøg       || [],
+      }
+    })
+    callback(courses)
+  }, err => console.error('courses:', err))
 }
 
-async function loadCourse(courseId) {
+export async function loadCourse(courseId) {
   try {
-    const snap = await db.collection('kurser').doc(courseId).get();
-    if (!snap.exists) return null;
-    const data = snap.data();
+    const snap = await getDoc(doc(db, 'kurser', courseId))
+    if (!snap.exists()) return null
+    const data = snap.data()
     return {
       id:         snap.id,
-      name:       data.name       || data.yam         || '—',
-      numTargets: data.numTargets || data.antalMål     || 24,
-      location:   data.location   || data.beliggenhed  || '',
-      targets:    data.targets    || data.mål          || [],
-      visits:     data.visits     || data.besøg        || [],
-      ...data
-    };
-  } catch (err) { console.error('loadCourse:', err); return null; }
+      name:       data.name       || data.yam        || '—',
+      numTargets: data.numTargets || data.antalMål    || 24,
+      location:   data.location   || data.beliggenhed || '',
+      targets:    data.targets    || data.mål         || [],
+      visits:     data.visits     || data.besøg       || [],
+    }
+  } catch (err) { console.error(err); return null }
 }
 
-async function createCourse(name, numTargets, location) {
-  try {
-    const targets = Array.from({ length: numTargets }, (_, i) => ({
-      number: i + 1, name: '', emoji: '', imageUrl: '', distance: null, gps: null
-    }));
-    const ref = await db.collection('kurser').add({
-      yam: name, name,
-      antalMål: numTargets, numTargets,
-      beliggenhed: location || '', location: location || '',
-      mål: targets, targets,
-      skabt: firebase.firestore.FieldValue.serverTimestamp(),
-      visits: [], besøg: []
-    });
-    return ref.id;
-  } catch (err) { console.error('createCourse:', err); throw err; }
+export async function createCourse(name, numTargets, location) {
+  const targets = Array.from({ length: numTargets }, (_, i) => ({
+    number: i + 1, name: '', emoji: '', imageUrl: '', distance: null, gps: null
+  }))
+  const ref2 = await addDoc(collection(db, 'kurser'), {
+    name, yam: name,
+    numTargets, antalMål: numTargets,
+    location: location || '', beliggenhed: location || '',
+    targets, mål: targets,
+    created: serverTimestamp(), skabt: serverTimestamp(),
+    visits: [], besøg: []
+  })
+  return ref2.id
 }
 
-async function updateCourse(courseId, data) {
-  try {
-    // Map nye feltnavne til også at opdatere de gamle
-    const update = { ...data };
-    if (data.name)       update.yam         = data.name;
-    if (data.location)   update.beliggenhed  = data.location;
-    if (data.numTargets) update.antalMål     = data.numTargets;
-    if (data.targets)    update.mål          = data.targets;
-    await db.collection('kurser').doc(courseId).update(update);
-  } catch (err) { console.error('updateCourse:', err); throw err; }
+export async function updateCourse(courseId, data) {
+  const update = { ...data }
+  if (data.name)     { update.yam = data.name }
+  if (data.location) { update.beliggenhed = data.location }
+  await updateDoc(doc(db, 'kurser', courseId), update)
 }
 
-async function updateTarget(courseId, targetIndex, targetData) {
-  try {
-    const ref  = db.collection('kurser').doc(courseId);
-    const snap = await ref.get();
-    if (!snap.exists) throw new Error('Bane ikke fundet');
-    const d = snap.data(); const targets = [...(d.targets || d.mål || [])];
-    while (targets.length <= targetIndex) targets.push({});
-    targets[targetIndex] = { ...targets[targetIndex], ...targetData };
-    await ref.update({ targets, mål: targets });
-  } catch (err) { console.error('updateTarget:', err); throw err; }
+export async function updateTarget(courseId, targetIndex, targetData) {
+  const ref2 = doc(db, 'kurser', courseId)
+  const snap = await getDoc(ref2)
+  if (!snap.exists()) return
+  const d = snap.data()
+  const targets = [...(d.targets || d.mål || [])]
+  while (targets.length <= targetIndex) targets.push({})
+  targets[targetIndex] = { ...targets[targetIndex], ...targetData }
+  await updateDoc(ref2, { targets, mål: targets })
 }
 
-async function uploadTargetImage(courseId, targetIndex, base64Data) {
-  try {
-    const imgRef = storage.ref(`courses/${courseId}/target_${targetIndex}.jpg`);
-    await imgRef.putString(base64Data, 'base64', { contentType: 'image/jpeg' });
-    return await imgRef.getDownloadURL();
-  } catch (err) { console.error('uploadTargetImage:', err); throw err; }
+export async function uploadTargetImage(courseId, targetIndex, base64Data) {
+  const imgRef = ref(storage, `courses/${courseId}/target_${targetIndex}.jpg`)
+  await uploadString(imgRef, base64Data, 'base64', { contentType: 'image/jpeg' })
+  return await getDownloadURL(imgRef)
 }
 
-async function addCourseVisit(courseId, visitData) {
+export async function addCourseVisit(courseId, visitData) {
   try {
-    const ref  = db.collection('kurser').doc(courseId);
-    const snap = await ref.get();
-    if (!snap.exists) return;
-    const d2 = snap.data(); const visits = [visitData, ...(d2.visits || d2.besøg || [])].slice(0, 50);
-    await ref.update({ visits, besøg: visits });
-  } catch (err) { console.error('addCourseVisit:', err); }
+    const ref2 = doc(db, 'kurser', courseId)
+    const snap = await getDoc(ref2)
+    if (!snap.exists()) return
+    const d = snap.data()
+    const visits = [visitData, ...(d.visits || d.besøg || [])].slice(0, 50)
+    await updateDoc(ref2, { visits, besøg: visits })
+  } catch (err) { console.error(err) }
 }
 
-async function removeCourseVisit(courseId, visitIndex) {
+export async function removeCourseVisit(courseId, visitIndex) {
   try {
-    const ref  = db.collection('kurser').doc(courseId);
-    const snap = await ref.get();
-    if (!snap.exists) return;
-    const d3 = snap.data(); const visits = [...(d3.visits || d3.besøg || [])];
-    visits.splice(visitIndex, 1);
-    await ref.update({ visits, besøg: visits });
-  } catch (err) { console.error('removeCourseVisit:', err); }
+    const ref2 = doc(db, 'kurser', courseId)
+    const snap = await getDoc(ref2)
+    if (!snap.exists()) return
+    const d = snap.data()
+    const visits = [...(d.visits || d.besøg || [])]
+    visits.splice(visitIndex, 1)
+    await updateDoc(ref2, { visits, besøg: visits })
+  } catch (err) { console.error(err) }
 }
 
-async function deleteCourse(courseId) {
+export async function deleteCourse(courseId) {
   try {
-    const snap = await db.collection('kurser').doc(courseId).get();
-    if (snap.exists) {
-      const targets = snap.data().targets || [];
+    const snap = await getDoc(doc(db, 'kurser', courseId))
+    if (snap.exists()) {
+      const targets = snap.data().targets || snap.data().mål || []
       for (let i = 0; i < targets.length; i++) {
         if (targets[i].imageUrl) {
-          try {
-            await storage.ref(`courses/${courseId}/target_${i}.jpg`).delete();
-          } catch (e) { /* ignorer manglende filer */ }
+          try { await deleteObject(ref(storage, `courses/${courseId}/target_${i}.jpg`)) }
+          catch (e) {}
         }
       }
     }
-    await db.collection('kurser').doc(courseId).delete();
-  } catch (err) { console.error('deleteCourse:', err); throw err; }
+    await deleteDoc(doc(db, 'kurser', courseId))
+  } catch (err) { console.error(err); throw err }
 }
 
-function compressImage(file) {
+export function compressImage(file) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = e => {
-      const img = new Image();
+      const img = new Image()
       img.onload = () => {
-        const MAX = 400;
-        let w = img.width, h = img.height;
-        if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
-        else       { if (h > MAX) { w = w * MAX / h; h = MAX; } }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.65).split(',')[1]);
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+        const MAX = 400
+        let w = img.width, h = img.height
+        if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX } }
+        else       { if (h > MAX) { w = w * MAX / h; h = MAX } }
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', 0.65).split(',')[1])
+      }
+      img.onerror = reject
+      img.src = e.target.result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }

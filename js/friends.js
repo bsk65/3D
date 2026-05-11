@@ -1,83 +1,73 @@
-// js/friends.js — Venner og admin-håndtering
+// js/friends.js — Venner er KUN lokale (localStorage)
 
-async function loadFriends(uid) {
+const LS_KEY = 'archery_v5'
+const LS_KEY_OLD = 'archery_v4'
+
+export function loadLocalData() {
   try {
-    const snap = await db.collection('brugere').doc(uid).collection('venner').get();
-    return snap.docs.map(d => {
-      const data = d.data();
-      return {
-        id:      d.id,
-        name:    data.name    || data.yam     || '—',
-        email:   data.email   || data['e-mail'] || '',
-        phone:   data.phone   || data.telefon  || '',
-        club:    data.club    || data.klub     || '',
-        bowType: data.bowType || data.bueType  || '',
-        ...data
-      };
-    });
-  } catch (err) { console.error('loadFriends:', err); return []; }
+    const newData = JSON.parse(localStorage.getItem(LS_KEY) || 'null')
+    if (newData) return newData
+    // Migrer fra gammel app
+    const old = JSON.parse(localStorage.getItem(LS_KEY_OLD) || '{}')
+    return { friends: old.friends || [], rounds: old.rounds || [] }
+  } catch (e) { return { friends: [], rounds: [] } }
 }
 
-async function saveFriend(uid, data, friendId = null) {
+export function saveLocalData(friends, rounds) {
   try {
-    const col = db.collection('brugere').doc(uid).collection('venner');
-    // Gem både nye og gamle feltnavne
-    const saveData = {
-      ...data,
-      yam:      data.name,
-      'e-mail': data.email,
-      telefon:  data.phone,
-      klub:     data.club,
-      bueType:  data.bowType,
-    };
-    if (friendId) {
-      await col.doc(friendId).set(saveData);
-      return friendId;
-    } else {
-      const ref = await col.add(saveData);
-      return ref.id;
-    }
-  } catch (err) { console.error('saveFriend:', err); throw err; }
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      friends, rounds: rounds.slice(0, 200)
+    }))
+  } catch (e) { console.warn('localStorage full:', e) }
 }
 
-async function deleteFriend(uid, friendId) {
-  try {
-    await db.collection('brugere').doc(uid).collection('venner').doc(friendId).delete();
-  } catch (err) { console.error('deleteFriend:', err); throw err; }
+export function saveFriendLocal(friends, data, friendId) {
+  const updated = [...friends]
+  if (friendId) {
+    const idx = updated.findIndex(f => f.id === friendId)
+    if (idx !== -1) updated[idx] = { ...data, id: friendId }
+    else updated.push({ ...data, id: friendId })
+  } else {
+    updated.push({ ...data, id: 'f_' + Date.now() })
+  }
+  return updated
 }
 
-async function checkIsAdmin(uid) {
-  try {
-    const snap = await db.collection('administratorer').doc(uid).get();
-    return snap.exists;
-  } catch (err) { console.error('isAdmin:', err); return false; }
+export function deleteFriendLocal(friends, id) {
+  return friends.filter(f => f.id !== id)
 }
 
-async function addAdmin(uid, email) {
+// Admin funktioner bruger stadig Firestore
+import { db } from './firebase-instance.js'
+import { collection, doc, setDoc, deleteDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
+
+export async function checkIsAdmin(uid) {
   try {
-    await db.collection('administratorer').doc(uid).set({
-      email, created: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  } catch (err) { console.error('addAdmin:', err); throw err; }
+    const { getDoc } = await import('firebase/firestore')
+    const snap = await getDoc(doc(db, 'administratorer', uid))
+    return snap.exists()
+  } catch (e) { return false }
 }
 
-async function removeAdmin(uid) {
+export async function loadAllUsers() {
   try {
-    await db.collection('administratorer').doc(uid).delete();
-  } catch (err) { console.error('removeAdmin:', err); throw err; }
+    const snap = await getDocs(collection(db, 'brugere'))
+    return snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+  } catch (e) { return [] }
 }
 
-async function loadAllUsers() {
+export async function findUserByEmail(email) {
   try {
-    const snap = await db.collection('brugere').get();
-    return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-  } catch (err) { console.error('loadAllUsers:', err); return []; }
+    const snap = await getDocs(query(collection(db, 'brugere'), where('email', '==', email)))
+    if (snap.empty) return null
+    return { uid: snap.docs[0].id, ...snap.docs[0].data() }
+  } catch (e) { return null }
 }
 
-async function findUserByEmail(email) {
-  try {
-    const snap = await db.collection('brugere').where('email', '==', email).get();
-    if (snap.empty) return null;
-    return { uid: snap.docs[0].id, ...snap.docs[0].data() };
-  } catch (err) { console.error('findUserByEmail:', err); return null; }
+export async function addAdmin(uid, email) {
+  await setDoc(doc(db, 'administratorer', uid), { email, created: serverTimestamp() })
+}
+
+export async function removeAdmin(uid) {
+  await deleteDoc(doc(db, 'administratorer', uid))
 }

@@ -1,90 +1,109 @@
-// js/auth.js — Login, signup, logout, glemt kodeord
+// js/auth.js
+import { auth, db } from './firebase-instance.js'
+import {
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  sendPasswordResetEmail, signOut, onAuthStateChanged
+} from 'firebase/auth'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 
-const AUTH_ERRORS = {
-  'auth/user-not-found':     { da: 'Bruger ikke fundet.',              en: 'User not found.' },
-  'auth/wrong-password':     { da: 'Forkert kodeord.',                 en: 'Wrong password.' },
-  'auth/invalid-credential': { da: 'Ugyldig email eller kodeord.',     en: 'Invalid email or password.' },
-  'auth/email-already-in-use':{ da: 'Email er allerede i brug.',       en: 'Email already in use.' },
-  'auth/weak-password':      { da: 'Kodeordet er for svagt (min. 6).', en: 'Password too weak (min. 6).' },
-  'auth/invalid-email':      { da: 'Ugyldig email-adresse.',           en: 'Invalid email address.' },
-  'auth/too-many-requests':  { da: 'For mange forsøg. Prøv igen.',     en: 'Too many attempts. Try again.' },
-};
-
-function authErrMsg(code) {
-  const e = AUTH_ERRORS[code];
-  return e ? e[window.appLang || 'da'] : 'Der opstod en fejl.';
+const ERRORS = {
+  'auth/user-not-found':     'Bruger ikke fundet.',
+  'auth/wrong-password':     'Forkert kodeord.',
+  'auth/invalid-credential': 'Ugyldig email eller kodeord.',
+  'auth/email-already-in-use': 'Email er allerede i brug.',
+  'auth/weak-password':      'Kodeordet er for svagt (min. 6 tegn).',
+  'auth/invalid-email':      'Ugyldig email-adresse.',
+  'auth/too-many-requests':  'For mange forsøg. Prøv igen senere.',
 }
 
-function showAuthErr(msg, type) {
-  const el = document.getElementById('auth-err');
-  el.textContent = msg;
-  el.style.borderColor = type === 'ok' ? 'var(--success)' : '';
-  el.style.color       = type === 'ok' ? 'var(--success)' : '';
-  el.classList.remove('hidden');
+function errMsg(code) {
+  return ERRORS[code] || 'Der opstod en fejl.'
 }
 
-function clearAuthErr() {
-  document.getElementById('auth-err').classList.add('hidden');
+export function showAuthErr(msg, type = 'error') {
+  const el = document.getElementById('auth-err')
+  el.textContent = msg
+  el.style.color = type === 'ok' ? 'var(--success)' : ''
+  el.style.borderColor = type === 'ok' ? 'var(--success)' : ''
+  el.classList.remove('hidden')
 }
 
-function showAuthTab(tab) {
+export function showAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach((t, i) => {
-    t.classList.toggle('active', (i === 0) === (tab === 'login'));
-  });
-  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
-  document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
-  clearAuthErr();
+    t.classList.toggle('active', (i === 0) === (tab === 'login'))
+  })
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login')
+  document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup')
+  document.getElementById('auth-err').classList.add('hidden')
 }
 
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pw    = document.getElementById('login-password').value;
-  if (!email || !pw) { showAuthErr('Udfyld alle felter.'); return; }
-  const btn = document.querySelector('#login-form .btn');
-  btn.disabled = true; btn.textContent = '...';
+export async function doLogin() {
+  const email = document.getElementById('login-email').value.trim()
+  const pw    = document.getElementById('login-password').value
+  if (!email || !pw) { showAuthErr('Udfyld alle felter.'); return }
+  const btn = document.querySelector('#login-form .btn')
+  btn.disabled = true; btn.textContent = '...'
   try {
-    await auth.signInWithEmailAndPassword(email, pw);
+    await signInWithEmailAndPassword(auth, email, pw)
   } catch (err) {
-    showAuthErr(authErrMsg(err.code));
+    showAuthErr(errMsg(err.code))
   } finally {
-    btn.disabled = false; btn.textContent = 'LOG IND';
+    btn.disabled = false; btn.textContent = 'LOG IND'
   }
 }
 
-async function doSignup() {
-  const name  = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const pw    = document.getElementById('signup-password').value;
-  if (!name || !email || !pw) { showAuthErr('Udfyld alle felter.'); return; }
-  const btn = document.querySelector('#signup-form .btn');
-  btn.disabled = true; btn.textContent = '...';
+export async function doSignup() {
+  const name  = document.getElementById('signup-name').value.trim()
+  const email = document.getElementById('signup-email').value.trim()
+  const pw    = document.getElementById('signup-password').value
+  if (!name || !email || !pw) { showAuthErr('Udfyld alle felter.'); return }
+  const btn = document.querySelector('#signup-form .btn')
+  btn.disabled = true; btn.textContent = '...'
   try {
-    const cred = await auth.createUserWithEmailAndPassword(email, pw);
-    await db.collection('brugere').doc(cred.user.uid).set({
-      name, email,
-      yam: name,
-      'e-mail': email,
-      skabt: firebase.firestore.FieldValue.serverTimestamp(),
-      created: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    const cred = await createUserWithEmailAndPassword(auth, email, pw)
+    await setDoc(doc(db, 'brugere', cred.user.uid), {
+      name, email, yam: name, 'e-mail': email,
+      created: serverTimestamp(), skabt: serverTimestamp()
+    })
   } catch (err) {
-    showAuthErr(authErrMsg(err.code));
+    showAuthErr(errMsg(err.code))
   } finally {
-    btn.disabled = false; btn.textContent = 'OPRET KONTO';
+    btn.disabled = false; btn.textContent = 'OPRET KONTO'
   }
 }
 
-async function doForgot() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) { showAuthErr('Indtast din email først.'); return; }
+export async function doForgot() {
+  const email = document.getElementById('login-email').value.trim()
+  if (!email) { showAuthErr('Indtast din email først.'); return }
   try {
-    await auth.sendPasswordResetEmail(email);
-    showAuthErr('Nulstillingsmail sendt!', 'ok');
+    await sendPasswordResetEmail(auth, email)
+    showAuthErr('Nulstillingsmail sendt!', 'ok')
   } catch (err) {
-    showAuthErr(authErrMsg(err.code));
+    showAuthErr(errMsg(err.code))
   }
 }
 
-async function doLogout() {
-  try { await auth.signOut(); } catch (err) { console.error('Logout:', err); }
+export async function doLogout() {
+  try { await signOut(auth) } catch (err) { console.error(err) }
+}
+
+export function initAuthListener(onLogin, onLogout) {
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      let profile = { name: user.email, email: user.email }
+      try {
+        const snap = await getDoc(doc(db, 'brugere', user.uid))
+        if (snap.exists()) {
+          const d = snap.data()
+          profile = {
+            name:  d.name  || d.yam      || user.email,
+            email: d.email || d['e-mail'] || user.email,
+          }
+        }
+      } catch (e) { console.error(e) }
+      onLogin(user, profile)
+    } else {
+      onLogout()
+    }
+  })
 }
