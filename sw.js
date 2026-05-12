@@ -1,10 +1,15 @@
-// sw.js — minimal service worker, kun til PWA-installation
-// Caching er deaktiveret for at undgå konflikter med Firebase
+// sw.js — minimal service worker, kun til PWA installation
+// Ingen caching der kan blokere Firebase forbindelsen
 
-const CACHE_NAME = 'archery-v4';
+const CACHE_NAME = 'archery-v5';
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
 
-// Ingen fetch-håndtering — al trafik går direkte til netværket
-// Dette sikrer at Firebase altid kan forbinde
+// Ingen fetch handler - al trafik går direkte til netværket
