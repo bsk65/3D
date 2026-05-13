@@ -166,7 +166,7 @@ function startTracking(onUpdate) {
   return true
 }
 
-function toggleGpsPause() { _paused=!_paused; return _paused }
+window.toggleGpsPause = function toggleGpsPause() { _paused=!_paused; return _paused }
 
 function stopTracking() {
   _tracking=false; _paused=false
@@ -465,9 +465,9 @@ function buildOrder(start,total){return Array.from({length:total},(_,i)=>(start+
 function curTargetIdx(){return state.round.traversalOrder[state.round.traversalPos]}
 
 // ─── PANELS ───────────────────────────────────────────────────────────────────
-function showSetupPanel(){document.getElementById('setup-panel').classList.remove('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.add('hidden')}
-function showActivePanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.remove('hidden');document.getElementById('results-panel').classList.add('hidden')}
-function showResultsPanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.remove('hidden')}
+window.showSetupPanel=function showSetupPanel(){document.getElementById('setup-panel').classList.remove('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.add('hidden')}
+window.showActivePanel=function showActivePanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.remove('hidden');document.getElementById('results-panel').classList.add('hidden')}
+window.showResultsPanel=function showResultsPanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.remove('hidden')}
 
 // ─── SHOOTING ─────────────────────────────────────────────────────────────────
 function updateTopBar(){
