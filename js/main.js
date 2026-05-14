@@ -23,7 +23,8 @@ const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db   = initializeFirestore(app, {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  experimentalForceLongPolling: true, // Fix for networks that block WebSocket
+  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 })
 const storage = getStorage(app)
 
