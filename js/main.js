@@ -4,7 +4,8 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+         collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -20,7 +21,9 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
-const db = getFirestore(app)
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+})
 const storage = getStorage(app)
 
 setPersistence(auth, browserLocalPersistence).catch(console.error)
@@ -254,10 +257,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(user){
       state.user=user
       try{
-        const snap=await getDoc(doc(db,'brugere',user.uid))
-        if(snap.exists()){const d=snap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email}}
+        const [profileSnap, adminSnap] = await Promise.all([
+          getDoc(doc(db,'brugere',user.uid)),
+          getDoc(doc(db,'administratorer',user.uid))
+        ])
+        if(profileSnap.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email}}
         else state.profile={name:user.email,email:user.email}
-      }catch(e){state.profile={name:user.email,email:user.email}}
+        state.isAdmin = adminSnap.exists()
+      }catch(e){state.profile={name:user.email,email:user.email};state.isAdmin=false}
       onLogin()
     } else {
       onLogout()
@@ -309,12 +316,9 @@ function onLogin(){
   document.getElementById('auth-screen').classList.remove('active')
   document.getElementById('app-screen').classList.add('active')
 
-  // Check admin
-  getDoc(doc(db,'administratorer',state.user.uid)).then(snap=>{
-    state.isAdmin=snap.exists()
-    document.getElementById('admin-badge').classList.toggle('hidden',!state.isAdmin)
-    document.querySelectorAll('.admin-only').forEach(el=>el.classList.toggle('hidden',!state.isAdmin))
-  }).catch(()=>{})
+  // Admin badge — allerede hentet i Promise.all
+  document.getElementById('admin-badge').classList.toggle('hidden',!state.isAdmin)
+  document.querySelectorAll('.admin-only').forEach(el=>el.classList.toggle('hidden',!state.isAdmin))
 
   // Load lokale data øjeblikkeligt
   const local=lsLoad()
@@ -326,11 +330,9 @@ function onLogin(){
 
   // Load baner fra localStorage øjeblikkeligt
   const localCourses = lsLoad().courses || []
-  if (localCourses.length) {
-    state.courses = localCourses
-    renderCoursesList()
-    populateCourseDropdown()
-  }
+  state.courses = localCourses
+  renderCoursesList()
+  populateCourseDropdown()
 
   // Synkroniser baner fra Firestore i baggrunden
   if(state.unsubCourses)state.unsubCourses()
@@ -340,12 +342,10 @@ function onLogin(){
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
         location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
     })
-    if (firestoreCourses.length) {
-      state.courses = firestoreCourses
-      lsSave() // gem baner lokalt til næste gang
-      renderCoursesList()
-      populateCourseDropdown()
-    }
+    state.courses = firestoreCourses.length ? firestoreCourses : state.courses
+    lsSave()
+    renderCoursesList()
+    populateCourseDropdown()
   },err=>console.warn('courses:',err))
 
   tryResumeRound()
