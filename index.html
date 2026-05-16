@@ -7,16 +7,15 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>3D Bueskydning</title>
-  <link rel="manifest" href="/3D/assets/manifest-Qs4SycET.json" />
-  <link rel="icon" href="/3D/assets/logo-DfL2e2mb.png" type="image/png" />
-  <link rel="apple-touch-icon" href="/3D/assets/logo-DfL2e2mb.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
 
 
-  <script type="module" crossorigin src="/3D/assets/index-Cuq-ehpW.js"></script>
-  <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
 </head>
 <body>
 
@@ -24,7 +23,7 @@
 <div id="auth-screen" class="screen active">
   <div class="auth-box">
     <div class="auth-logo">
-      <img src="/3D/assets/logo-DfL2e2mb.png" alt="3D Bue" />
+      <img src="logo.png" alt="3D Bue" />
       <h1>3D Bueskydning</h1>
     </div>
     <div class="auth-tabs">
@@ -60,7 +59,7 @@
       <span id="hdr-name"></span>
       <span>⏻</span>
     </button>
-    <img src="/3D/assets/logo-DfL2e2mb.png" class="hdr-logo-img" onclick="showQR()" alt="Logo" />
+    <img src="logo.png" class="hdr-logo-img" onclick="showQR()" alt="Logo" />
   </header>
 
   <main id="app-main">
@@ -364,7 +363,7 @@
 
 <!-- PWA INSTALL BANNER -->
 <div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-top:2px solid var(--accent);padding:10px 14px;flex-direction:row;align-items:center;gap:10px;z-index:300;">
-  <img src="/3D/assets/logo-DfL2e2mb.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;" />
+  <img src="logo.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;" />
   <span style="flex:1;font-size:14px;">Installer 3D Bueskydning</span>
   <button id="pwa-install-btn" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px 14px;font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;">INSTALLER</button>
   <button id="pwa-dismiss-btn" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
@@ -374,5 +373,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Vite bundler entry point -->
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

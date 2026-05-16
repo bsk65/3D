@@ -4,8 +4,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -21,9 +20,7 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-})
+const db = getFirestore(app)
 const storage = getStorage(app)
 
 setPersistence(auth, browserLocalPersistence).catch(console.error)
