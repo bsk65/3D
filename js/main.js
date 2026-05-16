@@ -5,8 +5,7 @@ import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, updateDoc, addDoc, serverTimestamp,
-         initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore'
+         onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
@@ -21,10 +20,7 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
-const db   = initializeFirestore(app, {
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  experimentalAutoDetectLongPolling: true,
-})
+const db = getFirestore(app)
 const storage = getStorage(app)
 
 setPersistence(auth, browserLocalPersistence).catch(console.error)
