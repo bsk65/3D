@@ -1,7 +1,7 @@
 // js/main.js — Indgangspunkt
 
 import { initializeApp } from 'firebase/app'
-import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, 
+import { getAuth, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
@@ -23,7 +23,6 @@ const auth = getAuth(app)
 const db = getFirestore(app)
 const storage = getStorage(app)
 
-setPersistence(auth, browserLocalPersistence).catch(console.error)
 
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 const LS = 'archery_v5'
