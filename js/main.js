@@ -253,15 +253,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
   onAuthStateChanged(auth, async user=>{
     if(user){
       state.user=user
-      try{
-        const [profileSnap, adminSnap] = await Promise.all([
-          getDoc(doc(db,'brugere',user.uid)),
-          getDoc(doc(db,'administratorer',user.uid))
-        ])
-        if(profileSnap.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email}}
-        else state.profile={name:user.email,email:user.email}
-        state.isAdmin = adminSnap.exists()
-      }catch(e){state.profile={name:user.email,email:user.email};state.isAdmin=false}
+      // Prøv at hente profil — retry hvis offline ved opstart
+      let profileSnap, adminSnap
+      for(let attempt=0; attempt<3; attempt++){
+        try{
+          ;[profileSnap, adminSnap] = await Promise.all([
+            getDoc(doc(db,'brugere',user.uid)),
+            getDoc(doc(db,'administratorer',user.uid))
+          ])
+          break
+        }catch(e){
+          if(attempt<2) await new Promise(r=>setTimeout(r,2000*(attempt+1)))
+          else{ state.profile={name:user.email,email:user.email}; state.isAdmin=false }
+        }
+      }
+      if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email}}
+      else if(!state.profile) state.profile={name:user.email,email:user.email}
+      state.isAdmin=adminSnap?.exists()||false
       onLogin()
     } else {
       onLogout()
