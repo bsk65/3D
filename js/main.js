@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
-         onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+         updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
@@ -190,8 +190,7 @@ const state = {
   friends:[], courses:[], rounds:[], round:null, course:null,
   currentCourse:null, courseMap:null, courseMapLayer:null,
   gpsTracking:false, warnThreshold:8,
-  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0,
-  unsubCourses:null
+  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0
 }
 
 let wakeLock=null
@@ -338,25 +337,25 @@ function onLogin(){
   renderCoursesList()
   populateCourseDropdown()
 
-  // Synkroniser baner fra Firestore i baggrunden
-  if(state.unsubCourses)state.unsubCourses()
-  state.unsubCourses=onSnapshot(collection(db,'kurser'),snap=>{
+  // Hent baner fra Firestore (én gang, ligesom den gamle app)
+  getDocs(collection(db,'kurser')).then(snap=>{
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
         location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
     })
-    state.courses = firestoreCourses.length ? firestoreCourses : state.courses
-    lsSave()
-    renderCoursesList()
-    populateCourseDropdown()
-  },err=>console.warn('courses:',err))
+    if(firestoreCourses.length){
+      state.courses = firestoreCourses
+      lsSave()
+      renderCoursesList()
+      populateCourseDropdown()
+    }
+  }).catch(err=>console.warn('courses:',err))
 
   tryResumeRound()
 }
 
 function onLogout(){
-  if(state.unsubCourses){state.unsubCourses();state.unsubCourses=null}
   state.user=null;state.profile=null;state.round=null
   releaseWakeLock()
   document.getElementById('app-screen').classList.remove('active')
