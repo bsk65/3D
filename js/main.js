@@ -1,18 +1,18 @@
 // js/main.js — Indgangspunkt
 
 import { initializeApp } from 'firebase/app'
-import { getAuth, onAuthStateChanged, 
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
-         updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+         onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
   authDomain: "archery-app-70e20.firebaseapp.com",
-  projectId: "bueskydning-app-70e20",
+  projectId: "archery-app-70e20",
   storageBucket: "archery-app-70e20.firebasestorage.app",
   messagingSenderId: "1025324581093",
   appId: "1:1025324581093:web:03b41dbee9cc81c6eb540c"
@@ -23,6 +23,7 @@ const auth = getAuth(app)
 const db = getFirestore(app)
 const storage = getStorage(app)
 
+setPersistence(auth, browserLocalPersistence).catch(console.error)
 
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 const LS = 'archery_v5'
@@ -190,7 +191,8 @@ const state = {
   friends:[], courses:[], rounds:[], round:null, course:null,
   currentCourse:null, courseMap:null, courseMapLayer:null,
   gpsTracking:false, warnThreshold:8,
-  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0
+  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0,
+  unsubCourses:null
 }
 
 let wakeLock=null
@@ -337,25 +339,25 @@ function onLogin(){
   renderCoursesList()
   populateCourseDropdown()
 
-  // Hent baner fra Firestore (én gang, ligesom den gamle app)
-  getDocs(collection(db,'kurser')).then(snap=>{
+  // Synkroniser baner fra Firestore i baggrunden
+  if(state.unsubCourses)state.unsubCourses()
+  state.unsubCourses=onSnapshot(collection(db,'kurser'),snap=>{
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
         location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
     })
-    if(firestoreCourses.length){
-      state.courses = firestoreCourses
-      lsSave()
-      renderCoursesList()
-      populateCourseDropdown()
-    }
-  }).catch(err=>console.warn('courses:',err))
+    state.courses = firestoreCourses.length ? firestoreCourses : state.courses
+    lsSave()
+    renderCoursesList()
+    populateCourseDropdown()
+  },err=>console.warn('courses:',err))
 
   tryResumeRound()
 }
 
 function onLogout(){
+  if(state.unsubCourses){state.unsubCourses();state.unsubCourses=null}
   state.user=null;state.profile=null;state.round=null
   releaseWakeLock()
   document.getElementById('app-screen').classList.remove('active')
