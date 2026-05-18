@@ -260,12 +260,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
       let profileSnap, adminSnap
       for(let attempt=0; attempt<3; attempt++){
         try{
+          console.log('Henter profil for uid:', user.uid)
           ;[profileSnap, adminSnap] = await Promise.all([
             getDoc(doc(db,'brugere',user.uid)),
             getDoc(doc(db,'administratorer',user.uid))
           ])
+          console.log('Profil:', profileSnap.exists(), profileSnap.data?.())
           break
         }catch(e){
+          console.error('Profil fejl attempt', attempt, e.code, e.message)
           if(attempt<2) await new Promise(r=>setTimeout(r,2000*(attempt+1)))
           else{ state.profile={name:user.email,email:user.email}; state.isAdmin=false }
         }
@@ -345,7 +348,9 @@ function onLogin(){
   populateCourseDropdown()
 
   // Hent baner fra Firestore
+  console.log('Henter baner, user uid:', state.user?.uid)
   getDocs(collection(db,'kurser')).then(snap=>{
+    console.log('Baner hentet:', snap.docs.length, snap.docs.map(d=>d.id))
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
