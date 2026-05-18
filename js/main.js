@@ -9,7 +9,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+import { getFirestore, enableNetwork, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -258,6 +258,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       state.user=user
       // Prøv at hente profil — retry hvis offline ved opstart
       let profileSnap, adminSnap
+      // Sørg for Firestore netværk er aktivt
+      try{ await enableNetwork(db) }catch{}
       for(let attempt=0; attempt<3; attempt++){
         try{
           console.log('Henter profil for uid:', user.uid)
