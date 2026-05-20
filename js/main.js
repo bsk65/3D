@@ -16,9 +16,9 @@ import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'fir
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
-  authDomain: "archery-app-70e20.firebaseapp.com",
+  authDomain: "bueskydning-app-70e20.firebaseapp.com",
   projectId: "bueskydning-app-70e20",
-  storageBucket: "archery-app-70e20.firebasestorage.app",
+  storageBucket: "bueskydning-app-70e20.appspot.com",
   messagingSenderId: "1025324581093",
   appId: "1:1025324581093:web:03b41dbee9cc81c6eb540c"
 }

@@ -23,8 +23,8 @@ xcopy dist\assets\* assets\ /E /Y /Q
 REM Erstat index.html med den byggede version
 copy dist\index.html index.html /Y >nul
 
-REM Git commit og push
-git add index.html assets/
+REM Git: kun de filer der rent faktisk koerer i browseren
+git add index.html assets/ css/style.css
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Build opdatering"
