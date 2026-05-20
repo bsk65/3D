@@ -1,8 +1,14 @@
 // js/main.js — Indgangspunkt
 
-// Afmeld alle service workers (de blokerer Firebase Auth)
+// Afmeld gamle service workers og registrer den korrekte
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    const hasCorrect = regs.some(r => r.active && r.active.scriptURL.includes('archery-sw.js'))
+    if (!hasCorrect) {
+      regs.forEach(r => r.unregister())
+      navigator.serviceWorker.register('./archery-sw.js').catch(() => {})
+    }
+  })
 }
 
 import { initializeApp } from 'firebase/app'
@@ -16,9 +22,9 @@ import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'fir
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
-  authDomain: "bueskydning-app-70e20.firebaseapp.com",
-  projectId: "bueskydning-app-70e20",
-  storageBucket: "bueskydning-app-70e20.appspot.com",
+  authDomain: "archery-app-70e20.firebaseapp.com",
+  projectId: "archery-app-70e20",
+  storageBucket: "archery-app-70e20.firebasestorage.app",
   messagingSenderId: "1025324581093",
   appId: "1:1025324581093:web:03b41dbee9cc81c6eb540c"
 }
