@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 
-  <script type="module" crossorigin src="/3D/assets/index-CE6ntN_j.js"></script>
+  <script type="module" crossorigin src="/3D/assets/index-CgUoNDaz.js"></script>
   <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
 </head>
 <body>
@@ -94,6 +94,11 @@
 
         <div class="card">
           <div class="card-title">🔴 Advarsel</div>
+          <div class="trow" style="margin-bottom:8px;">
+            <div class="trow-left"><div class="trow-main">Aktiver advarsel</div>
+              <div class="trow-sub">Rød prik ved lavt gennemsnit</div></div>
+            <div class="tswitch on" id="warn-enabled-sw"></div>
+          </div>
           <div style="font-size:14px;padding:4px 0;">
             Rød prik hvis gns. under
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
@@ -366,7 +371,7 @@
 </div>
 
 <!-- PWA INSTALL BANNER -->
-<div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-top:2px solid var(--accent);padding:10px 14px;flex-direction:row;align-items:center;gap:10px;z-index:300;">
+<div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--card);border:2px solid var(--acc);border-radius:12px;padding:12px 16px;flex-direction:row;align-items:center;gap:10px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
   <img src="/3D/assets/logo-DfL2e2mb.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;" />
   <span style="flex:1;font-size:14px;">Installer 3D Bueskydning</span>
   <button id="pwa-install-btn" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px 14px;font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;">INSTALLER</button>
