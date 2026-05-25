@@ -12,10 +12,10 @@
   <link rel="apple-touch-icon" href="/3D/assets/logo-DfL2e2mb.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 
-  <script type="module" crossorigin src="/3D/assets/index-CAjT-0u2.js"></script>
+  <script type="module" crossorigin src="/3D/assets/index-BeoNz0HA.js"></script>
   <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
 </head>
 <body>
@@ -94,11 +94,6 @@
 
         <div class="card">
           <div class="card-title">🔴 Advarsel</div>
-          <div class="trow" style="margin-bottom:8px;">
-            <div class="trow-left"><div class="trow-main">Aktiver advarsel</div>
-              <div class="trow-sub">Rød prik ved lavt gennemsnit</div></div>
-            <div class="tswitch on" id="warn-enabled-sw"></div>
-          </div>
           <div style="font-size:14px;padding:4px 0;">
             Rød prik hvis gns. under
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
@@ -212,7 +207,7 @@
     </div>
 
     <!-- RESULTS TAB -->
-    <div id="tab-results" class="tab">
+    <div id="tab-results" class="tab hidden">
       <div class="tab-header">
         <span class="tab-title">Mine runder</span>
       </div>
@@ -220,7 +215,7 @@
     </div>
 
     <!-- COURSES TAB -->
-    <div id="tab-courses" class="tab">
+    <div id="tab-courses" class="tab hidden">
       <div id="courses-list-view">
         <div class="tab-header">
           <span class="tab-title">Baner</span>
@@ -271,7 +266,7 @@
     </div>
 
     <!-- FRIENDS TAB -->
-    <div id="tab-friends" class="tab">
+    <div id="tab-friends" class="tab hidden">
       <div class="tab-header">
         <span class="tab-title">Venner</span>
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
@@ -284,9 +279,6 @@
           <button class="btn btn-dark btn-sm" onclick="doAddAdmin()">Tilføj</button>
         </div>
         <h4 style="font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin-bottom:8px;">ALLE BRUGERE</h4>
-        <div style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px;">Administratorer</div>
-        <div id="admin-list"></div>
-        <div style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px;">Alle brugere</div>
         <div id="users-list"></div>
       </div>
 
@@ -371,7 +363,7 @@
 </div>
 
 <!-- PWA INSTALL BANNER -->
-<div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--card);border:2px solid var(--acc);border-radius:12px;padding:12px 16px;flex-direction:row;align-items:center;gap:10px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+<div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-top:2px solid var(--accent);padding:10px 14px;flex-direction:row;align-items:center;gap:10px;z-index:300;">
   <img src="/3D/assets/logo-DfL2e2mb.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;" />
   <span style="flex:1;font-size:14px;">Installer 3D Bueskydning</span>
   <button id="pwa-install-btn" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px 14px;font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;">INSTALLER</button>
@@ -381,6 +373,6 @@
 <!-- Leaflet og QR som globale scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<!-- Vite bundler entry point -->
+<!-- Vite bundler entry point -->
 </body>
 </html>
