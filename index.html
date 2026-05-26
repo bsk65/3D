@@ -15,9 +15,12 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 
-  <script type="module" crossorigin src="/3D/assets/index-eGq7sBot.js"></script>
-  <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
-</head>
+<style>
+  #fs-img { transform-origin: center; transition: transform 0.1s; }
+  </style>
+    <script type="module" crossorigin src="/3D/assets/index-BUTFwOzf.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
+  </head>
 <body>
 
 <!-- AUTH -->
@@ -342,7 +345,7 @@
 <!-- FULLSCREEN -->
 <div id="fullscreen" class="fs-ov hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <button class="fs-close" onclick="document.getElementById('fullscreen').classList.add('hidden')">✕</button>
-  <img id="fs-img" src="" alt="" style="max-width:100%;max-height:90vh;object-fit:contain;touch-action:pinch-zoom;" />
+  <img id="fs-img" src="" alt="" style="max-width:100%;max-height:90vh;object-fit:contain;touch-action:manipulation;cursor:zoom-in;" />
 </div>
 
 <!-- SKIP MODAL -->
@@ -378,7 +381,32 @@
 </div>
 
 <!-- Leaflet og QR som globale scripts -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // Pinch zoom for fullscreen image
+  document.addEventListener('DOMContentLoaded',()=>{
+    const img=document.getElementById('fs-img')
+    if(!img)return
+    let scale=1,startDist=0
+    img.addEventListener('touchstart',e=>{
+      if(e.touches.length===2){
+        startDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)
+      }
+    },{passive:true})
+    img.addEventListener('touchmove',e=>{
+      if(e.touches.length===2){
+        e.preventDefault()
+        const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)
+        scale=Math.min(5,Math.max(1,scale*(dist/startDist)))
+        startDist=dist
+        img.style.transform=`scale(${scale})`
+      }
+    },{passive:false})
+    document.getElementById('fullscreen')?.addEventListener('click',e=>{
+      if(e.target.id==='fullscreen'){scale=1;img.style.transform='scale(1)'}
+    })
+  })
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Vite bundler entry point -->
 </body>
