@@ -18,7 +18,7 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/assets/index-BUTFwOzf.js"></script>
+    <script type="module" crossorigin src="/3D/assets/index-B1dsh-ue.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
   </head>
 <body>
@@ -186,11 +186,6 @@
           <button class="btn-icon" onclick="toggleGpsPause();this.textContent=state.gpsPaused?'▶':'⏸'">⏸</button>
         </div>
 
-        <div id="animal-fixed" style="padding:8px 12px;text-align:center;background:var(--card);">
-          <img id="anim-img" src="" alt="" class="hidden"
-            style="max-width:100%;max-height:200px;border-radius:12px;cursor:zoom-in;object-fit:contain;"
-            onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
-        </div>
         <div class="shoot-bot">
           <div class="nav-big">
             <button class="btn-back" onclick="prevTarget()">← TILBAGE</button>
@@ -201,6 +196,11 @@
             <button class="btn-act" id="finish-btn" onclick="finishRound()">✓ AFSLUT NU</button>
             <button class="btn-act red" id="abort-btn" onclick="abortRound()">🗑 AFBRYD</button>
           </div>
+        </div>
+        <div id="animal-fixed" style="padding:8px 12px;text-align:center;background:var(--card);">
+          <img id="anim-img" src="" alt="" class="hidden"
+            style="max-width:100%;max-height:220px;border-radius:12px;cursor:zoom-in;object-fit:contain;"
+            onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
         </div>
       </div>
 
