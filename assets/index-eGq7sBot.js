@@ -3368,12 +3368,12 @@ Content-Type: `+f.contentType+`\r
 `,r.courseName&&(n+=`Bane: ${r.courseName}
 `),n+=`
 --- RESULTATER ---
-`,[...r.shooters].sort((c,l)=>Fe(l.scores)-Fe(c.scores)).forEach((c,l)=>{n+=`
-${l+1}. ${c.name}: ${Fe(c.scores)} point`}),n+=`
+`,[...r.shooters].sort((l,h)=>Fe(h.scores)-Fe(l.scores)).forEach((l,h)=>{n+=`
+${h+1}. ${l.name}: ${Fe(l.scores)} point`}),n+=`
 
 --- DETALJERET ---
-`,r.shooters.forEach(c=>{n+=`
-${c.name}:
-`;for(let l=0;l<r.numTargets;l++){const h=c.scores[l]||[null,null],f=(h[0]!=null&&h[0]!=="M"?Number(h[0]):0)+(h[1]!=null&&h[1]!=="M"?Number(h[1]):0);n+=`  Mål ${l+1}: ${h.map(m=>m??"-").join("+")} = ${f}
-`}n+=`  Total: ${Fe(c.scores)} point
-`});const o=`mailto:${r.shooters.map(c=>{var l;return(l=T.friends.find(h=>h.id===c.id))==null?void 0:l.email}).filter(Boolean).join(",")}?subject=3D Bueskydning - ${r.name}&body=${encodeURIComponent(n)}`;location.href=o};window.openGuestModal=function(){document.getElementById("guest-name").value="",document.getElementById("guest-modal").classList.remove("hidden")};window.addGuest=function(){const r=document.getElementById("guest-name").value.trim();r&&(window.addParticipant(`guest-${Date.now()}`,r,!0),document.getElementById("guest-modal").classList.add("hidden"))};
+`,r.shooters.forEach(l=>{n+=`
+${l.name}:
+`;for(let h=0;h<r.numTargets;h++){const f=l.scores[h]||[null,null],m=(f[0]!=null&&f[0]!=="M"?Number(f[0]):0)+(f[1]!=null&&f[1]!=="M"?Number(f[1]):0);n+=`  Mål ${h+1}: ${f.map(v=>v??"-").join("+")} = ${m}
+`}n+=`  Total: ${Fe(l.scores)} point
+`});const o=`mailto:${r.shooters.map(l=>{var h;return(h=T.friends.find(f=>f.id===l.id))==null?void 0:h.email}).filter(Boolean).join(",")}?subject=3D Bueskydning - ${r.name}&body=${encodeURIComponent(n)}`,c=document.createElement("a");c.href=o,c.target="_blank",document.body.appendChild(c),c.click(),document.body.removeChild(c)};window.openGuestModal=function(){document.getElementById("guest-name").value="",document.getElementById("guest-modal").classList.remove("hidden")};window.addGuest=function(){const r=document.getElementById("guest-name").value.trim();r&&(window.addParticipant(`guest-${Date.now()}`,r,!0),document.getElementById("guest-modal").classList.add("hidden"))};
