@@ -132,7 +132,7 @@
       </div>
 
       <!-- ACTIVE -->
-      <div id="active-panel" class="hidden">
+      <div id="active-panel" class="hidden" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
         <div class="shoot-top">
           <div class="target-line">
             <div class="tnum">
@@ -153,7 +153,7 @@
           </div>
         </div>
 
-        <div id="scroll-area">
+        <div id="scroll-area" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 0;">
             <div id="target-avg" style="font-size:13px;color:var(--text-muted);"></div>
             <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()">✏️ RET</button>
