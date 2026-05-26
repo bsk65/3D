@@ -1,21 +1,10 @@
 // js/main.js — Indgangspunkt
 
-// Afmeld gamle service workers og registrer den korrekte
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    const hasCorrect = regs.some(r => r.active && r.active.scriptURL.includes('archery-sw.js'))
-    if (!hasCorrect) {
-      regs.forEach(r => r.unregister())
-      navigator.serviceWorker.register('./archery-sw.js').catch(() => {})
-    }
-  })
-}
-
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { getFirestore, enableNetwork, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -191,7 +180,7 @@ function getCurrentPosition() {
 function findNearestTarget(targets,pos) {
   if(!targets?.length||!pos) return 0
   let minD=Infinity,idx=0
-  targets.forEach((t,i)=>{if(!t.gps)return;const d=haversine(pos,t.gps);if(d<minD){minD=d;idx=i}})
+  targets.forEach((t,i)=>{if(!t.gps||t.GPS)return;const d=haversine(pos,t.gps||t.GPS);if(d<minD){minD=d;idx=i}})
   return idx
 }
 
@@ -241,7 +230,7 @@ window.doSignup = async function(){
   btn.disabled=true; btn.textContent='...'
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
-    await setDoc(doc(db,'brugere',cred.user.uid),{name,email,yam:name,'e-mail':email,created:serverTimestamp()})
+    await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,created:serverTimestamp()})
   }catch(err){showAuthErr('Fejl: '+err.code)}
   finally{btn.disabled=false;btn.textContent='OPRET KONTO'}
 }
@@ -265,13 +254,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // Prøv at hente profil — retry hvis offline ved opstart
       let profileSnap, adminSnap
       // Sørg for Firestore netværk er aktivt
-      try{ await enableNetwork(db) }catch{}
       for(let attempt=0; attempt<3; attempt++){
         try{
           console.log('Henter profil for uid:', user.uid)
           ;[profileSnap, adminSnap] = await Promise.all([
-            getDoc(doc(db,'brugere',user.uid)),
-            getDoc(doc(db,'administratorer',user.uid))
+            getDoc(doc(db,'users',user.uid)),
+            getDoc(doc(db,'admins',user.uid))
           ])
           console.log('Profil:', profileSnap.exists(), profileSnap.data?.())
           break
@@ -304,10 +292,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('pwa-dismiss-btn')?.addEventListener('click',()=>{
     document.getElementById('pwa-banner').style.display='none'
   })
-
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()))
-  }
 
   updateStartTargetDropdown(24)
   document.getElementById('target-count').addEventListener('change',e=>updateStartTargetDropdown(Number(e.target.value)))
@@ -357,12 +341,12 @@ function onLogin(){
 
   // Hent baner fra Firestore
   console.log('Henter baner, user uid:', state.user?.uid)
-  getDocs(collection(db,'kurser')).then(snap=>{
+  getDocs(collection(db,'courses')).then(snap=>{
     console.log('Baner hentet:', snap.docs.length, snap.docs.map(d=>d.id))
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
-      return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
-        location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
+      return {id:d.id,name:data.name||data.yam||data.id||'—',numTargets:data.numTargets||data.antalMål||24,
+        location:data.location||data.beliggenhed||'',targets:data.targets||data.mal||data.mål||[],visits:data.visits||data.besøg||[]}
     })
     if(firestoreCourses.length){
       state.courses = firestoreCourses
@@ -392,13 +376,30 @@ window.toggleLang=function(){
 window.switchTab=function(tab){
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'))
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
-  document.getElementById(`tab-${tab}`)?.classList.add('active')
+  const _t=document.getElementById(`tab-${tab}`);if(_t){_t.classList.add('active');_t.classList.remove('hidden')}
   document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active')
   if(tab==='friends')renderAdminSection()
   if(tab==='courses'&&state.courseMap)setTimeout(()=>state.courseMap.invalidateSize(),100)
 }
 
 // ─── SETUP ────────────────────────────────────────────────────────────────────
+function autoSelectNearestCourse(){
+  if(!navigator.geolocation||!state.courses.length)return
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const p={lat:pos.coords.latitude,lng:pos.coords.longitude}
+    let minD=Infinity,best=null
+    state.courses.forEach(c=>{
+      if(!c.targets?.length)return
+      c.targets.forEach(t=>{
+        if(!t.gps||t.GPS)return
+        const d=haversine(p,t.gps||t.GPS)
+        if(d<minD){minD=d;best=c.id}
+      })
+    })
+    if(best&&minD<500){const sel=document.getElementById('course-sel');sel.value=best;sel.dispatchEvent(new Event('change'))}
+  },()=>{},{enableHighAccuracy:true,timeout:5000})
+}
+
 function populateCourseDropdown(){
   const sel=document.getElementById('course-sel')
   const cur=sel.value
@@ -441,13 +442,43 @@ function renderQuickFriends(){
   })
 }
 
-window.searchFriends=function(val){
+window.searchFriends=async function(val){
   const list=document.getElementById('ac-list')
   if(!val.trim()){list.classList.add('hidden');return}
-  const m=state.friends.filter(f=>f.name.toLowerCase().includes(val.toLowerCase()))
-  if(!m.length){list.classList.add('hidden');return}
-  list.innerHTML=m.map(f=>`<div class="ac-item" onclick="addParticipant('${f.id}','${f.name.replace(/'/g,"\\'")}');document.getElementById('friend-search').value='';document.getElementById('ac-list').classList.add('hidden');">${f.name}</div>`).join('')
+
+  // Søg lokale venner
+  const local=state.friends.filter(f=>f.name.toLowerCase().includes(val.toLowerCase()))
+
+  // Søg Firestore brugere
+  let firestoreUsers=[]
+  try{
+    const snap=await getDocs(collection(db,'users'))
+    firestoreUsers=snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(u=>
+        (u.name||u.yam||'').toLowerCase().includes(val.toLowerCase()) &&
+        u.id !== state.user?.uid &&
+        !local.find(l=>l.id===u.id)
+      )
+      .map(u=>({id:u.id,name:u.name||u.yam||u.email||u['e-mail']||'—',email:u.email||u['e-mail']||''}))
+  }catch(e){console.warn(e)}
+
+  const all=[...local,...firestoreUsers]
+  if(!all.length){list.classList.add('hidden');return}
+
+  list.innerHTML=all.map(f=>`<div class="ac-item" onclick="selectFriend('${f.id}','${(f.name||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}');document.getElementById('friend-search').value='';document.getElementById('ac-list').classList.add('hidden');">${f.name}${f.email?' <span style=\"font-size:11px;opacity:.6\">${f.email}</span>':''}</div>`).join('')
   list.classList.remove('hidden')
+}
+
+window.selectFriend=function(id,name,email){
+  // Tilføj som lokal ven hvis ikke allerede der
+  if(!state.friends.find(f=>f.id===id)){
+    state.friends.push({id,name,email})
+    lsSave()
+    renderFriendsList()
+    renderQuickFriends()
+  }
+  window.addParticipant(id,name)
 }
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
@@ -505,7 +536,7 @@ function updateTopBar(){
   document.getElementById('stat-tot').textContent=sum
   document.getElementById('stat-rem').textContent=n-scored
   const imgEl=document.getElementById('anim-img')
-  if(target?.imageUrl){imgEl.src=target.imageUrl;imgEl.classList.remove('hidden')}else imgEl.classList.add('hidden')
+  if(target?.imageUrl){imgEl.src=target.imageUrl||target.photo||t.photo;imgEl.classList.remove('hidden')}else imgEl.classList.add('hidden')
   document.getElementById('edit-target-btn').classList.toggle('hidden',!(state.isAdmin&&state.round.courseId))
   document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?'AFSLUT →':'NÆSTE →'
   const tAvg=calcTargetAverage(state.round.shooters,tIdx)
@@ -548,17 +579,17 @@ function updateGpsBar({lat,lng,distance,elapsed}){
 
 async function saveActiveRound(){
   if(!state.round||!state.user)return
-  try{await setDoc(doc(db,'brugere',state.user.uid,'aktiv','runde'),serializeRound(state.round))}catch(e){console.warn(e)}
+  try{await setDoc(doc(db,'users',state.user.uid,'active','round'),serializeRound(state.round))}catch(e){console.warn(e)}
 }
 
 // ─── RESUME ───────────────────────────────────────────────────────────────────
 async function tryResumeRound(){
   try{
-    const snap=await getDoc(doc(db,'brugere',state.user.uid,'aktiv','runde'))
+    const snap=await getDoc(doc(db,'users',state.user.uid,'active','round'))
     if(!snap.exists())return
     const data=snap.data()
     const age=Date.now()-(data.created?.toMillis?data.created.toMillis():(data.created||0))
-    if(age>24*60*60*1000){await deleteDoc(doc(db,'brugere',state.user.uid,'aktiv','runde'));return}
+    if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
     if(confirm('Genoptag den igangværende runde?')){
       state.round=deserializeRound(data)
       state.round.traversalOrder=data.traversalOrder||buildOrder(0,state.round.numTargets)
@@ -627,7 +658,7 @@ window.finishRound=async function(){
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
-  deleteDoc(doc(db,'brugere',state.user.uid,'aktiv','runde')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
 
   const finished=state.round;state.round=null
   renderResults(finished);showResultsPanel()
@@ -644,7 +675,7 @@ window.abortRound=async function(){
   state.abortTap=0;btn.textContent='🗑 AFBRYD'
   if(state.gpsTracking){stopTracking();state.gpsTracking=false}
   releaseWakeLock()
-  deleteDoc(doc(db,'brugere',state.user.uid,'aktiv','runde')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
   state.round=null;showSetupPanel()
 }
 
@@ -742,11 +773,11 @@ function initCourseMap(course){
   window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.courseMap)
   const bounds=[];
   (course.targets||[]).forEach((t,i)=>{
-    if(!t.gps)return;bounds.push([t.gps.lat,t.gps.lng])
-    window.L.marker([t.gps.lat,t.gps.lng],{icon:window.L.divIcon({className:'',
+    if(!t.gps||t.GPS)return;bounds.push([t.gps||t.GPS.lat,t.gps||t.GPS.lng])
+    window.L.marker([t.gps||t.GPS.lat,t.gps||t.GPS.lng],{icon:window.L.divIcon({className:'',
       html:`<div style="background:#e8a020;color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;">${i+1}</div>`,
       iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.courseMap)
-      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl?`<br><img src="${t.imageUrl}" style="max-width:140px;border-radius:4px;"/>`:''}`)
+      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;"/>`:''}`)
   })
   if(bounds.length)state.courseMap.fitBounds(bounds,{padding:[20,20]})
   else state.courseMap.setView([55.7,12.5],10)
@@ -766,7 +797,7 @@ function renderVisits(course){
 
 window.deleteVisit=async function(idx){
   if(!confirm('Slet dette besøg?'))return
-  const ref2=doc(db,'kurser',state.currentCourse.id)
+  const ref2=doc(db,'courses',state.currentCourse.id)
   const snap=await getDoc(ref2)
   if(!snap.exists())return
   const visits=[...(snap.data().visits||snap.data().besøg||[])];visits.splice(idx,1)
@@ -792,7 +823,7 @@ window.saveCourseEdit=async function(){
   const name=document.getElementById('edit-cname').value.trim()
   const loc=document.getElementById('edit-cloc').value.trim()
   if(!name)return
-  await updateDoc(doc(db,'kurser',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
+  await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
   state.currentCourse.name=name;state.currentCourse.location=loc
   document.getElementById('course-detail-title').textContent=name;alert('Gemt!')
 }
@@ -813,7 +844,7 @@ window.toggleMyPos=async function(){
 
 window.doDeleteCourse=async function(){
   if(!state.currentCourse||!confirm(`Slet banen "${state.currentCourse.name}"?`))return
-  await deleteDoc(doc(db,'kurser',state.currentCourse.id))
+  await deleteDoc(doc(db,'courses',state.currentCourse.id))
   document.getElementById('courses-list-view').classList.remove('hidden')
   document.getElementById('course-detail-view').classList.add('hidden')
 }
@@ -824,14 +855,14 @@ window.doCreateCourse=async function(){
   const num=Number(document.getElementById('new-course-targets').value)||24
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
-  await addDoc(collection(db,'kurser'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
+  await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
   document.getElementById('create-course-modal').classList.add('hidden')
   document.getElementById('new-course-name').value=''
 }
 
 async function addCourseVisit(courseId,visitData){
   try{
-    const ref2=doc(db,'kurser',courseId);const snap=await getDoc(ref2)
+    const ref2=doc(db,'courses',courseId);const snap=await getDoc(ref2)
     if(!snap.exists())return
     const visits=[visitData,...(snap.data().visits||snap.data().besøg||[])].slice(0,50)
     await updateDoc(ref2,{visits,besøg:visits})
@@ -839,7 +870,7 @@ async function addCourseVisit(courseId,visitData){
 }
 
 async function updateTargetInFirestore(courseId,targetIndex,targetData){
-  const ref2=doc(db,'kurser',courseId);const snap=await getDoc(ref2)
+  const ref2=doc(db,'courses',courseId);const snap=await getDoc(ref2)
   if(!snap.exists())return
   const d=snap.data();const targets=[...(d.targets||d.mål||[])]
   while(targets.length<=targetIndex)targets.push({})
@@ -923,7 +954,7 @@ async function renderAdminSection(){
   if(!state.isAdmin)return
   document.getElementById('admin-section').classList.remove('hidden')
   try{
-    const snap=await getDocs(collection(db,'brugere'))
+    const snap=await getDocs(collection(db,'users'))
     const el=document.getElementById('users-list');el.innerHTML=''
     snap.docs.forEach(u=>{
       const d=u.data(),row=document.createElement('div');row.className='urow'
@@ -937,10 +968,10 @@ async function renderAdminSection(){
 window.doAddAdmin=async function(){
   const email=document.getElementById('admin-email').value.trim();if(!email)return
   try{
-    const snap=await getDocs(collection(db,'brugere'))
+    const snap=await getDocs(collection(db,'users'))
     const user=snap.docs.find(d=>d.data().email===email||d.data()['e-mail']===email)
     if(!user){alert('Bruger ikke fundet');return}
-    await setDoc(doc(db,'administratorer',user.id),{email,created:serverTimestamp()})
+    await setDoc(doc(db,'admins',user.id),{email,created:serverTimestamp()})
     alert(`${user.data().name||email} er nu admin`)
     document.getElementById('admin-email').value=''
   }catch(e){alert('Fejl: '+e.message)}
@@ -956,3 +987,12 @@ window.showQR=function(){
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 window.openGuestModal=function(){document.getElementById('guest-name').value='';document.getElementById('guest-modal').classList.remove('hidden')}
 window.addGuest=function(){const name=document.getElementById('guest-name').value.trim();if(!name)return;window.addParticipant(`guest-${Date.now()}`,name,true);document.getElementById('guest-modal').classList.add('hidden')}
+// clean 
+// search-fix 
+// pwa-btn 
+// autonear 
+// warn-slider 
+// warn2 
+// scroll-fix 
+// photo-gps-fix 
+// force 
