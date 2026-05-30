@@ -180,7 +180,7 @@ function getCurrentPosition() {
 function findNearestTarget(targets,pos) {
   if(!targets?.length||!pos) return 0
   let minD=Infinity,idx=0
-  targets.forEach((t,i)=>{if(!t.gps||t.GPS)return;const d=haversine(pos,t.gps||t.GPS);if(d<minD){minD=d;idx=i}})
+  targets.forEach((t,i)=>{if(!t.gps)return;const d=haversine(pos,t.gps);if(d<minD){minD=d;idx=i}})
   return idx
 }
 
@@ -248,6 +248,7 @@ window.doLogout = async function(){
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
+  const warnEl=document.getElementById('warn-enabled-sw');if(warnEl){const sv=localStorage.getItem('warnEnabled');state.warnEnabled=sv===null?true:sv==='true';warnEl.classList.toggle('on',state.warnEnabled);warnEl.addEventListener('click',()=>{state.warnEnabled=!state.warnEnabled;warnEl.classList.toggle('on',state.warnEnabled);localStorage.setItem('warnEnabled',state.warnEnabled)})}
   onAuthStateChanged(auth, async user=>{
     if(user){
       state.user=user
@@ -345,8 +346,8 @@ function onLogin(){
     console.log('Baner hentet:', snap.docs.length, snap.docs.map(d=>d.id))
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
-      return {id:d.id,name:data.name||data.yam||data.id||'—',numTargets:data.numTargets||data.antalMål||24,
-        location:data.location||data.beliggenhed||'',targets:data.targets||data.mal||data.mål||[],visits:data.visits||data.besøg||[]}
+      return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
+        location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
     })
     if(firestoreCourses.length){
       state.courses = firestoreCourses
@@ -389,10 +390,10 @@ function autoSelectNearestCourse(){
     const p={lat:pos.coords.latitude,lng:pos.coords.longitude}
     let minD=Infinity,best=null
     state.courses.forEach(c=>{
-      if(!c.targets?.length)return
-      c.targets.forEach(t=>{
-        if(!t.gps||t.GPS)return
-        const d=haversine(p,t.gps||t.GPS)
+      (c.targets||[]).forEach(t=>{
+        const tgps=t.gps||t.GPS
+        if(!tgps||!tgps.lat)return
+        const d=haversine(p,tgps)
         if(d<minD){minD=d;best=c.id}
       })
     })
@@ -410,7 +411,9 @@ function populateCourseDropdown(){
   if(cur)sel.value=cur
   sel.onchange=()=>{
     const c=state.courses.find(x=>x.id===sel.value)
-    updateStartTargetDropdown(c?c.numTargets:Number(document.getElementById('target-count').value))
+    const tc=document.getElementById('target-count')
+    if(c){tc.value=c.numTargets;tc.disabled=true}else{tc.disabled=false}
+    updateStartTargetDropdown(c?c.numTargets:Number(tc.value))
   }
 }
 
@@ -445,39 +448,22 @@ function renderQuickFriends(){
 window.searchFriends=async function(val){
   const list=document.getElementById('ac-list')
   if(!val.trim()){list.classList.add('hidden');return}
-
-  // Søg lokale venner
   const local=state.friends.filter(f=>f.name.toLowerCase().includes(val.toLowerCase()))
-
-  // Søg Firestore brugere
-  let firestoreUsers=[]
+  let remote=[]
   try{
     const snap=await getDocs(collection(db,'users'))
-    firestoreUsers=snap.docs
-      .map(d=>({id:d.id,...d.data()}))
-      .filter(u=>
-        (u.name||u.yam||'').toLowerCase().includes(val.toLowerCase()) &&
-        u.id !== state.user?.uid &&
-        !local.find(l=>l.id===u.id)
-      )
-      .map(u=>({id:u.id,name:u.name||u.yam||u.email||u['e-mail']||'—',email:u.email||u['e-mail']||''}))
+    remote=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(u=>(u.name||u.yam||'').toLowerCase().includes(val.toLowerCase())&&u.id!==state.user?.uid&&!local.find(l=>l.id===u.id))
+      .map(u=>({id:u.id,name:u.name||u.yam||u.email||'—',email:u.email||u['e-mail']||''}))
   }catch(e){console.warn(e)}
-
-  const all=[...local,...firestoreUsers]
+  const all=[...local,...remote]
   if(!all.length){list.classList.add('hidden');return}
-
-  list.innerHTML=all.map(f=>`<div class="ac-item" onclick="selectFriend('${f.id}','${(f.name||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}');document.getElementById('friend-search').value='';document.getElementById('ac-list').classList.add('hidden');">${f.name}${f.email?' <span style=\"font-size:11px;opacity:.6\">${f.email}</span>':''}</div>`).join('')
+  list.innerHTML=all.map(f=>`<div class="ac-item" onclick="selectFriend('${f.id}','${(f.name||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}');document.getElementById('friend-search').value='';document.getElementById('ac-list').classList.add('hidden');">${f.name}${f.email?` <span style='font-size:11px;opacity:.6'>${f.email}</span>`:''}</div>`).join('')
   list.classList.remove('hidden')
 }
 
 window.selectFriend=function(id,name,email){
-  // Tilføj som lokal ven hvis ikke allerede der
-  if(!state.friends.find(f=>f.id===id)){
-    state.friends.push({id,name,email})
-    lsSave()
-    renderFriendsList()
-    renderQuickFriends()
-  }
+  if(!state.friends.find(f=>f.id===id)){state.friends.push({id,name,email});lsSave();renderFriendsList();renderQuickFriends()}
   window.addParticipant(id,name)
 }
 
@@ -536,7 +522,7 @@ function updateTopBar(){
   document.getElementById('stat-tot').textContent=sum
   document.getElementById('stat-rem').textContent=n-scored
   const imgEl=document.getElementById('anim-img')
-  if(target?.imageUrl){imgEl.src=target.imageUrl||target.photo||t.photo;imgEl.classList.remove('hidden')}else imgEl.classList.add('hidden')
+  if(target?.imageUrl||target?.photo){imgEl.src=target.imageUrl||target.photo;imgEl.classList.remove('hidden')}else imgEl.classList.add('hidden')
   document.getElementById('edit-target-btn').classList.toggle('hidden',!(state.isAdmin&&state.round.courseId))
   document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?'AFSLUT →':'NÆSTE →'
   const tAvg=calcTargetAverage(state.round.shooters,tIdx)
@@ -579,17 +565,17 @@ function updateGpsBar({lat,lng,distance,elapsed}){
 
 async function saveActiveRound(){
   if(!state.round||!state.user)return
-  try{await setDoc(doc(db,'users',state.user.uid,'active','round'),serializeRound(state.round))}catch(e){console.warn(e)}
+  try{await setDoc(doc(db,'users',state.user.uid,'aktiv','runde'),serializeRound(state.round))}catch(e){console.warn(e)}
 }
 
 // ─── RESUME ───────────────────────────────────────────────────────────────────
 async function tryResumeRound(){
   try{
-    const snap=await getDoc(doc(db,'users',state.user.uid,'active','round'))
+    const snap=await getDoc(doc(db,'users',state.user.uid,'aktiv','runde'))
     if(!snap.exists())return
     const data=snap.data()
     const age=Date.now()-(data.created?.toMillis?data.created.toMillis():(data.created||0))
-    if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
+    if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde'));return}
     if(confirm('Genoptag den igangværende runde?')){
       state.round=deserializeRound(data)
       state.round.traversalOrder=data.traversalOrder||buildOrder(0,state.round.numTargets)
@@ -658,7 +644,7 @@ window.finishRound=async function(){
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
-  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde')).catch(()=>{})
 
   const finished=state.round;state.round=null
   renderResults(finished);showResultsPanel()
@@ -675,7 +661,7 @@ window.abortRound=async function(){
   state.abortTap=0;btn.textContent='🗑 AFBRYD'
   if(state.gpsTracking){stopTracking();state.gpsTracking=false}
   releaseWakeLock()
-  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde')).catch(()=>{})
   state.round=null;showSetupPanel()
 }
 
@@ -735,7 +721,7 @@ function renderRoundsList(){
   })
 }
 
-function showRoundPopup(round){
+function showRoundPopup(round){window._lastRound=round;
   let pop=document.getElementById('round-popup')
   if(!pop){
     pop=document.createElement('div');pop.id='round-popup';pop.className='rpop'
@@ -743,7 +729,7 @@ function showRoundPopup(round){
     document.body.appendChild(pop)
   }
   pop.classList.remove('hidden')
-  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>`+buildResultsTable(round)+buildDistribution(round)
+  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>`+buildResultsTable(round)+buildDistribution(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
 }
 
 // ─── COURSES ──────────────────────────────────────────────────────────────────
@@ -773,13 +759,13 @@ function initCourseMap(course){
   window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.courseMap)
   const bounds=[];
   (course.targets||[]).forEach((t,i)=>{
-    if(!t.gps||t.GPS)return;bounds.push([t.gps||t.GPS.lat,t.gps||t.GPS.lng])
-    window.L.marker([t.gps||t.GPS.lat,t.gps||t.GPS.lng],{icon:window.L.divIcon({className:'',
+    if(!t.gps||!t.gps.lat||!t.gps.lng)return;bounds.push([(t.gps||t.GPS).lat,(t.gps||t.GPS).lng])
+    window.L.marker([(t.gps||t.GPS).lat,(t.gps||t.GPS).lng],{icon:window.L.divIcon({className:'',
       html:`<div style="background:#e8a020;color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;">${i+1}</div>`,
       iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.courseMap)
-      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;"/>`:''}`)
+      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;cursor:zoom-in;" onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;"/>`:''}`)
   })
-  if(bounds.length)state.courseMap.fitBounds(bounds,{padding:[20,20]})
+  if(bounds.length)try{state.courseMap.fitBounds(bounds.filter(b=>b&&b[0]&&b[1]),{padding:[20,20]})}catch(e){state.courseMap.setView([55.7,12.5],10)}
   else state.courseMap.setView([55.7,12.5],10)
 }
 
@@ -790,9 +776,18 @@ function renderVisits(course){
   el.innerHTML=''
   visits.forEach((v,idx)=>{
     const card=document.createElement('div');card.className='visit-card'
+    card.style.cursor='pointer'
+    card.onclick=(e)=>{if(!e.target.closest('.btn-icon'))window.showVisitResults(v.roundId)}
     card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${v.date}</span><div style="display:flex;gap:6px;">${v.gpsRoute?`<button class="btn-icon" onclick="showRouteOnMap(parseRoute('${v.gpsRoute}'))">🗺️</button>`:''}<button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${v.winner} (${v.winnerScore} pt)</div>`:''}`
     el.appendChild(card)
   })
+}
+
+window.showVisitResults=function(roundId){
+  const round=state.rounds.find(r=>r.id===roundId)
+  if(!round){alert('Runden er ikke gemt lokalt');return}
+  const shooters=(round.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
+  showRoundPopup({...round,shooters})
 }
 
 window.deleteVisit=async function(idx){
@@ -985,14 +980,176 @@ window.showQR=function(){
 }
 
 // ─── MODALS ───────────────────────────────────────────────────────────────────
+
+window.sendResults=async function(round){
+  if(!round){alert('Ingen runde at sende');return}
+  const winner=findWinner(round.shooters)
+  const date=new Date().toLocaleDateString('da-DK')
+  let body='3D Bueskydning - Resultater\n'
+  body+='Dato: '+date+'\n'
+  if(round.courseName)body+='Bane: '+round.courseName+'\n'
+  body+='\n--- RESULTATER ---\n'
+  const sorted=[...round.shooters].sort((a,b)=>calcTotal(b.scores)-calcTotal(a.scores))
+  sorted.forEach((s,i)=>{body+='\n'+(i+1)+'. '+s.name+': '+calcTotal(s.scores)+' point'})
+  body+='\n\n--- DETALJERET ---\n'
+  round.shooters.forEach(s=>{
+    body+='\n'+s.name+':\n'
+    for(let t=0;t<round.numTargets;t++){
+      const r=s.scores[t]||[null,null]
+      const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
+      body+='  Mål '+(t+1)+': '+r.map(v=>v??'-').join('+')+' = '+sum+'\n'
+    }
+    body+='  Total: '+calcTotal(s.scores)+' point\n'
+  })
+  const emails=round.shooters.map(s=>state.friends.find(f=>f.id===s.id)?.email).filter(Boolean)
+  const subject='3D Bueskydning - '+round.name
+  const mailto='mailto:'+emails.join(',')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)
+  window.location.href=mailto
+}
+
+
+function renderAnalyse(){ /* v2 */
+  const el=document.getElementById('analyse-content')
+  if(!el)return
+  const filter=Number(document.getElementById('analyse-filter')?.value)||0
+  const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+  const rounds=filter?allRounds.slice(0,filter):allRounds
+  
+  if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
+
+  // Nøgletal
+  const myRounds=rounds
+  const myScores=myRounds.map(r=>{
+    const me=r.shooters?.[0]
+    return me?calcTotal(me.scores):null
+  }).filter(v=>v!==null)
+  
+  const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
+  const best=myScores.length?Math.max(...myScores):0
+  const worst=myScores.length?Math.min(...myScores):0
+
+  // Fordeling af scores
+  const dist={11:0,10:0,8:0,5:0,M:0}
+  myRounds.forEach(r=>{
+    const me=r.shooters.find(s=>s.id===state.user?.uid)
+    if(!me)return
+    me.scores.flat().forEach(v=>{
+      if(v==='M')dist.M++
+      else if(v!=null&&dist[Number(v)]!==undefined)dist[Number(v)]++
+    })
+  })
+  const totalArrows=Object.values(dist).reduce((a,b)=>a+b,0)
+
+  // Pil 1 vs Pil 2
+  let p1total=0,p1count=0,p2total=0,p2count=0
+  myRounds.forEach(r=>{
+    const me=r.shooters.find(s=>s.id===state.user?.uid)
+    if(!me)return
+    me.scores.forEach(t=>{
+      if(t[0]!=null&&t[0]!=='M'){p1total+=Number(t[0]);p1count++}
+      if(t[1]!=null&&t[1]!=='M'){p2total+=Number(t[1]);p2count++}
+    })
+  })
+  const p1avg=p1count?(p1total/p1count).toFixed(2):0
+  const p2avg=p2count?(p2total/p2count).toFixed(2):0
+
+  // Bygger HTML
+  let html=''
+  
+  // Nøgletal kort
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+    <div class="card" style="text-align:center;padding:12px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Runder</div>
+      <div style="font-size:28px;font-weight:700;color:var(--acc);">${myRounds.length}</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Snit/runde</div>
+      <div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bedste</div>
+      <div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Laveste</div>
+      <div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div>
+    </div>
+  </div>`
+
+  // Udviklingsgraf
+  if(myScores.length>1){
+    const w=340,h=120,pad=30
+    const min=Math.min(...myScores)-5,max=Math.max(...myScores)+5
+    const pts=myScores.slice().reverse().map((v,i)=>{
+      const x=pad+(i/(myScores.length-1))*(w-2*pad)
+      const y=h-pad-((v-min)/(max-min))*(h-2*pad)
+      return `${x},${y}`
+    }).join(' ')
+    html+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING</div>
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+        ${myScores.slice().reverse().map((v,i)=>{
+          const x=pad+(i/(myScores.length-1))*(w-2*pad)
+          const y=h-pad-((v-min)/(max-min))*(h-2*pad)
+          return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/>
+          <text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`
+        }).join('')}
+        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
+        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+      </svg>
+    </div>`
+  }
+
+  // Fordeling søjlediagram
+  if(totalArrows>0){
+    const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+    const maxVal=Math.max(...Object.values(dist))
+    html+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">FORDELING</div>
+      ${Object.entries(dist).map(([k,v])=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="width:20px;font-weight:700;color:${colors[k]}">${k}</span>
+          <div style="flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden;">
+            <div style="width:${maxVal?(v/maxVal*100):0}%;background:${colors[k]};height:100%;border-radius:4px;transition:width .3s;"></div>
+          </div>
+          <span style="width:40px;text-align:right;font-size:13px;">${v} (${totalArrows?(v/totalArrows*100).toFixed(0):0}%)</span>
+        </div>`).join('')}
+    </div>`
+  }
+
+  // Pil 1 vs Pil 2
+  html+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL 1 VS PIL 2</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);">PIL 1 SNIT</div>
+        <div style="font-size:24px;font-weight:700;color:var(--acc);">${p1avg}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);">PIL 2 SNIT</div>
+        <div style="font-size:24px;font-weight:700;color:var(--acc);">${p2avg}</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">
+      ${p1avg>p2avg?'Du scorer bedre med den første pil 🏹':p2avg>p1avg?'Du scorer bedre med den anden pil 🏹':'Begge pile er lige gode 🎯'}
+    </div>
+  </div>`
+
+  el.innerHTML=html
+}
+
 window.openGuestModal=function(){document.getElementById('guest-name').value='';document.getElementById('guest-modal').classList.remove('hidden')}
 window.addGuest=function(){const name=document.getElementById('guest-name').value.trim();if(!name)return;window.addParticipant(`guest-${Date.now()}`,name,true);document.getElementById('guest-modal').classList.add('hidden')}
-// clean 
-// search-fix 
-// pwa-btn 
-// autonear 
-// warn-slider 
-// warn2 
-// scroll-fix 
-// photo-gps-fix 
-// force 
+// complete-rebuild 
+// visits-fix 
+// map-popup 
+// photo-popup 
+// warn-fix 
+// color-fix 
+// analyse 
+// analyse-fix 
+// analyse-html2 
+// analyse3 
+// dedup-analyse 
+// force-analyse 
