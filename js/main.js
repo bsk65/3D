@@ -1154,3 +1154,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // dedup-analyse 
 // force-analyse 
 // window-analyse 
+// analyse-switch 
