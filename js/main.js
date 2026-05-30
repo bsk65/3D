@@ -379,7 +379,7 @@ window.switchTab=function(tab){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
   const _t=document.getElementById(`tab-${tab}`);if(_t){_t.classList.add('active');_t.classList.remove('hidden')}
   document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active')
-  if(tab==='friends')renderAdminSection()
+  if(tab==='friends')renderAdminSection();if(tab==='analyse')window.renderAnalyse()
   if(tab==='courses'&&state.courseMap)setTimeout(()=>state.courseMap.invalidateSize(),100)
 }
 
@@ -1008,7 +1008,7 @@ window.sendResults=async function(round){
 }
 
 
-window.renderAnalyse=function renderAnalyse(){ /* v2 */
+window.renderAnalyse=function renderAnalyse(){ /* v3 */
   const el=document.getElementById('analyse-content')
   if(!el)return
   const filter=Number(document.getElementById('analyse-filter')?.value)||0
