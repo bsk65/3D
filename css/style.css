@@ -111,8 +111,8 @@ select option{background:var(--surf);}
 .sbtn[data-v="M"]{background:#3a3a3a;color:#999;}
 .sbtn.sel-11{background:#1a7a3a !important;box-shadow:0 0 0 3px #2aaa5a;color:#fff;}
 .sbtn.sel-10{background:#1a5aaa !important;box-shadow:0 0 0 3px #2a7acc;color:#fff;}
-.sbtn.sel-8{background:#7a5000 !important;box-shadow:0 0 0 3px #aa7000;color:#fff;}
-.sbtn.sel-5{background:#5a2800 !important;box-shadow:0 0 0 3px #7a4000;color:#fff;}
+.sbtn.sel-8{background:#d4700a !important;box-shadow:0 0 0 3px #ff9933;color:#fff;}
+.sbtn.sel-5{background:#7a3aaa !important;box-shadow:0 0 0 3px #aa55dd;color:#fff;}
 .sbtn.sel-M{background:var(--danger) !important;box-shadow:0 0 0 3px #e05050;color:#fff;}
 .animal-wrap{text-align:center;margin:8px 12px;background:var(--surf);border-radius:var(--rl);border:1px solid var(--bord);padding:16px;min-height:60px;}
 .animal-wrap img{max-width:100%;max-height:200px;border-radius:var(--r);cursor:pointer;}
