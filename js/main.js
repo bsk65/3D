@@ -1008,7 +1008,7 @@ window.sendResults=async function(round){
 }
 
 
-function renderAnalyse(){ /* v2 */
+window.renderAnalyse=function renderAnalyse(){ /* v2 */
   const el=document.getElementById('analyse-content')
   if(!el)return
   const filter=Number(document.getElementById('analyse-filter')?.value)||0
@@ -1153,3 +1153,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // analyse3 
 // dedup-analyse 
 // force-analyse 
+// window-analyse 
