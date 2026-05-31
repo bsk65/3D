@@ -4,7 +4,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, 
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -20,7 +20,9 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig)
 const auth = getAuth(app)
-const db = getFirestore(app)
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+})
 const storage = getStorage(app)
 
 
@@ -248,7 +250,19 @@ window.doLogout = async function(){
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
-  const warnEl=document.getElementById('warn-enabled-sw');if(warnEl){const sv=localStorage.getItem('warnEnabled');state.warnEnabled=sv===null?true:sv==='true';warnEl.classList.toggle('on',state.warnEnabled);warnEl.addEventListener('click',()=>{state.warnEnabled=!state.warnEnabled;warnEl.classList.toggle('on',state.warnEnabled);localStorage.setItem('warnEnabled',state.warnEnabled)})}
+  // Init warn slider
+  const warnEl=document.getElementById('warn-enabled-sw')
+  if(warnEl){
+    const sv=localStorage.getItem('warnEnabled')
+    state.warnEnabled=sv===null?true:sv==='true'
+    warnEl.classList.toggle('on',state.warnEnabled)
+    warnEl.addEventListener('click',()=>{
+      state.warnEnabled=!state.warnEnabled
+      warnEl.classList.toggle('on',state.warnEnabled)
+      localStorage.setItem('warnEnabled',state.warnEnabled)
+    })
+  }
+
   onAuthStateChanged(auth, async user=>{
     if(user){
       state.user=user
@@ -339,6 +353,7 @@ function onLogin(){
   state.courses = localCourses
   renderCoursesList()
   populateCourseDropdown()
+  autoSelectNearestCourse()
 
   // Hent baner fra Firestore
   console.log('Henter baner, user uid:', state.user?.uid)
@@ -375,11 +390,12 @@ window.toggleLang=function(){
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 window.switchTab=function(tab){
-  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'))
+  document.querySelectorAll('.tab').forEach(el=>{el.classList.remove('active');el.classList.add('hidden')})
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
   const _t=document.getElementById(`tab-${tab}`);if(_t){_t.classList.add('active');_t.classList.remove('hidden')}
   document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active')
-  if(tab==='friends')renderAdminSection();if(tab==='analyse'){window.renderAnalyse();console.log('analyse called')}
+  if(tab==='friends')renderAdminSection()
+  if(tab==='analyse')window.renderAnalyse()
   if(tab==='courses'&&state.courseMap)setTimeout(()=>state.courseMap.invalidateSize(),100)
 }
 
@@ -759,13 +775,13 @@ function initCourseMap(course){
   window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.courseMap)
   const bounds=[];
   (course.targets||[]).forEach((t,i)=>{
-    if(!t.gps||!t.gps.lat||!t.gps.lng)return;bounds.push([(t.gps||t.GPS).lat,(t.gps||t.GPS).lng])
+    const tgps=t.gps||t.GPS;if(!tgps||!tgps.lat||!tgps.lng)return;bounds.push([tgps.lat,tgps.lng])
     window.L.marker([(t.gps||t.GPS).lat,(t.gps||t.GPS).lng],{icon:window.L.divIcon({className:'',
       html:`<div style="background:#e8a020;color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;">${i+1}</div>`,
       iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.courseMap)
-      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;cursor:zoom-in;" onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;"/>`:''}`)
+      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;"/>`:''}`)
   })
-  if(bounds.length)try{state.courseMap.fitBounds(bounds.filter(b=>b&&b[0]&&b[1]),{padding:[20,20]})}catch(e){state.courseMap.setView([55.7,12.5],10)}
+  if(bounds.length)state.courseMap.fitBounds(bounds,{padding:[20,20]})
   else state.courseMap.setView([55.7,12.5],10)
 }
 
@@ -782,6 +798,7 @@ function renderVisits(course){
     el.appendChild(card)
   })
 }
+
 
 window.showVisitResults=function(roundId){
   const round=state.rounds.find(r=>r.id===roundId)
@@ -981,9 +998,76 @@ window.showQR=function(){
 
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 
+
+window.renderAnalyse=function(){
+  const el=document.getElementById('analyse-content')
+  if(!el)return
+  const filter=Number(document.getElementById('analyse-filter')?.value)||0
+  const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+  const rounds=filter?allRounds.slice(0,filter):allRounds
+  if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
+  const myRounds=rounds
+  const myScores=myRounds.map(r=>{const me=r.shooters?.[0];return me?calcTotal(me.scores):null}).filter(v=>v!==null)
+  const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
+  const best=myScores.length?Math.max(...myScores):0
+  const worst=myScores.length?Math.min(...myScores):0
+  const dist={11:0,10:0,8:0,5:0,M:0}
+  myRounds.forEach(r=>{
+    const me=r.shooters.find(s=>s.id===state.user?.uid)||r.shooters?.[0]
+    if(!me)return
+    me.scores.flat().forEach(v=>{if(v==='M')dist.M++;else if(v!=null&&dist[Number(v)]!==undefined)dist[Number(v)]++})
+  })
+  const totalArrows=Object.values(dist).reduce((a,b)=>a+b,0)
+  let p1total=0,p1count=0,p2total=0,p2count=0
+  myRounds.forEach(r=>{
+    const me=r.shooters.find(s=>s.id===state.user?.uid)||r.shooters?.[0]
+    if(!me)return
+    me.scores.forEach(t=>{
+      if(t[0]!=null&&t[0]!=='M'){p1total+=Number(t[0]);p1count++}
+      if(t[1]!=null&&t[1]!=='M'){p2total+=Number(t[1]);p2count++}
+    })
+  })
+  const p1avg=p1count?(p1total/p1count).toFixed(2):0
+  const p2avg=p2count?(p2total/p2count).toFixed(2):0
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Runder</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${myRounds.length}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Snit/runde</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bedste</div><div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Laveste</div><div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div></div>
+  </div>`
+  if(myScores.length>1){
+    const w=340,h=120,pad=30,min=Math.min(...myScores)-5,max=Math.max(...myScores)+5
+    const pts=myScores.slice().reverse().map((v,i)=>{
+      const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-min)/(max-min))*(h-2*pad)
+      return `${x},${y}`
+    }).join(' ')
+    html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING</div>
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+        ${myScores.slice().reverse().map((v,i)=>{const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-min)/(max-min))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`}).join('')}
+        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
+        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+      </svg></div>`
+  }
+  if(totalArrows>0){
+    const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+    const maxVal=Math.max(...Object.values(dist))
+    html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">FORDELING</div>
+      ${Object.entries(dist).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:20px;font-weight:700;color:${colors[k]}">${k}</span><div style="flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden;"><div style="width:${maxVal?(v/maxVal*100):0}%;background:${colors[k]};height:100%;border-radius:4px;"></div></div><span style="width:40px;text-align:right;font-size:13px;">${v} (${totalArrows?(v/totalArrows*100).toFixed(0):0}%)</span></div>`).join('')}
+    </div>`
+  }
+  html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL 1 VS PIL 2</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
+      <div><div style="font-size:11px;color:var(--muted);">PIL 1 SNIT</div><div style="font-size:24px;font-weight:700;color:var(--acc);">${p1avg}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);">PIL 2 SNIT</div><div style="font-size:24px;font-weight:700;color:var(--acc);">${p2avg}</div></div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">${p1avg>p2avg?'Du scorer bedre med den første pil 🏹':p2avg>p1avg?'Du scorer bedre med den anden pil 🏹':'Begge pile er lige gode 🎯'}</div>
+  </div>`
+  el.innerHTML=html
+}
+
 window.sendResults=async function(round){
   if(!round){alert('Ingen runde at sende');return}
-  const winner=findWinner(round.shooters)
   const date=new Date().toLocaleDateString('da-DK')
   let body='3D Bueskydning - Resultater\n'
   body+='Dato: '+date+'\n'
@@ -1007,152 +1091,6 @@ window.sendResults=async function(round){
   window.location.href=mailto
 }
 
-
-window.renderAnalyse=function renderAnalyse(){ /* v3 */
-  const el=document.getElementById('analyse-content')
-  if(!el)return
-  const filter=Number(document.getElementById('analyse-filter')?.value)||0
-  const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
-  const rounds=filter?allRounds.slice(0,filter):allRounds
-  
-  if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
-
-  // Nøgletal
-  const myRounds=rounds
-  const myScores=myRounds.map(r=>{
-    const me=r.shooters?.[0]
-    return me?calcTotal(me.scores):null
-  }).filter(v=>v!==null)
-  
-  const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
-  const best=myScores.length?Math.max(...myScores):0
-  const worst=myScores.length?Math.min(...myScores):0
-
-  // Fordeling af scores
-  const dist={11:0,10:0,8:0,5:0,M:0}
-  myRounds.forEach(r=>{
-    const me=r.shooters.find(s=>s.id===state.user?.uid)
-    if(!me)return
-    me.scores.flat().forEach(v=>{
-      if(v==='M')dist.M++
-      else if(v!=null&&dist[Number(v)]!==undefined)dist[Number(v)]++
-    })
-  })
-  const totalArrows=Object.values(dist).reduce((a,b)=>a+b,0)
-
-  // Pil 1 vs Pil 2
-  let p1total=0,p1count=0,p2total=0,p2count=0
-  myRounds.forEach(r=>{
-    const me=r.shooters.find(s=>s.id===state.user?.uid)
-    if(!me)return
-    me.scores.forEach(t=>{
-      if(t[0]!=null&&t[0]!=='M'){p1total+=Number(t[0]);p1count++}
-      if(t[1]!=null&&t[1]!=='M'){p2total+=Number(t[1]);p2count++}
-    })
-  })
-  const p1avg=p1count?(p1total/p1count).toFixed(2):0
-  const p2avg=p2count?(p2total/p2count).toFixed(2):0
-
-  // Bygger HTML
-  let html=''
-  
-  // Nøgletal kort
-  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-    <div class="card" style="text-align:center;padding:12px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Runder</div>
-      <div style="font-size:28px;font-weight:700;color:var(--acc);">${myRounds.length}</div>
-    </div>
-    <div class="card" style="text-align:center;padding:12px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Snit/runde</div>
-      <div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div>
-    </div>
-    <div class="card" style="text-align:center;padding:12px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bedste</div>
-      <div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div>
-    </div>
-    <div class="card" style="text-align:center;padding:12px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Laveste</div>
-      <div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div>
-    </div>
-  </div>`
-
-  // Udviklingsgraf
-  if(myScores.length>1){
-    const w=340,h=120,pad=30
-    const min=Math.min(...myScores)-5,max=Math.max(...myScores)+5
-    const pts=myScores.slice().reverse().map((v,i)=>{
-      const x=pad+(i/(myScores.length-1))*(w-2*pad)
-      const y=h-pad-((v-min)/(max-min))*(h-2*pad)
-      return `${x},${y}`
-    }).join(' ')
-    html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING</div>
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
-        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
-        ${myScores.slice().reverse().map((v,i)=>{
-          const x=pad+(i/(myScores.length-1))*(w-2*pad)
-          const y=h-pad-((v-min)/(max-min))*(h-2*pad)
-          return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/>
-          <text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`
-        }).join('')}
-        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
-        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
-      </svg>
-    </div>`
-  }
-
-  // Fordeling søjlediagram
-  if(totalArrows>0){
-    const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
-    const maxVal=Math.max(...Object.values(dist))
-    html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">FORDELING</div>
-      ${Object.entries(dist).map(([k,v])=>`
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="width:20px;font-weight:700;color:${colors[k]}">${k}</span>
-          <div style="flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden;">
-            <div style="width:${maxVal?(v/maxVal*100):0}%;background:${colors[k]};height:100%;border-radius:4px;transition:width .3s;"></div>
-          </div>
-          <span style="width:40px;text-align:right;font-size:13px;">${v} (${totalArrows?(v/totalArrows*100).toFixed(0):0}%)</span>
-        </div>`).join('')}
-    </div>`
-  }
-
-  // Pil 1 vs Pil 2
-  html+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL 1 VS PIL 2</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
-      <div>
-        <div style="font-size:11px;color:var(--muted);">PIL 1 SNIT</div>
-        <div style="font-size:24px;font-weight:700;color:var(--acc);">${p1avg}</div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--muted);">PIL 2 SNIT</div>
-        <div style="font-size:24px;font-weight:700;color:var(--acc);">${p2avg}</div>
-      </div>
-    </div>
-    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">
-      ${p1avg>p2avg?'Du scorer bedre med den første pil 🏹':p2avg>p1avg?'Du scorer bedre med den anden pil 🏹':'Begge pile er lige gode 🎯'}
-    </div>
-  </div>`
-
-  el.innerHTML=html
-}
-
 window.openGuestModal=function(){document.getElementById('guest-name').value='';document.getElementById('guest-modal').classList.remove('hidden')}
 window.addGuest=function(){const name=document.getElementById('guest-name').value.trim();if(!name)return;window.addParticipant(`guest-${Date.now()}`,name,true);document.getElementById('guest-modal').classList.add('hidden')}
-// complete-rebuild 
-// visits-fix 
-// map-popup 
-// photo-popup 
-// warn-fix 
-// color-fix 
-// analyse 
-// analyse-fix 
-// analyse-html2 
-// analyse3 
-// dedup-analyse 
-// force-analyse 
-// window-analyse 
-// analyse-switch 
- 
+// clean-v1 
