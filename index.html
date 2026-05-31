@@ -18,7 +18,7 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/assets/index-ClM6CBBb.js"></script>
+    <script type="module" crossorigin src="/3D/assets/index-B4VsUywx.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/assets/index-DySDLgmr.css">
   </head>
 <body>
@@ -228,13 +228,23 @@
     
         
     <div id="tab-analyse" class="tab">
-      <div class="tab-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="tab-header">
         <span class="tab-title">Analyse</span>
-        <select id="analyse-filter" onchange="renderAnalyse()" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <select id="analyse-filter" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
           <option value="all">Alle runder</option>
           <option value="10">Seneste 10</option>
           <option value="20">Seneste 20</option>
         </select>
+        <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="all">Alle baner</option>
+        </select>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px;">
+          <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
+            style="flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;"
+            oninput="renderAnalyse()" />
+        </div>
       </div>
       <div id="analyse-content" style="padding:12px;"></div>
     </div>
