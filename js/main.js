@@ -355,6 +355,23 @@ function onLogin(){
   populateCourseDropdown()
   autoSelectNearestCourse()
 
+  // Hent runder fra Firestore
+  getDocs(collection(db,'users',state.user.uid,'rounds')).then(snap=>{
+    if(!snap.docs.length)return
+    const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
+    const localIds=new Set(state.rounds.map(r=>r.id))
+    const newRounds=fsRounds.filter(r=>!localIds.has(r.id))
+    if(newRounds.length){
+      state.rounds=[...state.rounds,...newRounds].sort((a,b)=>{
+        const ta=a.completed||a.created||0
+        const tb=b.completed||b.created||0
+        return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)
+      })
+      lsSave(); renderRoundsList()
+      console.log('Runder fra Firestore:',newRounds.length)
+    }
+  }).catch(e=>console.warn('Hent runder:',e))
+
   // Hent baner fra Firestore
   console.log('Henter baner, user uid:', state.user?.uid)
   getDocs(collection(db,'courses')).then(snap=>{
@@ -581,17 +598,17 @@ function updateGpsBar({lat,lng,distance,elapsed}){
 
 async function saveActiveRound(){
   if(!state.round||!state.user)return
-  try{await setDoc(doc(db,'users',state.user.uid,'aktiv','runde'),serializeRound(state.round))}catch(e){console.warn(e)}
+  try{await setDoc(doc(db,'users',state.user.uid,'active','round'),serializeRound(state.round))}catch(e){console.warn(e)}
 }
 
 // ─── RESUME ───────────────────────────────────────────────────────────────────
 async function tryResumeRound(){
   try{
-    const snap=await getDoc(doc(db,'users',state.user.uid,'aktiv','runde'))
+    const snap=await getDoc(doc(db,'users',state.user.uid,'active','round'))
     if(!snap.exists())return
     const data=snap.data()
     const age=Date.now()-(data.created?.toMillis?data.created.toMillis():(data.created||0))
-    if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde'));return}
+    if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
     if(confirm('Genoptag den igangværende runde?')){
       state.round=deserializeRound(data)
       state.round.traversalOrder=data.traversalOrder||buildOrder(0,state.round.numTargets)
@@ -650,6 +667,8 @@ window.finishRound=async function(){
   const roundData={...serializeRound(state.round),completed:Date.now(),...gpsData,id:roundId}
   state.rounds.unshift({...roundData,created:{toDate:()=>new Date(),toMillis:()=>Date.now()}})
   lsSave();renderRoundsList()
+  // Gem runde i Firestore
+  setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
 
   if(state.round.courseId){
     const winner=findWinner(state.round.shooters)
@@ -660,7 +679,7 @@ window.finishRound=async function(){
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
-  deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
 
   const finished=state.round;state.round=null
   renderResults(finished);showResultsPanel()
@@ -677,7 +696,7 @@ window.abortRound=async function(){
   state.abortTap=0;btn.textContent='🗑 AFBRYD'
   if(state.gpsTracking){stopTracking();state.gpsTracking=false}
   releaseWakeLock()
-  deleteDoc(doc(db,'users',state.user.uid,'aktiv','runde')).catch(()=>{})
+  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
   state.round=null;showSetupPanel()
 }
 
@@ -706,8 +725,24 @@ function buildResultsTable(round){
 
 function buildDistribution(round){
   return '<div class="dist-grid">'+round.shooters.map(s=>{
-    const d=calcDistribution(s.scores)
-    return `<div class="dist-card"><div class="dist-name">${s.name}</div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+    const dist=calcDist(s.scores)
+    const flat=s.scores.flat().filter(v=>v!=null)
+    const totalArrows=flat.length
+    const avg=totalArrows?(flat.reduce((a,v)=>a+po(v),0)/totalArrows).toFixed(2):0
+    return `<div class="dist-card">
+      <div class="dist-name">${s.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px;">
+          <div style="font-size:10px;color:var(--muted);">SNT/PIL</div>
+          <div style="font-size:20px;font-weight:700;color:var(--acc);">${avg}</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px;">
+          <div style="font-size:10px;color:var(--muted);">PILE</div>
+          <div style="font-size:20px;font-weight:700;color:var(--acc);">${totalArrows}</div>
+        </div>
+      </div>
+      ${Object.entries(dist).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}
+    </div>`
   }).join('')+'</div>'
 }
 
@@ -731,6 +766,10 @@ function renderRoundsList(){
       }else{
         delete state.deleteConfirm[key]
         state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
+        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
+        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
+        // Slet fra Firestore
+        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
       }
     }
     el.appendChild(card)
@@ -794,7 +833,9 @@ function renderVisits(course){
     const card=document.createElement('div');card.className='visit-card'
     card.style.cursor='pointer'
     card.onclick=(e)=>{if(!e.target.closest('.btn-icon'))window.showVisitResults(v.roundId)}
-    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${v.date}</span><div style="display:flex;gap:6px;">${v.gpsRoute?`<button class="btn-icon" onclick="showRouteOnMap(parseRoute('${v.gpsRoute}'))">🗺️</button>`:''}<button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${v.winner} (${v.winnerScore} pt)</div>`:''}`
+    const durStr=v.gpsDuration?formatDuration(v.gpsDuration):null
+    const distStr=v.gpsDistance?formatDistance(v.gpsDistance):null
+    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${v.date}</span><div style="display:flex;gap:6px;">${v.gpsRoute?`<button class="btn-icon" onclick="showRouteOnMap(parseRoute('${v.gpsRoute}'))">🗺️</button>`:''}<button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${v.winner} (${v.winnerScore} pt)</div>`:''}${distStr||durStr?`<div style="display:flex;gap:8px;margin-top:8px;">${distStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${distStr}</div><div style="font-size:11px;color:var(--muted);">DISTANCE</div></div>`:''}${durStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${durStr}</div><div style="font-size:11px;color:var(--muted);">TID</div></div>`:''}</div>`:''}`
     el.appendChild(card)
   })
 }
@@ -828,7 +869,55 @@ window.showRouteOnMap=function(points){
 window.parseRoute=parseRoute
 
 function renderCourseEditForm(course){
-  document.getElementById('course-edit-form').innerHTML=`<div class="fg"><label class="lbl">Banenavn</label><input type="text" id="edit-cname" value="${course.name}" /></div><div class="fg"><label class="lbl">Lokation</label><input type="text" id="edit-cloc" value="${course.location||''}" /></div><button class="btn btn-gold" onclick="saveCourseEdit()">Gem ændringer</button>`
+  const targets=course.targets||[]
+  let html=`
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Baneinfo</div>
+      <div class="fg"><label class="lbl">Banenavn</label><input type="text" id="edit-cname" value="${course.name}" /></div>
+      <div class="fg"><label class="lbl">Lokation</label><input type="text" id="edit-cloc" value="${course.location||''}" /></div>
+      <button class="btn btn-gold" style="width:100%" onclick="saveCourseEdit()">Gem baneinfo</button>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Mål (${targets.length})</span>
+        <button class="btn-icon" onclick="addTargetToCurrentCourse()" style="font-size:20px;">＋</button>
+      </div>
+      <div id="targets-edit-list">`
+  
+  targets.forEach((t,i)=>{
+    html+=`<div class="fg" style="border-bottom:1px solid var(--surface2);padding-bottom:12px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:700;color:var(--acc);">Mål ${i+1}</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-icon" onclick="setTargetGps(${i})" title="Sæt GPS">📍</button>
+          <button class="btn-icon" onclick="deleteTargetFromCourse(${i})" style="color:var(--danger)">🗑</button>
+        </div>
+      </div>
+      <div class="fg"><label class="lbl">Navn</label>
+        <input type="text" value="${t.name||''}" onchange="updateTargetField(${i},'name',this.value)" style="padding:6px 10px;" /></div>
+      <div style="display:flex;gap:8px;">
+        <div class="fg" style="flex:1"><label class="lbl">Emoji</label>
+          <input type="text" value="${t.emoji||''}" onchange="updateTargetField(${i},'emoji',this.value)" style="padding:6px 10px;" /></div>
+        <div class="fg" style="flex:1"><label class="lbl">Afstand (m)</label>
+          <input type="number" value="${t.distance||''}" onchange="updateTargetField(${i},'distance',this.value)" style="padding:6px 10px;" /></div>
+      </div>
+      ${t.gps||t.GPS?
+        `<div style="font-size:12px;color:var(--muted);">📍 GPS: ${(t.gps||t.GPS).lat.toFixed(5)}, ${(t.gps||t.GPS).lng.toFixed(5)}</div>`:
+        `<div style="font-size:12px;color:var(--danger);">Ingen GPS</div>`
+      }
+      ${t.imageUrl||t.photo?
+        `<img src="${t.imageUrl||t.photo}" style="max-width:100%;max-height:100px;border-radius:8px;margin-top:6px;object-fit:cover;" />`:''
+      }
+      <label class="btn btn-dark" style="margin-top:6px;display:inline-block;font-size:12px;padding:4px 10px;cursor:pointer;">
+        📷 Upload foto
+        <input type="file" accept="image/*" style="display:none;" onchange="uploadTargetPhoto(${i},this)" />
+      </label>
+      <button class="btn btn-gold" style="margin-top:6px;font-size:12px;padding:4px 10px;" onclick="saveAllTargets()">💾 Gem alle mål</button>
+    </div>`
+  })
+  
+  html+=`</div></div>`
+  document.getElementById('course-edit-form').innerHTML=html
 }
 
 window.saveCourseEdit=async function(){
@@ -838,6 +927,79 @@ window.saveCourseEdit=async function(){
   await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
   state.currentCourse.name=name;state.currentCourse.location=loc
   document.getElementById('course-detail-title').textContent=name;alert('Gemt!')
+}
+
+window.updateTargetField=function(idx,field,value){
+  if(!state.currentCourse?.targets)return
+  state.currentCourse.targets[idx][field]=value
+}
+
+window.addTargetToCurrentCourse=async function(){
+  if(!state.currentCourse)return
+  const targets=[...(state.currentCourse.targets||[])]
+  targets.push({number:targets.length+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null})
+  await updateDoc(doc(db,'courses',state.currentCourse.id),{targets})
+  state.currentCourse.targets=targets
+  renderCourseEditForm(state.currentCourse)
+  alert(`Mål ${targets.length} tilføjet!`)
+}
+
+window.deleteTargetFromCourse=async function(idx){
+  if(!state.currentCourse?.targets)return
+  if(!confirm(`Slet mål ${idx+1}?`))return
+  const targets=[...state.currentCourse.targets]
+  targets.splice(idx,1)
+  // Renumber
+  targets.forEach((t,i)=>t.number=i+1)
+  await updateDoc(doc(db,'courses',state.currentCourse.id),{targets,numTargets:targets.length})
+  state.currentCourse.targets=targets
+  state.currentCourse.numTargets=targets.length
+  renderCourseEditForm(state.currentCourse)
+}
+
+window.setTargetGps=async function(idx){
+  if(!state.currentCourse?.targets)return
+  try{
+    const pos=await getCurrentPosition()
+    state.currentCourse.targets[idx].gps=pos
+    await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
+    renderCourseEditForm(state.currentCourse)
+    alert(`GPS sat for mål ${idx+1}!`)
+  }catch(e){alert('GPS fejl: '+e.message)}
+}
+
+window.uploadTargetPhoto=async function(idx,input){
+  const file=input.files[0];if(!file)return
+  try{
+    const b64=await compressImage(file)
+    const imgRef=ref(storage,`courses/${state.currentCourse.id}/target_${idx}.jpg`)
+    await uploadString(imgRef,b64,'base64',{contentType:'image/jpeg'})
+    const url=await getDownloadURL(imgRef)
+    state.currentCourse.targets[idx].imageUrl=url
+    await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
+    renderCourseEditForm(state.currentCourse)
+    alert('Foto gemt!')
+  }catch(e){alert('Upload fejl: '+e.message)}
+}
+
+window.uploadTargetPhoto=async function(idx,input){
+  const file=input.files[0];if(!file)return
+  try{
+    const b64=await compressImage(file)
+    const imgRef=ref(storage,`courses/${state.currentCourse.id}/target_${idx}.jpg`)
+    await uploadString(imgRef,b64,'base64',{contentType:'image/jpeg'})
+    const url=await getDownloadURL(imgRef)
+    state.currentCourse.targets[idx].imageUrl=url
+    await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
+    renderCourseEditForm(state.currentCourse)
+    alert('Foto gemt!')
+  }catch(e){alert('Upload fejl: '+e.message)}
+}
+
+window.saveAllTargets=async function(){
+  if(!state.currentCourse?.targets)return
+  await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
+  alert('Alle mål gemt!')
 }
 
 window.switchSubtab=function(name){
@@ -1002,67 +1164,167 @@ window.showQR=function(){
 window.renderAnalyse=function(){
   const el=document.getElementById('analyse-content')
   if(!el)return
+  const baneEl=document.getElementById('analyse-bane')
+  if(baneEl&&baneEl.options.length<=1){
+    const brugteBaner=[...new Set(state.rounds.map(r=>r.courseId).filter(Boolean))]
+    brugteBaner.forEach(id=>{
+      const c=state.courses.find(x=>x.id===id)
+      if(c&&!Array.from(baneEl.options).find(o=>o.value===id)){
+        const o=document.createElement('option');o.value=id;o.textContent=c.name;baneEl.appendChild(o)
+      }
+    })
+  }
   const filter=Number(document.getElementById('analyse-filter')?.value)||0
+  const bane=document.getElementById('analyse-bane')?.value||'all'
+  const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
-  const rounds=filter?allRounds.slice(0,filter):allRounds
+  let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
+  const antal=antalInput||filter
+  const rounds=antal?filtered.slice(0,antal):filtered
   if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
-  const myRounds=rounds
-  const myScores=myRounds.map(r=>{const me=r.shooters?.[0];return me?calcTotal(me.scores):null}).filter(v=>v!==null)
+  const getMe=r=>r.shooters.find(x=>x.id===state.user?.uid)||r.shooters?.[0]
+  const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
   const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
   const best=myScores.length?Math.max(...myScores):0
   const worst=myScores.length?Math.min(...myScores):0
-  const dist={11:0,10:0,8:0,5:0,M:0}
-  myRounds.forEach(r=>{
-    const me=r.shooters.find(s=>s.id===state.user?.uid)||r.shooters?.[0]
-    if(!me)return
-    me.scores.flat().forEach(v=>{if(v==='M')dist.M++;else if(v!=null&&dist[Number(v)]!==undefined)dist[Number(v)]++})
-  })
-  const totalArrows=Object.values(dist).reduce((a,b)=>a+b,0)
-  let p1total=0,p1count=0,p2total=0,p2count=0
-  myRounds.forEach(r=>{
-    const me=r.shooters.find(s=>s.id===state.user?.uid)||r.shooters?.[0]
-    if(!me)return
-    me.scores.forEach(t=>{
-      if(t[0]!=null&&t[0]!=='M'){p1total+=Number(t[0]);p1count++}
-      if(t[1]!=null&&t[1]!=='M'){p2total+=Number(t[1]);p2count++}
+  let p1t=0,p1n=0,p2t=0,p2n=0
+  const distP1={11:0,10:0,8:0,5:0,M:0}
+  const distP2={11:0,10:0,8:0,5:0,M:0}
+  rounds.forEach(r=>{
+    const s=getMe(r);if(!s)return
+    s.scores.forEach(t=>{
+      if(t[0]!=null){if(t[0]==='M')distP1.M++;else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
+      if(t[1]!=null){if(t[1]==='M')distP2.M++;else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
     })
   })
-  const p1avg=p1count?(p1total/p1count).toFixed(2):0
-  const p2avg=p2count?(p2total/p2count).toFixed(2):0
-  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Runder</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${myRounds.length}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Snit/runde</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bedste</div><div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Laveste</div><div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div></div>
+  const p1avg=p1n?(p1t/p1n).toFixed(2):0
+  const p2avg=p2n?(p2t/p2n).toFixed(2):0
+  const pilAvg=(p1n+p2n)?((p1t+p2t)/(p1n+p2n)).toFixed(2):0
+  const numTargets=rounds[0]?.numTargets||24
+  const targetAvgs=Array.from({length:numTargets},(_,ti)=>{
+    let tot=0,cnt=0
+    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const row=s.scores[ti]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
+    return cnt?(tot/cnt):null
+  })
+  const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
+  const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
+  const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
+  const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+  const zones=['11','10','8','5','M']
+  let html=''
+
+  // Nøgletal
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">RUNDER</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${rounds.length}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">SNIT/RUNDE</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">BEDSTE</div><div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div></div>
+    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">LAVESTE</div><div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div></div>
   </div>`
-  if(myScores.length>1){
-    const w=340,h=120,pad=30,min=Math.min(...myScores)-5,max=Math.max(...myScores)+5
-    const pts=myScores.slice().reverse().map((v,i)=>{
-      const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-min)/(max-min))*(h-2*pad)
-      return `${x},${y}`
-    }).join(' ')
-    html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING</div>
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
-        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
-        ${myScores.slice().reverse().map((v,i)=>{const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-min)/(max-min))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`}).join('')}
-        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
-        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
-      </svg></div>`
-  }
-  if(totalArrows>0){
-    const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
-    const maxVal=Math.max(...Object.values(dist))
-    html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">FORDELING</div>
-      ${Object.entries(dist).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:20px;font-weight:700;color:${colors[k]}">${k}</span><div style="flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden;"><div style="width:${maxVal?(v/maxVal*100):0}%;background:${colors[k]};height:100%;border-radius:4px;"></div></div><span style="width:40px;text-align:right;font-size:13px;">${v} (${totalArrows?(v/totalArrows*100).toFixed(0):0}%)</span></div>`).join('')}
+
+  // Pil statistik
+  html+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL STATISTIK</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+      <div><div style="font-size:11px;color:var(--muted);">PIL 1</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${p1avg}</div></div>
+      <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
+        <div style="font-size:11px;color:var(--muted);">SNT/PIL</div>
+        <div style="font-size:22px;font-weight:700;color:#f0c030;">${pilAvg}</div>
+      </div>
+      <div><div style="font-size:11px;color:var(--muted);">PIL 2</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${p2avg}</div></div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">
+      ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
+    </div>
+  </div>`
+
+  // Bedste/dårligste mål
+  if(bestTarget&&worstTarget&&bestTarget.i!==worstTarget.i){
+    html+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">BEDSTE OG SVÆRESTE MÅL</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
+        <div style="background:rgba(42,170,90,0.15);border-radius:8px;padding:10px;">
+          <div style="font-size:11px;color:var(--muted);">BEDSTE</div>
+          <div style="font-size:24px;font-weight:700;color:#2aaa5a;">Mål ${bestTarget.i+1}</div>
+          <div style="font-size:13px;color:var(--muted);">⌀ ${bestTarget.v.toFixed(2)}</div>
+        </div>
+        <div style="background:rgba(204,51,51,0.15);border-radius:8px;padding:10px;">
+          <div style="font-size:11px;color:var(--muted);">SVÆRESTE</div>
+          <div style="font-size:24px;font-weight:700;color:var(--danger);">Mål ${worstTarget.i+1}</div>
+          <div style="font-size:13px;color:var(--muted);">⌀ ${worstTarget.v.toFixed(2)}</div>
+        </div>
+      </div>
     </div>`
   }
-  html+=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL 1 VS PIL 2</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
-      <div><div style="font-size:11px;color:var(--muted);">PIL 1 SNIT</div><div style="font-size:24px;font-weight:700;color:var(--acc);">${p1avg}</div></div>
-      <div><div style="font-size:11px;color:var(--muted);">PIL 2 SNIT</div><div style="font-size:24px;font-weight:700;color:var(--acc);">${p2avg}</div></div>
+
+  // Lagkagediagrammer
+  html+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">FORDELING PR. SCOREZONE</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">`
+  zones.forEach(z=>{
+    const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
+    const r=28
+    let pie=''
+    if(tot===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="var(--surface2)"/>`}
+    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="${colors[z]}"/>`}
+    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#5a3a8a"/>`}
+    else{
+      const pct=v1/tot,angle=pct*2*Math.PI
+      const x1=r+r*Math.sin(0),y1=r-r*Math.cos(0)
+      const x2=r+r*Math.sin(angle),y2=r-r*Math.cos(angle)
+      const large=angle>Math.PI?1:0
+      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${colors[z]}"/>
+           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},1 ${x1},${y1} Z" fill="#5a3a8a"/>`
+    }
+    html+=`<div style="text-align:center;">
+      <svg viewBox="0 0 ${r*2} ${r*2}" style="width:52px;height:52px;">${pie}</svg>
+      <div style="font-weight:700;font-size:14px;color:${colors[z]}">${z}</div>
+      <div style="font-size:10px;color:var(--muted);">${v1}/${v2}</div>
+    </div>`
+  })
+  html+=`</div>
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted);">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--acc);margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5a3a8a;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
     </div>
-    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">${p1avg>p2avg?'Du scorer bedre med den første pil 🏹':p2avg>p1avg?'Du scorer bedre med den anden pil 🏹':'Begge pile er lige gode 🎯'}</div>
   </div>`
+
+  // Udviklingsgraf
+  if(myScores.length>1){
+    const w=340,h=120,pad=30,mn=Math.min(...myScores)-5,mx=Math.max(...myScores)+5
+    const pts=myScores.slice().reverse().map((v,i)=>{
+      const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad)
+      return `${x},${y}`
+    }).join(' ')
+    html+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING (RUNDER)</div>
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+        ${myScores.slice().reverse().map((v,i)=>{const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`}).join('')}
+        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
+        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+      </svg>
+    </div>`
+  }
+
+  // Per-mål graf
+  const validTA=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
+  if(validTA.length>1){
+    const w=340,h=130,pad=30,mn=Math.min(...validTA.map(x=>x.v))-0.5,mx=Math.max(...validTA.map(x=>x.v))+0.5
+    const pts=validTA.map(({v,i})=>{
+      const x=pad+(i/(numTargets-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad)
+      return `${x},${y}`
+    }).join(' ')
+    html+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL</div>
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+        <polyline points="${pts}" fill="none" stroke="#f0c030" stroke-width="2" stroke-linejoin="round"/>
+        ${validTA.map(({v,i})=>{const x=pad+(i/(numTargets-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="3" fill="#f0c030"/>`}).join('')}
+        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">Mål 1</text>
+        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">Mål ${numTargets}</text>
+      </svg>
+    </div>`
+  }
+
   el.innerHTML=html
 }
 
@@ -1094,3 +1356,13 @@ window.sendResults=async function(round){
 window.openGuestModal=function(){document.getElementById('guest-name').value='';document.getElementById('guest-modal').classList.remove('hidden')}
 window.addGuest=function(){const name=document.getElementById('guest-name').value.trim();if(!name)return;window.addParticipant(`guest-${Date.now()}`,name,true);document.getElementById('guest-modal').classList.add('hidden')}
 // clean-v1 
+// analyse2 
+// rounds-fs 
+// delete-round-fix 
+// course-edit 
+// visit-stats 
+// stats-course 
+// finish-fix 
+// save-rounds 
+// syntax-fix 
+// delete-rounds  // delete-rounds 
