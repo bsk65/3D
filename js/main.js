@@ -768,9 +768,7 @@ function renderRoundsList(){
       }else{
         delete state.deleteConfirm[key]
         state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
-        // Slet fra Firestore
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
-        // Slet besøg fra bane
         if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
@@ -1312,22 +1310,51 @@ window.renderAnalyse=function(){
     </div>`
   }
 
-  // Per-mål graf
+  // Per-mål graf - kun ved specifik bane eller seneste runde
+  const showTargetGraph=bane!=='all'||filterVal==='lastround'
   const validTA=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
-  if(validTA.length>1){
-    const w=340,h=130,pad=30,mn=Math.min(...validTA.map(x=>x.v))-0.5,mx=Math.max(...validTA.map(x=>x.v))+0.5
-    const pts=validTA.map(({v,i})=>{
-      const x=pad+(i/(numTargets-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad)
-      return `${x},${y}`
-    }).join(' ')
+  if(validTA.length>1&&showTargetGraph){
+    const w=340,h=160,padL=42,padB=25,padT=15,padR=15
+    const mn=Math.floor(Math.min(...validTA.map(x=>x.v)))
+    const mx=Math.ceil(Math.max(...validTA.map(x=>x.v)))
+    const range=mx-mn||1
+    const toX=idx2=>padL+(numTargets>1?(idx2/(numTargets-1))*(w-padL-padR):0)
+    const toY=val=>padT+(h-padT-padB)*(1-(val-mn)/range)
+    const pts=validTA.map(({v,i})=>toX(i)+','+toY(v)).join(' ')
+    const ticks=[]
+    for(let t=mn;t<=mx;t++){if((mx-mn)<=6||t%Math.ceil((mx-mn)/5)===0)ticks.push(t)}
+    const ticksSvg=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${w-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
+    const dotsSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="3" fill="var(--acc)"/>`).join('')
+    const dotsLargeSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="var(--acc)"/><text x="${toX(i)}" y="${toY(v)-8}" text-anchor="middle" font-size="9" fill="var(--text)">${v.toFixed(1)}</text>`).join('')
     html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL</div>
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span>GENNEMSNIT PR. MÅL</span>
+        <button class="btn-icon" onclick="document.getElementById('graph-fs').classList.remove('hidden')" style="font-size:16px;">⤢</button>
+      </div>
       <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
-        <polyline points="${pts}" fill="none" stroke="#f0c030" stroke-width="2" stroke-linejoin="round"/>
-        ${validTA.map(({v,i})=>{const x=pad+(i/(numTargets-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="3" fill="#f0c030"/>`}).join('')}
-        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">Mål 1</text>
-        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">Mål ${numTargets}</text>
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+        <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+        ${ticksSvg}
+        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round"/>
+        ${dotsSvg}
+        <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
+        <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
       </svg>
+    </div>
+    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:center;justify-content:center;padding:20px;">
+      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:600px;" onclick="event.stopPropagation()">
+        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL</div>
+        <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+          <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+          ${ticksSvg}
+          <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+          ${dotsLargeSvg}
+          <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
+          <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
+        </svg>
+        <button class="btn btn-dark" style="width:100%;margin-top:12px;" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
+      </div>
     </div>`
   }
 
@@ -1366,7 +1393,6 @@ async function removeVisitFromCourse(courseId, roundId){
   if(!snap.exists())return
   const visits=(snap.data().visits||[]).filter(v=>v.roundId!==roundId)
   await updateDoc(ref2,{visits})
-  // Update local cache
   const course=state.courses.find(c=>c.id===courseId)
   if(course)course.visits=visits
 }
@@ -1384,4 +1410,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // save-rounds 
 // syntax-fix 
 // delete-rounds  // delete-rounds 
-// delete-visit 
+// graph-yaxis 
