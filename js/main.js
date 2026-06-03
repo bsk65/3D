@@ -670,20 +670,20 @@ window.finishRound=async function(){
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
 
+  const finished=state.round
+  window._lastRound=finished
+  state.round=null
+
   if(finished.courseId){
     const winner=findWinner(finished.shooters)
     addCourseVisit(finished.courseId,{
       roundId,date:new Date().toLocaleDateString('da-DK'),
-      participants:finished.shooters.map(s=>s.name),
+      participants:finished.shooters.map(shooter=>shooter.name),
       winner:winner?.name,winnerScore:winner?calcTotal(winner.scores):0,
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
   deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
-
-  const finished=state.round
-  window._lastRound=finished
-  state.round=null
   renderResults(finished);showResultsPanel()
 }
 
@@ -1368,4 +1368,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // save-rounds 
 // syntax-fix 
 // delete-rounds  // delete-rounds 
-// finish-v4 
+// finish-v5 
