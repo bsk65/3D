@@ -1178,7 +1178,8 @@ window.renderAnalyse=function(){
       }
     })
   }
-  const filter=Number(document.getElementById('analyse-filter')?.value)||0
+  const filterVal=document.getElementById('analyse-filter')?.value||'all'
+  const filter=['all','lastround'].includes(filterVal)?0:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
   const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
@@ -1411,3 +1412,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // syntax-fix 
 // delete-rounds  // delete-rounds 
 // graph-yaxis 
+// minimal-fix 
