@@ -344,6 +344,14 @@ function onLogin(){
   const local=lsLoad()
   state.friends=local.friends||[]
   state.rounds=local.rounds||[]
+  // Hent venner fra Firestore
+  getDocs(collection(db,'users',state.user.uid,'friends')).then(snap=>{
+    if(!snap.docs.length)return
+    const fsF=snap.docs.map(d=>({...d.data(),id:d.id}))
+    const localIds=new Set(state.friends.map(f=>f.id))
+    const newF=fsF.filter(f=>!localIds.has(f.id))
+    if(newF.length){state.friends=[...state.friends,...newF];lsSave();renderFriendsList();renderQuickFriends()}
+  }).catch(e=>console.warn('Hent venner:',e))
   renderFriendsList()
   renderQuickFriends()
   renderRoundsList()
@@ -568,10 +576,19 @@ function renderShooters(){
   state.round.shooters.forEach((s,si)=>{
     const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||[null,null]
     const card=document.createElement('div');card.className='shooter-card'
+    const allArrows=s.scores.flat().filter(v=>v!=null)
+    const p1arr=s.scores.map(t=>t[0]).filter(v=>v!=null)
+    const p2arr=s.scores.map(t=>t[1]).filter(v=>v!=null)
+    const p1avg=p1arr.length?(p1arr.reduce((a,v)=>a+scoreVal(v),0)/p1arr.length).toFixed(2):'—'
+    const p2avg=p2arr.length?(p2arr.reduce((a,v)=>a+scoreVal(v),0)/p2arr.length).toFixed(2):'—'
     card.innerHTML=`
       <div class="sh-head"><span style="font-size:18px;">🎯</span>${warn?'<span class="warn-dot"></span>':''}
         <span class="sh-name">${s.name}</span>
-        <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
+        <div style="display:flex;gap:6px;">
+          <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P1 SNT</div><div class="sh-mini-val" style="font-size:13px;">${p1avg}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P2 SNT</div><div class="sh-mini-val" style="font-size:13px;">${p2avg}</div></div>
+        </div>
       </div>
       <div class="arrows-row">${[0,1].map(ai=>`
         <div class="arrow-grp"><div class="arrow-lbl">🎯 PIL ${ai+1}</div>
@@ -1119,12 +1136,18 @@ window.saveFriendModal=function(){
   if(!data.name)return
   if(state.editFriendId){const idx=state.friends.findIndex(f=>f.id===state.editFriendId);if(idx!==-1)state.friends[idx]={...data,id:state.editFriendId};else state.friends.push({...data,id:state.editFriendId})}
   else state.friends.push({...data,id:'f_'+Date.now()})
+  // Gem ven i Firestore
+  const fid=state.editFriendId||('f_'+Date.now())
+  if(!state.editFriendId)state.friends[state.friends.length-1].id=fid
+  const fdata=state.friends.find(f=>f.id===(state.editFriendId||fid))
+  if(fdata&&state.user)setDoc(doc(db,'users',state.user.uid,'friends',fdata.id),fdata).catch(e=>console.warn(e))
   lsSave();document.getElementById('friend-modal').classList.add('hidden');renderFriendsList();renderQuickFriends()
 }
 
 window.doDeleteFriend=function(id,name){
   if(!confirm(`Slet ${name}?`))return
   state.friends=state.friends.filter(f=>f.id!==id);lsSave();renderFriendsList();renderQuickFriends()
+  if(state.user)deleteDoc(doc(db,'users',state.user.uid,'friends',id)).catch(e=>console.warn(e))
 }
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
@@ -1413,3 +1436,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // delete-rounds  // delete-rounds 
 // graph-yaxis 
 // minimal-fix 
+// friends-firestore 
