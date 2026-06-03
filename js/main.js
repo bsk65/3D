@@ -768,6 +768,10 @@ function renderRoundsList(){
       }else{
         delete state.deleteConfirm[key]
         state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
+        // Slet fra Firestore
+        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
+        // Slet besøg fra bane
+        if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
         // Slet fra Firestore
@@ -1355,6 +1359,18 @@ window.sendResults=async function(round){
   window.location.href=mailto
 }
 
+
+async function removeVisitFromCourse(courseId, roundId){
+  const ref2=doc(db,'courses',courseId)
+  const snap=await getDoc(ref2)
+  if(!snap.exists())return
+  const visits=(snap.data().visits||[]).filter(v=>v.roundId!==roundId)
+  await updateDoc(ref2,{visits})
+  // Update local cache
+  const course=state.courses.find(c=>c.id===courseId)
+  if(course)course.visits=visits
+}
+
 window.openGuestModal=function(){document.getElementById('guest-name').value='';document.getElementById('guest-modal').classList.remove('hidden')}
 window.addGuest=function(){const name=document.getElementById('guest-name').value.trim();if(!name)return;window.addParticipant(`guest-${Date.now()}`,name,true);document.getElementById('guest-modal').classList.add('hidden')}
 // clean-v1 
@@ -1368,4 +1384,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // save-rounds 
 // syntax-fix 
 // delete-rounds  // delete-rounds 
-// finish-v5 
+// delete-visit 
