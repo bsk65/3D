@@ -670,18 +670,20 @@ window.finishRound=async function(){
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
 
-  if(state.round.courseId){
-    const winner=findWinner(state.round.shooters)
-    addCourseVisit(state.round.courseId,{
+  if(finished.courseId){
+    const winner=findWinner(finished.shooters)
+    addCourseVisit(finished.courseId,{
       roundId,date:new Date().toLocaleDateString('da-DK'),
-      participants:state.round.shooters.map(s=>s.name),
+      participants:finished.shooters.map(s=>s.name),
       winner:winner?.name,winnerScore:winner?calcTotal(winner.scores):0,
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
   deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
 
-  const finished=state.round;state.round=null
+  const finished=state.round
+  window._lastRound=finished
+  state.round=null
   renderResults(finished);showResultsPanel()
 }
 
@@ -725,10 +727,10 @@ function buildResultsTable(round){
 
 function buildDistribution(round){
   return '<div class="dist-grid">'+round.shooters.map(s=>{
-    const dist=calcDist(s.scores)
+    const dist=calcDistribution(s.scores)
     const flat=s.scores.flat().filter(v=>v!=null)
     const totalArrows=flat.length
-    const avg=totalArrows?(flat.reduce((a,v)=>a+po(v),0)/totalArrows).toFixed(2):0
+    const avg=totalArrows?(flat.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):0
     return `<div class="dist-card">
       <div class="dist-name">${s.name}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
@@ -1366,3 +1368,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // save-rounds 
 // syntax-fix 
 // delete-rounds  // delete-rounds 
+// finish-v4 
