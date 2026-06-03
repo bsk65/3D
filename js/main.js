@@ -1304,7 +1304,7 @@ window.renderAnalyse=function(){
            <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},1 ${x1},${y1} Z" fill="#ffd700"/>`
     }
     html+=`<div style="text-align:center;">
-      <div style="font-weight:700;font-size:20px;color:${colors[z]};margin-bottom:2px;">${z}</div>
+      <div style="font-weight:700;font-size:20px;color:#ffd700;margin-bottom:2px;">${z}</div>
       <svg viewBox="0 0 ${r*2} ${r*2}" style="width:56px;height:56px;">${pie}</svg>
       <div style="font-size:14px;color:var(--muted);margin-top:2px;">${v1}/${v2}</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);">${tot}</div>
@@ -1312,8 +1312,8 @@ window.renderAnalyse=function(){
   })
   html+=`</div>
     <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted);">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00cc44;margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffd700;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffd700;margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00cc44;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
     </div>
   </div>`
 
@@ -1437,4 +1437,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // delete-rounds  // delete-rounds 
 // graph-yaxis 
 // minimal-fix 
-// pie-fix 
+// pie-colors 
