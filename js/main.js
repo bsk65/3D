@@ -344,7 +344,6 @@ function onLogin(){
   const local=lsLoad()
   state.friends=local.friends||[]
   state.rounds=local.rounds||[]
-  // Hent venner fra Firestore
   getDocs(collection(db,'users',state.user.uid,'friends')).then(snap=>{
     if(!snap.docs.length)return
     const fsF=snap.docs.map(d=>({...d.data(),id:d.id}))
@@ -576,18 +575,20 @@ function renderShooters(){
   state.round.shooters.forEach((s,si)=>{
     const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||[null,null]
     const card=document.createElement('div');card.className='shooter-card'
-    const allArrows=s.scores.flat().filter(v=>v!=null)
     const p1arr=s.scores.map(t=>t[0]).filter(v=>v!=null)
     const p2arr=s.scores.map(t=>t[1]).filter(v=>v!=null)
+    const allArr=[...p1arr,...p2arr]
     const p1avg=p1arr.length?(p1arr.reduce((a,v)=>a+scoreVal(v),0)/p1arr.length).toFixed(2):'—'
     const p2avg=p2arr.length?(p2arr.reduce((a,v)=>a+scoreVal(v),0)/p2arr.length).toFixed(2):'—'
+    const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     card.innerHTML=`
       <div class="sh-head"><span style="font-size:18px;">🎯</span>${warn?'<span class="warn-dot"></span>':''}
         <span class="sh-name">${s.name}</span>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:4px;">
           <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P1 SNT</div><div class="sh-mini-val" style="font-size:13px;">${p1avg}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P2 SNT</div><div class="sh-mini-val" style="font-size:13px;">${p2avg}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val" style="font-size:12px;">${p1avg}</div></div>
+          <div class="sh-mini" style="border:1px solid var(--acc);"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val" style="font-size:12px;color:var(--acc);">${allAvg}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val" style="font-size:12px;">${p2avg}</div></div>
         </div>
       </div>
       <div class="arrows-row">${[0,1].map(ai=>`
@@ -1136,7 +1137,6 @@ window.saveFriendModal=function(){
   if(!data.name)return
   if(state.editFriendId){const idx=state.friends.findIndex(f=>f.id===state.editFriendId);if(idx!==-1)state.friends[idx]={...data,id:state.editFriendId};else state.friends.push({...data,id:state.editFriendId})}
   else state.friends.push({...data,id:'f_'+Date.now()})
-  // Gem ven i Firestore
   const fid=state.editFriendId||('f_'+Date.now())
   if(!state.editFriendId)state.friends[state.friends.length-1].id=fid
   const fdata=state.friends.find(f=>f.id===(state.editFriendId||fid))
@@ -1290,29 +1290,30 @@ window.renderAnalyse=function(){
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">`
   zones.forEach(z=>{
     const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
-    const r=28
+    const r=30
     let pie=''
     if(tot===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="var(--surface2)"/>`}
-    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="${colors[z]}"/>`}
-    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#5a3a8a"/>`}
+    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#00cc44"/>`}
+    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#ffd700"/>`}
     else{
       const pct=v1/tot,angle=pct*2*Math.PI
       const x1=r+r*Math.sin(0),y1=r-r*Math.cos(0)
       const x2=r+r*Math.sin(angle),y2=r-r*Math.cos(angle)
       const large=angle>Math.PI?1:0
-      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${colors[z]}"/>
-           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},1 ${x1},${y1} Z" fill="#5a3a8a"/>`
+      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="#00cc44"/>
+           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},1 ${x1},${y1} Z" fill="#ffd700"/>`
     }
     html+=`<div style="text-align:center;">
-      <svg viewBox="0 0 ${r*2} ${r*2}" style="width:52px;height:52px;">${pie}</svg>
-      <div style="font-weight:700;font-size:14px;color:${colors[z]}">${z}</div>
-      <div style="font-size:10px;color:var(--muted);">${v1}/${v2}</div>
+      <div style="font-weight:700;font-size:20px;color:${colors[z]};margin-bottom:2px;">${z}</div>
+      <svg viewBox="0 0 ${r*2} ${r*2}" style="width:56px;height:56px;">${pie}</svg>
+      <div style="font-size:14px;color:var(--muted);margin-top:2px;">${v1}/${v2}</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);">${tot}</div>
     </div>`
   })
   html+=`</div>
     <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted);">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--acc);margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5a3a8a;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00cc44;margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffd700;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
     </div>
   </div>`
 
@@ -1436,4 +1437,4 @@ window.addGuest=function(){const name=document.getElementById('guest-name').valu
 // delete-rounds  // delete-rounds 
 // graph-yaxis 
 // minimal-fix 
-// friends-firestore 
+// pie-fix 
