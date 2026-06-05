@@ -15,9 +15,12 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 
-  <script type="module" crossorigin src="/3D/assets/index-Bq7vqcJS.js"></script>
-  <link rel="stylesheet" crossorigin href="/3D/assets/index-s4lJHlLW.css">
-</head>
+<style>
+  #fs-img { transform-origin: center; transition: transform 0.1s; }
+  </style>
+    <script type="module" crossorigin src="/3D/assets/index-naU8ye09.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-DySDLgmr.css">
+  </head>
 <body>
 
 <!-- AUTH -->
@@ -95,6 +98,10 @@
         <div class="card">
           <div class="card-title">🔴 Advarsel</div>
           <div style="font-size:14px;padding:4px 0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span>Aktiver advarsel</span>
+              <div class="tswitch on" id="warn-enabled-sw"></div>
+            </div>
             Rød prik hvis gns. under
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
               style="width:50px;display:inline-block;padding:6px 8px;margin:0 6px;" />
@@ -128,7 +135,7 @@
       </div>
 
       <!-- ACTIVE -->
-      <div id="active-panel" class="hidden">
+      <div id="active-panel" class="hidden" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
         <div class="shoot-top">
           <div class="target-line">
             <div class="tnum">
@@ -149,15 +156,13 @@
           </div>
         </div>
 
-        <div id="scroll-area">
+        <div id="scroll-area" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 0;">
             <div id="target-avg" style="font-size:13px;color:var(--text-muted);"></div>
             <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()">✏️ RET</button>
           </div>
           <div id="shooters-list"></div>
-          <div class="animal-wrap">
-            <img id="anim-img" src="" alt="" class="hidden" onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
-          </div>
+
         </div>
 
         <div id="edit-panel" class="edit-panel hidden">
@@ -192,6 +197,11 @@
             <button class="btn-act red" id="abort-btn" onclick="abortRound()">🗑 AFBRYD</button>
           </div>
         </div>
+        <div id="animal-fixed" style="padding:8px 12px;text-align:center;background:var(--card);">
+          <img id="anim-img" src="" alt="" class="hidden"
+            style="max-width:100%;max-height:220px;border-radius:12px;cursor:zoom-in;object-fit:contain;"
+            onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
+        </div>
       </div>
 
       <!-- RESULTS -->
@@ -200,14 +210,14 @@
         <div id="res-table"></div>
         <div id="res-dist"></div>
         <div style="display:flex;gap:8px;padding:0 12px 16px;">
-          <button class="btn btn-dark" style="flex:1;" onclick="alert('Email kræver backend-opsætning.')">📧 Send email</button>
+          <button class="btn btn-dark" style="flex:1;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>
           <button class="btn btn-gold" style="flex:1;" onclick="showSetupPanel()">Ny runde</button>
         </div>
       </div>
     </div>
 
     <!-- RESULTS TAB -->
-    <div id="tab-results" class="tab hidden">
+    <div id="tab-results" class="tab">
       <div class="tab-header">
         <span class="tab-title">Mine runder</span>
       </div>
@@ -215,7 +225,31 @@
     </div>
 
     <!-- COURSES TAB -->
-    <div id="tab-courses" class="tab hidden">
+    
+        
+    <div id="tab-analyse" class="tab">
+      <div class="tab-header">
+        <span class="tab-title">Analyse</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <select id="analyse-filter" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="all">Alle runder</option>
+          <option value="lastround">Seneste runde</option>
+          <option value="10">Seneste 10</option>
+          <option value="20">Seneste 20</option>
+        </select>
+        <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="all">Alle baner</option>
+        </select>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px;">
+          <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
+            style="flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;"
+            oninput="renderAnalyse()" />
+        </div>
+      </div>
+      <div id="analyse-content" style="padding:12px;"></div>
+    </div>
+<div id="tab-courses" class="tab">
       <div id="courses-list-view">
         <div class="tab-header">
           <span class="tab-title">Baner</span>
@@ -266,7 +300,7 @@
     </div>
 
     <!-- FRIENDS TAB -->
-    <div id="tab-friends" class="tab hidden">
+    <div id="tab-friends" class="tab">
       <div class="tab-header">
         <span class="tab-title">Venner</span>
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
@@ -313,6 +347,9 @@
     <button class="nav-btn" data-tab="results" onclick="switchTab('results')">
       <span class="nav-icon">📊</span><span class="nav-lbl" data-i18n="results">RESULTATER</span>
     </button>
+    <button class="nav-btn" data-tab="analyse" onclick="switchTab('analyse')">
+      <span class="nav-icon">📈</span><span class="nav-lbl">ANALYSE</span>
+    </button>
     <button class="nav-btn" data-tab="courses" onclick="switchTab('courses')">
       <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="courses">BANER</span>
     </button>
@@ -333,9 +370,9 @@
 </div>
 
 <!-- FULLSCREEN -->
-<div id="fullscreen" class="fs-ov hidden">
+<div id="fullscreen" class="fs-ov hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <button class="fs-close" onclick="document.getElementById('fullscreen').classList.add('hidden')">✕</button>
-  <img id="fs-img" src="" alt="" />
+  <img id="fs-img" src="" alt="" style="max-width:100%;max-height:90vh;object-fit:contain;touch-action:manipulation;cursor:zoom-in;" />
 </div>
 
 <!-- SKIP MODAL -->
@@ -366,12 +403,37 @@
 <div id="pwa-banner" style="display:none;position:fixed;bottom:60px;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-top:2px solid var(--accent);padding:10px 14px;flex-direction:row;align-items:center;gap:10px;z-index:300;">
   <img src="/3D/assets/logo-DfL2e2mb.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;" />
   <span style="flex:1;font-size:14px;">Installer 3D Bueskydning</span>
-  <button id="pwa-install-btn" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:8px 14px;font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;">INSTALLER</button>
+  <button id="pwa-install-btn" style="background:#fff;color:#1a3a1a;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">INSTALLER</button>
   <button id="pwa-dismiss-btn" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
 </div>
 
 <!-- Leaflet og QR som globale scripts -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // Pinch zoom for fullscreen image
+  document.addEventListener('DOMContentLoaded',()=>{
+    const img=document.getElementById('fs-img')
+    if(!img)return
+    let scale=1,startDist=0
+    img.addEventListener('touchstart',e=>{
+      if(e.touches.length===2){
+        startDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)
+      }
+    },{passive:true})
+    img.addEventListener('touchmove',e=>{
+      if(e.touches.length===2){
+        e.preventDefault()
+        const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)
+        scale=Math.min(5,Math.max(1,scale*(dist/startDist)))
+        startDist=dist
+        img.style.transform=`scale(${scale})`
+      }
+    },{passive:false})
+    document.getElementById('fullscreen')?.addEventListener('click',e=>{
+      if(e.target.id==='fullscreen'){scale=1;img.style.transform='scale(1)'}
+    })
+  })
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Vite bundler entry point -->
 </body>

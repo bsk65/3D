@@ -683,7 +683,7 @@ window.finishRound=async function(){
 
   const roundId='r_'+Date.now()
   const roundData={...serializeRound(state.round),completed:Date.now(),...gpsData,id:roundId}
-  state.rounds.unshift({...roundData,created:{toDate:()=>new Date(),toMillis:()=>Date.now()}})
+  state.rounds.unshift({...roundData,created:Date.now()})
   lsSave();renderRoundsList()
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
@@ -774,7 +774,7 @@ function renderRoundsList(){
   state.rounds.forEach(r=>{
     const shooters=(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
     const winner=shooters.length?findWinner(shooters):null
-    const date=r.created?.toDate?r.created.toDate().toLocaleDateString('da-DK'):(r.created?new Date(r.created).toLocaleDateString('da-DK'):'—')
+    const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
     card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta">${date} · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="del-btn" data-id="${r.id}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
