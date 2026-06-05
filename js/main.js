@@ -227,12 +227,14 @@ window.doSignup = async function(){
   const name=document.getElementById('signup-name').value.trim()
   const email=document.getElementById('signup-email').value.trim()
   const pw=document.getElementById('signup-password').value
-  if(!name||!email||!pw){showAuthErr('Udfyld alle felter.');return}
+  const kon=document.getElementById('signup-kon').value
+  const bueklasse=document.getElementById('signup-bueklasse').value
+  if(!name||!email||!pw||!kon||!bueklasse){showAuthErr('Udfyld alle felter.');return}
   const btn=document.querySelector('#signup-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
-    await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,created:serverTimestamp()})
+    await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp()})
   }catch(err){showAuthErr('Fejl: '+err.code)}
   finally{btn.disabled=false;btn.textContent='OPRET KONTO'}
 }
@@ -284,7 +286,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           else{ state.profile={name:user.email,email:user.email}; state.isAdmin=false }
         }
       }
-      if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email}}
+      if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email,kon:d.kon||null,bueklasse:d.bueklasse||null}}
       else if(!state.profile) state.profile={name:user.email,email:user.email}
       state.isAdmin=adminSnap?.exists()||false
       onLogin()
@@ -689,6 +691,11 @@ window.finishRound=async function(){
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
 
   const finished=state.round
+  // Gem anonym statistik til baneoversigt
+  if(finished.courseId&&state.profile?.kon&&state.profile?.bueklasse){
+    const me=finished.shooters.find(x=>x.id===state.user?.uid)||finished.shooters?.[0]
+    if(me){setDoc(doc(db,'bane_stats',finished.courseId,'runder',roundId),{score:calcTotal(me.scores),kon:state.profile.kon,bueklasse:state.profile.bueklasse,numTargets:finished.numTargets,dato:serverTimestamp()}).catch(e=>console.warn('bane_stats fejl:',e))}
+  }
   window._lastRound=finished
   state.round=null
 
@@ -1384,6 +1391,39 @@ window.renderAnalyse=function(){
   }
 
   el.innerHTML=html
+
+  // Sammenligning med andre skytter på samme bane
+  if(bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
+    const konNavn=state.profile.kon==='herre'?'Herre':'Dame'
+    const klasseNavn={langbue:'Langbue',trad:'Trad. recurve',recurve:'Recurve',compound:'Compound'}[state.profile.bueklasse]||state.profile.bueklasse
+    const compEl=document.createElement('div')
+    compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Henter...</div></div>`
+    el.appendChild(compEl)
+    getDocs(collection(db,'bane_stats',bane,'runder')).then(snap=>{
+      const alle=snap.docs.map(d=>d.data())
+      const sammeKlasse=alle.filter(d=>d.kon===state.profile.kon&&d.bueklasse===state.profile.bueklasse)
+      if(!sammeKlasse.length){
+        compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
+        return
+      }
+      const andresSnit=(sammeKlasse.reduce((s,d)=>s+d.score,0)/sammeKlasse.length).toFixed(1)
+      const diff=Number(avg)-Number(andresSnit)
+      const diffStr=(diff>0?'+':'')+diff.toFixed(1)
+      const diffColor=diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
+      compEl.innerHTML=`<div class="card" style="margin-bottom:16px;">
+        <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div><div style="font-size:11px;color:var(--muted);">DIT SNIT</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${avg}</div></div>
+          <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
+            <div style="font-size:11px;color:var(--muted);">DIFFERENCE</div>
+            <div style="font-size:22px;font-weight:700;color:${diffColor};">${diffStr}</div>
+          </div>
+          <div><div style="font-size:11px;color:var(--muted);">ANDRES SNIT</div><div style="font-size:22px;font-weight:700;color:var(--txt);">${andresSnit}</div></div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">Baseret på ${sammeKlasse.length} runde${sammeKlasse.length!==1?'r':''} fra andre skytter</div>
+      </div>`
+    }).catch(()=>{compEl.remove()})
+  }
 }
 
 window.sendResults=async function(round){

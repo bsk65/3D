@@ -43,6 +43,18 @@
       <input type="text" id="signup-name" placeholder="Navn" autocomplete="name" />
       <input type="email" id="signup-email" placeholder="Email" autocomplete="email" />
       <input type="password" id="signup-password" placeholder="Kodeord (min. 6 tegn)" autocomplete="new-password" />
+      <select id="signup-kon" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+        <option value="">Vælg køn</option>
+        <option value="herre">Herre</option>
+        <option value="dame">Dame</option>
+      </select>
+      <select id="signup-bueklasse" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+        <option value="">Vælg bueklasse</option>
+        <option value="langbue">Langbue</option>
+        <option value="trad">Traditionel recurve</option>
+        <option value="recurve">Recurve (olympisk)</option>
+        <option value="compound">Compound</option>
+      </select>
       <button class="btn btn-gold" onclick="doSignup()">OPRET KONTO</button>
     </div>
     <div id="auth-err" class="err hidden"></div>
@@ -227,13 +239,24 @@
     
         
     <div id="tab-analyse" class="tab">
-      <div class="tab-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="tab-header">
         <span class="tab-title">Analyse</span>
-        <select id="analyse-filter" onchange="renderAnalyse()" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <select id="analyse-filter" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
           <option value="all">Alle runder</option>
+          <option value="lastround">Seneste runde</option>
           <option value="10">Seneste 10</option>
           <option value="20">Seneste 20</option>
         </select>
+        <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="all">Alle baner</option>
+        </select>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px;">
+          <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
+            style="flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;"
+            oninput="renderAnalyse()" />
+        </div>
       </div>
       <div id="analyse-content" style="padding:12px;"></div>
     </div>
