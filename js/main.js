@@ -1395,7 +1395,7 @@ window.renderAnalyse=function(){
   // Sammenligning med andre skytter på samme bane
   if(bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
     const konNavn=state.profile.kon==='herre'?'Herre':'Dame'
-    const klasseNavn={langbue:'Langbue',trad:'Trad. recurve',recurve:'Recurve',compound:'Compound'}[state.profile.bueklasse]||state.profile.bueklasse
+    const klasseNavn={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}[state.profile.bueklasse]||state.profile.bueklasse
     const compEl=document.createElement('div')
     compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Henter...</div></div>`
     el.appendChild(compEl)
