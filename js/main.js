@@ -332,11 +332,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
   })
 })
 
+// ─── PROFIL MODAL ─────────────────────────────────────────────────────────────
+window.saveProfilModal=async function(){
+  const kon=document.getElementById('profil-kon').value
+  const bueklasse=document.getElementById('profil-bueklasse').value
+  const errEl=document.getElementById('profil-err')
+  if(!kon||!bueklasse){errEl.textContent='Vælg både køn og bueklasse.';errEl.classList.remove('hidden');return}
+  errEl.classList.add('hidden')
+  try{
+    await updateDoc(doc(db,'users',state.user.uid),{kon,bueklasse})
+    state.profile.kon=kon;state.profile.bueklasse=bueklasse
+    document.getElementById('profil-modal').classList.add('hidden')
+  }catch(e){errEl.textContent='Fejl ved gem. Prøv igen.';errEl.classList.remove('hidden')}
+}
+
 // ─── LOGIN/LOGOUT ─────────────────────────────────────────────────────────────
 function onLogin(){
   document.getElementById('hdr-name').textContent=state.profile.name
   document.getElementById('auth-screen').classList.remove('active')
   document.getElementById('app-screen').classList.add('active')
+
+  // Prompt eksisterende brugere der mangler køn/bueklasse
+  if(!state.profile.kon||!state.profile.bueklasse){
+    setTimeout(()=>document.getElementById('profil-modal').classList.remove('hidden'),800)
+  }
 
   // Admin badge — allerede hentet i Promise.all
   document.getElementById('admin-badge').classList.toggle('hidden',!state.isAdmin)
