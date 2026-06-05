@@ -776,7 +776,7 @@ function renderRoundsList(){
     const winner=shooters.length?findWinner(shooters):null
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta">${date} · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="del-btn" data-id="${r.id}">✕</button>`
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta"><span class="rcard-date">${date}</span> · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="del-btn" data-id="${r.id}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
     card.querySelector('.del-btn').onclick=e=>{
       const btn=e.currentTarget,key=`r-${r.id}`
@@ -1202,7 +1202,7 @@ window.renderAnalyse=function(){
     })
   }
   const filterVal=document.getElementById('analyse-filter')?.value||'all'
-  const filter=['all','lastround'].includes(filterVal)?0:Number(filterVal)
+  const filter=filterVal==='all'?0:filterVal==='lastround'?1:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
   const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
