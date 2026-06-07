@@ -1427,7 +1427,7 @@ window.renderAnalyse=function(){
     for(let t=mn;t<=mx;t++){if((mx-mn)<=6||t%Math.ceil((mx-mn)/5)===0)ticks.push(t)}
     const ticksSvg=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${w-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
     const dotsSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="3" fill="var(--acc)"/>`).join('')
-    const dotsLargeSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="var(--acc)"/><text x="${toX(i)}" y="${toY(v)-8}" text-anchor="middle" font-size="9" fill="var(--text)">${v.toFixed(1)}</text>`).join('')
+    const dotsLargeSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="var(--acc)"/><text x="${toX(i)}" y="${toY(v)-8}" text-anchor="middle" font-size="9" fill="#fff">${v.toFixed(1)}</text>`).join('')
     html+=`<div class="card" style="margin-bottom:16px;">
       <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <span>GENNEMSNIT PR. MÅL</span>
