@@ -346,6 +346,46 @@ window.saveProfilModal=async function(){
   }catch(e){errEl.textContent='Fejl ved gem. Prøv igen.';errEl.classList.remove('hidden')}
 }
 
+function initGraphPinch(svgEl){
+  let scale=1,ox=0,oy=0
+  let initDist=0,initScale=1,initOx=0,initOy=0,pinchCx=0,pinchCy=0
+  let panStartX=0,panStartY=0,panStartOx=0,panStartOy=0
+  const apply=()=>{
+    svgEl.style.transformOrigin='0 0'
+    svgEl.style.transform=scale>1?`translate(${ox}px,${oy}px) scale(${scale})`:''
+  }
+  svgEl.addEventListener('touchstart',e=>{
+    e.preventDefault()
+    if(e.touches.length===2){
+      const t=e.touches,rect=svgEl.getBoundingClientRect()
+      initDist=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)
+      initScale=scale;initOx=ox;initOy=oy
+      pinchCx=(t[0].clientX+t[1].clientX)/2-rect.left
+      pinchCy=(t[0].clientY+t[1].clientY)/2-rect.top
+    }else if(e.touches.length===1){
+      panStartX=e.touches[0].clientX;panStartY=e.touches[0].clientY
+      panStartOx=ox;panStartOy=oy
+    }
+  },{passive:false})
+  svgEl.addEventListener('touchmove',e=>{
+    e.preventDefault()
+    if(e.touches.length===2){
+      const t=e.touches,dist=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)
+      const newScale=Math.min(8,Math.max(1,initScale*dist/initDist))
+      const elemX=(pinchCx-initOx)/initScale,elemY=(pinchCy-initOy)/initScale
+      ox=pinchCx-elemX*newScale;oy=pinchCy-elemY*newScale;scale=newScale;apply()
+    }else if(e.touches.length===1&&scale>1){
+      ox=panStartOx+e.touches[0].clientX-panStartX
+      oy=panStartOy+e.touches[0].clientY-panStartY;apply()
+    }
+  },{passive:false})
+  svgEl.addEventListener('touchend',()=>{if(scale<1.05){scale=1;ox=0;oy=0;apply()}},{passive:true})
+  let lastTap=0
+  svgEl.addEventListener('touchend',()=>{
+    const now=Date.now();if(now-lastTap<300){scale=1;ox=0;oy=0;apply()};lastTap=now
+  },{passive:true})
+}
+
 function analyseRound(id){
   state.pendingAnalyseRound=id
   document.getElementById('analyse-filter').value='specific'
@@ -1449,26 +1489,26 @@ window.renderAnalyse=function(){
         <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
       </svg>
     </div>
-    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
-      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:90vw;" onclick="event.stopPropagation()">
-        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL — scroll vandret</div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-          <svg viewBox="0 0 ${wFS} ${h}" style="width:${wFS}px;min-width:100%;overflow:visible;display:block;">
-            <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-            <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-            ${ticksSvgFS}
-            <polyline points="${ptsFS}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
-            ${dotsLargeSvgFS}
-            <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
-            <text x="${toXFS(numTargets-1)}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
-          </svg>
-        </div>
+    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:90vw;overflow:hidden;" onclick="event.stopPropagation()">
+        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL · knib for zoom · dobbelttryk for reset</div>
+        <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" style="width:100%;display:block;touch-action:none;overflow:visible;">
+          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+          <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+          ${ticksSvgFS}
+          <polyline points="${ptsFS}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+          ${dotsLargeSvgFS}
+          <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
+          <text x="${toXFS(numTargets-1)}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
+        </svg>
         <button class="btn btn-dark" style="width:100%;margin-top:12px;" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
       </div>
     </div>`
   }
 
   el.innerHTML=html
+  const gfsSvg=document.getElementById('graph-fs-svg')
+  if(gfsSvg)initGraphPinch(gfsSvg)
 
   // Sammenligning med andre skytter på samme bane
   if(bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
