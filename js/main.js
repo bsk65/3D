@@ -1413,7 +1413,7 @@ window.renderAnalyse=function(){
   }
 
   // Per-mål graf - kun ved specifik bane eller seneste runde
-  const showTargetGraph=bane!=='all'||filterVal==='lastround'
+  const showTargetGraph=bane!=='all'||filterVal==='lastround'||filterVal==='specific'
   const validTA=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
   if(validTA.length>1&&showTargetGraph){
     const w=340,h=160,padL=42,padB=25,padT=15,padR=15
