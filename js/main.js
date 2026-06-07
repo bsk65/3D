@@ -797,6 +797,22 @@ function buildSummaryCards(round){
 }
 window.toggleRpopDetail=function(i){const el=document.getElementById('rpop-detail-'+i);if(el)el.style.display=el.style.display==='none'?'':'none'}
 
+function buildActualResults(round){
+  const data=round.shooters.map(s=>{
+    const shot=s.scores.filter(t=>{const r=t||[null,null];return r[0]!==null&&r[1]!==null})
+    if(!shot.length||shot.length===round.numTargets)return null
+    const flat=shot.flat().filter(v=>v!==null)
+    const total=flat.reduce((a,v)=>a+scoreVal(v),0)
+    const arrows=flat.length
+    const avgPil=arrows?(total/arrows).toFixed(2):0
+    const avgMaal=shot.length?(total/shot.length).toFixed(1):0
+    return {name:s.name,shot:shot.length,total,avgPil,avgMaal}
+  }).filter(Boolean)
+  if(!data.length)return ''
+  const cards=data.map(d=>`<div style="flex:1;min-width:130px;background:var(--surface2);border-radius:10px;padding:12px 10px;text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:2px;">${d.name}</div><div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${d.shot} af ${round.numTargets} mål</div><div style="font-size:30px;font-weight:700;color:var(--acc);line-height:1.1;">${d.total}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">POINT</div><div style="display:flex;justify-content:center;gap:12px;"><div><div style="font-size:16px;font-weight:700;color:var(--acc);">${d.avgPil}</div><div style="font-size:11px;color:var(--muted);">SNT/PIL</div></div><div><div style="font-size:16px;font-weight:700;color:var(--acc);">${d.avgMaal}</div><div style="font-size:11px;color:var(--muted);">SNT/MÅL</div></div></div></div>`).join('')
+  return `<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--surface2);"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Kun skudte mål</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${cards}</div></div>`
+}
+
 // ─── ROUNDS LIST ──────────────────────────────────────────────────────────────
 function renderRoundsList(){
   const el=document.getElementById('rounds-list')
@@ -844,7 +860,7 @@ function showRoundPopup(round){window._lastRound=round;
   const durStr=gpsDuration?formatDuration(gpsDuration):null
   const distStr=gpsDistance?formatDistance(gpsDistance):null
   const gpsHtml=(distStr||durStr)?`<div style="display:flex;gap:8px;margin-bottom:12px;">${distStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${distStr}</div><div style="font-size:11px;color:var(--muted);">DISTANCE</div></div>`:''}${durStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${durStr}</div><div style="font-size:11px;color:var(--muted);">TID</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map" style="height:200px;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>`:''}`:'';
-  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
+  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
   if(gpsRoute){const pts=parseRoute(gpsRoute);if(pts.length)setTimeout(()=>{const mapEl=document.getElementById('rpop-map');if(!mapEl)return;state.rpopMap=window.L.map(mapEl);window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.rpopMap);const poly=window.L.polyline(pts.map(p=>[p.lat,p.lng]),{color:'#e8a020',weight:3}).addTo(state.rpopMap);state.rpopMap.fitBounds(poly.getBounds(),{padding:[20,20]})},50)}
 }
 
