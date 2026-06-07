@@ -1428,6 +1428,12 @@ window.renderAnalyse=function(){
     const ticksSvg=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${w-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
     const dotsSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="3" fill="var(--acc)"/>`).join('')
     const dotsLargeSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="var(--acc)"/><text x="${toX(i)}" y="${toY(v)-8}" text-anchor="middle" font-size="9" fill="#fff">${v.toFixed(1)}</text>`).join('')
+    // Bredere fullscreen-version: min 30px pr. mål
+    const wFS=Math.max(w,numTargets*30)
+    const toXFS=idx2=>padL+(numTargets>1?(idx2/(numTargets-1))*(wFS-padL-padR):0)
+    const ptsFS=validTA.map(({v,i})=>toXFS(i)+','+toY(v)).join(' ')
+    const ticksSvgFS=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${wFS-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
+    const dotsLargeSvgFS=validTA.map(({v,i})=>`<circle cx="${toXFS(i)}" cy="${toY(v)}" r="5" fill="var(--acc)"/><text x="${toXFS(i)}" y="${toY(v)-10}" text-anchor="middle" font-size="10" fill="#fff">${v.toFixed(1)}</text>`).join('')
     html+=`<div class="card" style="margin-bottom:16px;">
       <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <span>GENNEMSNIT PR. MÅL</span>
@@ -1443,18 +1449,20 @@ window.renderAnalyse=function(){
         <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
       </svg>
     </div>
-    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:center;justify-content:center;padding:20px;">
-      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:600px;" onclick="event.stopPropagation()">
-        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL</div>
-        <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
-          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-          <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-          ${ticksSvg}
-          <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
-          ${dotsLargeSvg}
-          <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
-          <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
-        </svg>
+    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
+      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:90vw;" onclick="event.stopPropagation()">
+        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL — scroll vandret</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <svg viewBox="0 0 ${wFS} ${h}" style="width:${wFS}px;min-width:100%;overflow:visible;display:block;">
+            <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+            <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
+            ${ticksSvgFS}
+            <polyline points="${ptsFS}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+            ${dotsLargeSvgFS}
+            <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
+            <text x="${toXFS(numTargets-1)}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
+          </svg>
+        </div>
         <button class="btn btn-dark" style="width:100%;margin-top:12px;" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
       </div>
     </div>`
