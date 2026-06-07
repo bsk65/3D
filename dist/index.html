@@ -18,8 +18,8 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/assets/index-naU8ye09.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/assets/index-DySDLgmr.css">
+    <script type="module" crossorigin src="/3D/assets/index-C2pZ0xAa.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-BdJid3QI.css">
   </head>
 <body>
 
@@ -44,6 +44,22 @@
       <input type="text" id="signup-name" placeholder="Navn" autocomplete="name" />
       <input type="email" id="signup-email" placeholder="Email" autocomplete="email" />
       <input type="password" id="signup-password" placeholder="Kodeord (min. 6 tegn)" autocomplete="new-password" />
+      <select id="signup-kon" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+        <option value="">Vælg køn</option>
+        <option value="herre">Herre</option>
+        <option value="dame">Dame</option>
+      </select>
+      <select id="signup-bueklasse" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+        <option value="">Vælg bueklasse</option>
+        <option value="langbue">Langbue</option>
+        <option value="trad">Traditionel</option>
+        <option value="recurve">Recurve (olympisk)</option>
+        <option value="compound">Compound</option>
+        <option value="barbue">Barbue</option>
+        <option value="buejæger">Buejæger</option>
+        <option value="trad-buejæger">Traditionel buejæger</option>
+        <option value="rytterbue">Rytterbue</option>
+      </select>
       <button class="btn btn-gold" onclick="doSignup()">OPRET KONTO</button>
     </div>
     <div id="auth-err" class="err hidden"></div>
@@ -357,6 +373,35 @@
       <span class="nav-icon">👥</span><span class="nav-lbl" data-i18n="friends">VENNER</span>
     </button>
   </nav>
+</div>
+
+<!-- PROFIL MODAL -->
+<div id="profil-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3 style="font-family:var(--fd);margin-bottom:4px;">Fuldfør din profil</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Vælg køn og bueklasse for at aktivere sammenligning med andre skytter.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <select id="profil-kon" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;">
+        <option value="">Vælg køn</option>
+        <option value="herre">Herre</option>
+        <option value="dame">Dame</option>
+      </select>
+      <select id="profil-bueklasse" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;">
+        <option value="">Vælg bueklasse</option>
+        <option value="langbue">Langbue</option>
+        <option value="trad">Traditionel</option>
+        <option value="recurve">Recurve (olympisk)</option>
+        <option value="compound">Compound</option>
+        <option value="barbue">Barbue</option>
+        <option value="buejæger">Buejæger</option>
+        <option value="trad-buejæger">Traditionel buejæger</option>
+        <option value="rytterbue">Rytterbue</option>
+      </select>
+      <div id="profil-err" class="err hidden"></div>
+      <button class="btn btn-gold" onclick="saveProfilModal()">Gem</button>
+      <button class="btn btn-dark" onclick="document.getElementById('profil-modal').classList.add('hidden')">Senere</button>
+    </div>
+  </div>
 </div>
 
 <!-- QR MODAL -->
