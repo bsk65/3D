@@ -346,6 +346,15 @@ window.saveProfilModal=async function(){
   }catch(e){errEl.textContent='Fejl ved gem. Prøv igen.';errEl.classList.remove('hidden')}
 }
 
+function tryOpenPendingRound(){
+  if(!state.pendingRound)return
+  const r=state.rounds.find(x=>x.id===state.pendingRound)
+  if(!r)return
+  state.pendingRound=null
+  const shooters=(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
+  setTimeout(()=>showRoundPopup({...r,shooters}),300)
+}
+
 // ─── LOGIN/LOGOUT ─────────────────────────────────────────────────────────────
 function onLogin(){
   document.getElementById('hdr-name').textContent=state.profile.name
@@ -375,6 +384,8 @@ function onLogin(){
   renderFriendsList()
   renderQuickFriends()
   renderRoundsList()
+  state.pendingRound=new URLSearchParams(window.location.search).get('round')||null
+  if(state.pendingRound)tryOpenPendingRound()
 
   // Load baner fra localStorage øjeblikkeligt
   const localCourses = lsLoad().courses || []
@@ -396,6 +407,7 @@ function onLogin(){
         return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)
       })
       lsSave(); renderRoundsList()
+      if(state.pendingRound)tryOpenPendingRound()
       console.log('Runder fra Firestore:',newRounds.length)
     }
   }).catch(e=>console.warn('Hent runder:',e))
@@ -769,28 +781,21 @@ function buildResultsTable(round){
   return h
 }
 
-function buildDistribution(round){
-  return '<div class="dist-grid">'+round.shooters.map(s=>{
-    const dist=calcDistribution(s.scores)
+function buildSummaryCards(round){
+  const cardHtml=round.shooters.map((s,i)=>{
+    const total=calcTotal(s.scores)
     const flat=s.scores.flat().filter(v=>v!=null)
     const totalArrows=flat.length
     const avg=totalArrows?(flat.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):0
-    return `<div class="dist-card">
-      <div class="dist-name">${s.name}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px;">
-          <div style="font-size:10px;color:var(--muted);">SNT/PIL</div>
-          <div style="font-size:20px;font-weight:700;color:var(--acc);">${avg}</div>
-        </div>
-        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px;">
-          <div style="font-size:10px;color:var(--muted);">PILE</div>
-          <div style="font-size:20px;font-weight:700;color:var(--acc);">${totalArrows}</div>
-        </div>
-      </div>
-      ${Object.entries(dist).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}
-    </div>`
-  }).join('')+'</div>'
+    return `<div onclick="window.toggleRpopDetail(${i})" style="flex:1;min-width:130px;background:var(--surface2);border-radius:10px;padding:12px 10px;cursor:pointer;text-align:center;"><div style="font-size:15px;font-weight:700;color:var(--txt);margin-bottom:4px;">${s.name}</div><div style="font-size:42px;font-weight:700;color:var(--acc);line-height:1.1;">${total}</div><div style="font-size:13px;color:var(--muted);margin-bottom:8px;">POINT</div><div style="display:flex;justify-content:center;gap:16px;"><div><div style="font-size:18px;font-weight:700;color:var(--acc);">${avg}</div><div style="font-size:11px;color:var(--muted);">SNT/PIL</div></div><div><div style="font-size:18px;font-weight:700;color:var(--acc);">${totalArrows}</div><div style="font-size:11px;color:var(--muted);">PILE</div></div></div></div>`
+  }).join('')
+  const detailHtml=round.shooters.map((s,i)=>{
+    const dist=calcDistribution(s.scores)
+    return `<div id="rpop-detail-${i}" style="display:none;margin-bottom:8px;" class="dist-card"><div class="dist-name">${s.name}</div>${Object.entries(dist).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+  }).join('')
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${cardHtml}</div>${detailHtml}`
 }
+window.toggleRpopDetail=function(i){const el=document.getElementById('rpop-detail-'+i);if(el)el.style.display=el.style.display==='none'?'':'none'}
 
 // ─── ROUNDS LIST ──────────────────────────────────────────────────────────────
 function renderRoundsList(){
@@ -839,7 +844,7 @@ function showRoundPopup(round){window._lastRound=round;
   const durStr=gpsDuration?formatDuration(gpsDuration):null
   const distStr=gpsDistance?formatDistance(gpsDistance):null
   const gpsHtml=(distStr||durStr)?`<div style="display:flex;gap:8px;margin-bottom:12px;">${distStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${distStr}</div><div style="font-size:11px;color:var(--muted);">DISTANCE</div></div>`:''}${durStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${durStr}</div><div style="font-size:11px;color:var(--muted);">TID</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map" style="height:200px;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>`:''}`:'';
-  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>${gpsHtml}`+buildResultsTable(round)+buildDistribution(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
+  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
   if(gpsRoute){const pts=parseRoute(gpsRoute);if(pts.length)setTimeout(()=>{const mapEl=document.getElementById('rpop-map');if(!mapEl)return;state.rpopMap=window.L.map(mapEl);window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.rpopMap);const poly=window.L.polyline(pts.map(p=>[p.lat,p.lng]),{color:'#e8a020',weight:3}).addTo(state.rpopMap);state.rpopMap.fitBounds(poly.getBounds(),{padding:[20,20]})},50)}
 }
 
@@ -1471,6 +1476,7 @@ window.sendResults=async function(round){
     }
     body+='  Total: '+calcTotal(s.scores)+' point\n'
   })
+  if(round.id)body+=`\n\nSe resultater i appen:\nhttps://bsk65.github.io/3D/?round=${round.id}\n(Kræver login med din bruger)`
   const emails=round.shooters.map(s=>state.friends.find(f=>f.id===s.id)?.email).filter(Boolean)
   const subject='3D Bueskydning - '+round.name
   const mailto='mailto:'+emails.join(',')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)
