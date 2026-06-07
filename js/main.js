@@ -26,6 +26,18 @@ const db = initializeFirestore(app, {
 const storage = getStorage(app)
 
 
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
+function showToast(msg,type='info'){
+  const t=document.createElement('div')
+  t.className=`toast toast-${type}`
+  t.textContent=msg
+  document.body.appendChild(t)
+  requestAnimationFrame(()=>t.classList.add('toast-show'))
+  setTimeout(()=>{t.classList.remove('toast-show');setTimeout(()=>t.remove(),300)},3500)
+}
+
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 const LS = 'archery_v5'
 const LS_OLD = 'archery_v4'
@@ -311,7 +323,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   })
 
   updateStartTargetDropdown(24)
-  document.getElementById('target-count').addEventListener('change',e=>updateStartTargetDropdown(Number(e.target.value)))
+  document.getElementById('target-count').addEventListener('change',e=>{
+    const v=e.target.value,cIn=document.getElementById('target-count-custom')
+    cIn.style.display=v==='custom'?'':'none'
+    if(v!=='custom')updateStartTargetDropdown(Number(v))
+  })
+  document.getElementById('target-count-custom').addEventListener('input',e=>{
+    const n=Number(e.target.value);if(n>0)updateStartTargetDropdown(n)
+  })
 
   document.getElementById('photo-input')?.addEventListener('change',async e=>{
     const file=e.target.files[0];if(!file)return
@@ -324,7 +343,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       await updateTargetInFirestore(state.round.courseId,tIdx,{imageUrl:url})
       if(state.course?.targets)state.course.targets[tIdx].imageUrl=url
       updateTopBar()
-    }catch(e){alert('Upload fejl: '+e.message)}
+    }catch(e){showToast('Upload fejl: '+e.message,'error')}
   })
 
   document.querySelectorAll('.modal').forEach(m=>{
@@ -531,8 +550,14 @@ function populateCourseDropdown(){
   sel.onchange=()=>{
     const c=state.courses.find(x=>x.id===sel.value)
     const tc=document.getElementById('target-count')
-    if(c){tc.value=c.numTargets;tc.disabled=true}else{tc.disabled=false}
-    updateStartTargetDropdown(c?c.numTargets:Number(tc.value))
+    const tcc=document.getElementById('target-count-custom')
+    if(c){
+      const hasOpt=!!tc.querySelector(`option[value="${c.numTargets}"]`)
+      if(hasOpt){tc.value=String(c.numTargets);tcc.style.display='none'}
+      else{tc.value='custom';tcc.value=c.numTargets;tcc.style.display=''}
+      tc.disabled=true;tcc.disabled=true
+    }else{tc.disabled=false;tcc.disabled=false;if(tc.value!=='custom')tcc.style.display='none'}
+    updateStartTargetDropdown(c?c.numTargets:(tc.value==='custom'?Number(tcc.value):Number(tc.value)))
   }
 }
 
@@ -544,7 +569,7 @@ function updateStartTargetDropdown(n){
 window.addParticipant=function(id,name){
   if(document.getElementById(`chip-${id}`))return
   const div=document.createElement('div');div.className='pchip';div.id=`chip-${id}`
-  div.innerHTML=`<span class="pchip-name">🎯 ${name}</span><button class="pchip-rm" onclick="this.closest('.pchip').remove()">✕</button>`
+  div.innerHTML=`<span class="pchip-name">🎯 ${esc(name)}</span><button class="pchip-rm" onclick="this.closest('.pchip').remove()">✕</button>`
   document.getElementById('p-list').appendChild(div)
 }
 
@@ -577,7 +602,12 @@ window.searchFriends=async function(val){
   }catch(e){console.warn(e)}
   const all=[...local,...remote]
   if(!all.length){list.classList.add('hidden');return}
-  list.innerHTML=all.map(f=>`<div class="ac-item" onclick="selectFriend('${f.id}','${(f.name||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}');document.getElementById('friend-search').value='';document.getElementById('ac-list').classList.add('hidden');">${f.name}${f.email?` <span style='font-size:11px;opacity:.6'>${f.email}</span>`:''}</div>`).join('')
+  list.innerHTML=all.map(f=>`<div class="ac-item" data-id="${esc(f.id)}" data-name="${esc(f.name||'')}" data-email="${esc(f.email||'')}">${esc(f.name)}${f.email?` <span style='font-size:11px;opacity:.6'>${esc(f.email)}</span>`:''}</div>`).join('')
+  list.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>{
+    selectFriend(el.dataset.id,el.dataset.name,el.dataset.email)
+    document.getElementById('friend-search').value=''
+    document.getElementById('ac-list').classList.add('hidden')
+  }))
   list.classList.remove('hidden')
 }
 
@@ -590,7 +620,8 @@ window.selectFriend=function(id,name,email){
 window.startRound=async function(){
   const name=document.getElementById('round-name').value.trim()||'Min Skydning'
   const courseId=document.getElementById('course-sel').value
-  const numTargets=Number(document.getElementById('target-count').value)||24
+  const _tc=document.getElementById('target-count')
+  const numTargets=(_tc.value==='custom'?Number(document.getElementById('target-count-custom').value):Number(_tc.value))||24
   const startAt=Number(document.getElementById('start-target').value)-1
   const gpsAuto=document.getElementById('gps-auto-sw').classList.contains('on')
   const gpsTrack=document.getElementById('gps-track-sw').classList.contains('on')
@@ -807,7 +838,7 @@ window.abortRound=async function(){
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
 function renderResults(round){
   const winner=findWinner(round.shooters)
-  document.getElementById('win-wrap').innerHTML=`<div class="win-trophy">🏆</div><div class="win-name">${winner?.name||'—'}</div><div class="win-score">${winner?calcTotal(winner.scores):0} point</div>`
+  document.getElementById('win-wrap').innerHTML=`<div class="win-trophy">🏆</div><div class="win-name">${esc(winner?.name||'—')}</div><div class="win-score">${winner?calcTotal(winner.scores):0} point</div>`
   document.getElementById('res-table').innerHTML=buildResultsTable(round)
   document.getElementById('res-dist').innerHTML=buildDistribution(round)
 }
@@ -869,7 +900,7 @@ function renderRoundsList(){
     const winner=shooters.length?findWinner(shooters):null
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta"><span class="rcard-date">${date}</span> · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser" style="font-size:16px;">📈</button><button class="del-btn" data-id="${r.id}">✕</button>`
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||'Runde')}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||r.numTargets+' mål')}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser" style="font-size:16px;">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
     card.querySelector('.rcard-analyse').onclick=()=>analyseRound(r.id)
     card.querySelector('.del-btn').onclick=e=>{
@@ -907,7 +938,7 @@ function showRoundPopup(round){window._lastRound=round;
   const durStr=gpsDuration?formatDuration(gpsDuration):null
   const distStr=gpsDistance?formatDistance(gpsDistance):null
   const gpsHtml=(distStr||durStr)?`<div style="display:flex;gap:8px;margin-bottom:12px;">${distStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${distStr}</div><div style="font-size:11px;color:var(--muted);">DISTANCE</div></div>`:''}${durStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${durStr}</div><div style="font-size:11px;color:var(--muted);">TID</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map" style="height:200px;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>`:''}`:'';
-  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${round.name}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
+  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${esc(round.name)}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
   if(gpsRoute){const pts=parseRoute(gpsRoute);if(pts.length)setTimeout(()=>{const mapEl=document.getElementById('rpop-map');if(!mapEl)return;state.rpopMap=window.L.map(mapEl);window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.rpopMap);const poly=window.L.polyline(pts.map(p=>[p.lat,p.lng]),{color:'#e8a020',weight:3}).addTo(state.rpopMap);state.rpopMap.fitBounds(poly.getBounds(),{padding:[20,20]})},50)}
 }
 
@@ -918,7 +949,7 @@ function renderCoursesList(){
   el.innerHTML=''
   state.courses.forEach(c=>{
     const card=document.createElement('div');card.className='ccard'
-    card.innerHTML=`<div class="ccard-name">${c.name}</div><div class="ccard-meta">${c.numTargets} mål · ${c.location||'—'}</div>`
+    card.innerHTML=`<div class="ccard-name">${esc(c.name)}</div><div class="ccard-meta">${c.numTargets} mål · ${esc(c.location||'—')}</div>`
     card.onclick=()=>openCourseDetail(c);el.appendChild(card)
   })
 }
@@ -957,7 +988,7 @@ function renderVisits(course){
     const card=document.createElement('div');card.className='visit-card'
     card.style.cursor='pointer'
     card.onclick=(e)=>{if(!e.target.closest('.btn-icon'))window.showVisitResults(v.roundId)}
-    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${v.date}</span><div style="display:flex;gap:6px;"><button class="btn-icon" onclick="window.showVisitResults('${v.roundId}')" title="Se resultat">📊</button><button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${v.winner} (${v.winnerScore} pt)</div>`:''}`
+    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${esc(v.date)}</span><div style="display:flex;gap:6px;"><button class="btn-icon" onclick="window.showVisitResults('${esc(v.roundId)}')" title="Se resultat">📊</button><button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).map(esc).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${esc(v.winner)} (${v.winnerScore} pt)</div>`:''}`
     el.appendChild(card)
   })
 }
@@ -965,7 +996,7 @@ function renderVisits(course){
 
 window.showVisitResults=function(roundId){
   const round=state.rounds.find(r=>r.id===roundId)
-  if(!round){alert('Runden er ikke gemt lokalt');return}
+  if(!round){showToast('Runden er ikke gemt lokalt','error');return}
   const shooters=(round.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
   window.switchTab('results')
   showRoundPopup({...round,shooters})
@@ -1049,7 +1080,7 @@ window.saveCourseEdit=async function(){
   if(!name)return
   await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
   state.currentCourse.name=name;state.currentCourse.location=loc
-  document.getElementById('course-detail-title').textContent=name;alert('Gemt!')
+  document.getElementById('course-detail-title').textContent=name;showToast('Gemt!','success')
 }
 
 window.updateTargetField=function(idx,field,value){
@@ -1064,7 +1095,7 @@ window.addTargetToCurrentCourse=async function(){
   await updateDoc(doc(db,'courses',state.currentCourse.id),{targets})
   state.currentCourse.targets=targets
   renderCourseEditForm(state.currentCourse)
-  alert(`Mål ${targets.length} tilføjet!`)
+  showToast(`Mål ${targets.length} tilføjet!`,'success')
 }
 
 window.deleteTargetFromCourse=async function(idx){
@@ -1087,8 +1118,8 @@ window.setTargetGps=async function(idx){
     state.currentCourse.targets[idx].gps=pos
     await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
     renderCourseEditForm(state.currentCourse)
-    alert(`GPS sat for mål ${idx+1}!`)
-  }catch(e){alert('GPS fejl: '+e.message)}
+    showToast(`GPS sat for mål ${idx+1}!`,'success')
+  }catch(e){showToast('GPS fejl: '+e.message,'error')}
 }
 
 window.uploadTargetPhoto=async function(idx,input){
@@ -1101,8 +1132,8 @@ window.uploadTargetPhoto=async function(idx,input){
     state.currentCourse.targets[idx].imageUrl=url
     await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
     renderCourseEditForm(state.currentCourse)
-    alert('Foto gemt!')
-  }catch(e){alert('Upload fejl: '+e.message)}
+    showToast('Foto gemt!','success')
+  }catch(e){showToast('Upload fejl: '+e.message,'error')}
 }
 
 window.uploadTargetPhoto=async function(idx,input){
@@ -1115,14 +1146,14 @@ window.uploadTargetPhoto=async function(idx,input){
     state.currentCourse.targets[idx].imageUrl=url
     await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
     renderCourseEditForm(state.currentCourse)
-    alert('Foto gemt!')
-  }catch(e){alert('Upload fejl: '+e.message)}
+    showToast('Foto gemt!','success')
+  }catch(e){showToast('Upload fejl: '+e.message,'error')}
 }
 
 window.saveAllTargets=async function(){
   if(!state.currentCourse?.targets)return
   await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
-  alert('Alle mål gemt!')
+  showToast('Alle mål gemt!','success')
 }
 
 window.switchSubtab=function(name){
@@ -1135,7 +1166,7 @@ window.toggleMyPos=async function(){
   const sw=document.getElementById('mypos-sw');sw.classList.toggle('on')
   if(sw.classList.contains('on')){
     try{const pos=await getCurrentPosition();window.L.circle([pos.lat,pos.lng],{radius:10,color:'#2a7ae8',fillOpacity:0.7}).addTo(state.courseMap);state.courseMap.panTo([pos.lat,pos.lng])}
-    catch(e){alert('GPS ikke tilgængeligt');sw.classList.remove('on')}
+    catch(e){showToast('GPS ikke tilgængeligt','error');sw.classList.remove('on')}
   }
 }
 
@@ -1149,7 +1180,8 @@ window.doDeleteCourse=async function(){
 window.doCreateCourse=async function(){
   const name=document.getElementById('new-course-name').value.trim()
   const loc=document.getElementById('new-course-loc').value.trim()
-  const num=Number(document.getElementById('new-course-targets').value)||24
+  const _nct=document.getElementById('new-course-targets')
+  const num=(_nct.value==='custom'?Number(document.getElementById('new-course-targets-custom').value):Number(_nct.value))||24
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
   await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
@@ -1206,8 +1238,8 @@ window.saveEditTarget=async function(){
 }
 
 window.editGps=async function(){
-  try{const pos=await getCurrentPosition(),tIdx=curTargetIdx();await updateTargetInFirestore(state.round.courseId,tIdx,{gps:pos});if(state.course?.targets)state.course.targets[tIdx].gps=pos;alert('GPS gemt!')}
-  catch(e){alert('GPS fejl: '+e.message)}
+  try{const pos=await getCurrentPosition(),tIdx=curTargetIdx();await updateTargetInFirestore(state.round.courseId,tIdx,{gps:pos});if(state.course?.targets)state.course.targets[tIdx].gps=pos;showToast('GPS gemt!','success')}
+  catch(e){showToast('GPS fejl: '+e.message,'error')}
 }
 
 // ─── FRIENDS ──────────────────────────────────────────────────────────────────
@@ -1217,7 +1249,9 @@ function renderFriendsList(){
   el.innerHTML=''
   state.friends.forEach(f=>{
     const card=document.createElement('div');card.className='fcard'
-    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${f.name}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).join(' · ')}</div></div><div class="factions"><button class="btn-icon" onclick='openFriendModal(${JSON.stringify(f)})'>✏️</button><button class="btn-icon" style="color:var(--danger);" onclick="doDeleteFriend('${f.id}','${f.name.replace(/'/g,"\\'")}')">🗑</button></div>`
+    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del" style="color:var(--danger);">🗑</button></div>`
+    card.querySelector('.frd-edit').addEventListener('click',()=>openFriendModal(f))
+    card.querySelector('.frd-del').addEventListener('click',()=>doDeleteFriend(f.id,f.name))
     el.appendChild(card)
   })
 }
@@ -1252,31 +1286,41 @@ window.doDeleteFriend=function(id,name){
 }
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
+let _allUsers=[]
 async function renderAdminSection(){
   if(!state.isAdmin)return
   document.getElementById('admin-section').classList.remove('hidden')
   try{
     const snap=await getDocs(collection(db,'users'))
-    const el=document.getElementById('users-list');el.innerHTML=''
-    snap.docs.forEach(u=>{
-      const d=u.data(),row=document.createElement('div');row.className='urow'
-      const date=d.created?.toDate?d.created.toDate().toLocaleDateString('da-DK'):'—'
-      row.innerHTML=`<span class="un">${d.name||d.yam||'—'}</span><span class="ue">${d.email||d['e-mail']||''}</span><span class="ud">${date}</span>`
-      el.appendChild(row)
-    })
+    _allUsers=snap.docs.map(u=>({uid:u.id,...u.data()})).sort((a,b)=>(a.name||a.yam||'').localeCompare(b.name||b.yam||'','da'))
+    renderUsersList()
   }catch(e){console.warn(e)}
 }
+function renderUsersList(filter=''){
+  const el=document.getElementById('users-list');el.innerHTML=''
+  const q=filter.toLowerCase()
+  const users=q?_allUsers.filter(d=>(d.name||d.yam||'').toLowerCase().includes(q)||(d.email||d['e-mail']||'').toLowerCase().includes(q)):_allUsers
+  document.getElementById('users-count').textContent=`${users.length} brugere`
+  users.forEach(d=>{
+    const row=document.createElement('div');row.className='urow'
+    const date=d.created?.toDate?d.created.toDate().toLocaleDateString('da-DK'):'—'
+    const bow=d.bueklasse||'';const kon=d.kon==='m'?'♂':d.kon==='k'?'♀':''
+    row.innerHTML=`<span class="un">${esc(d.name||d.yam||'—')}</span><span class="ue">${esc(d.email||d['e-mail']||'')}</span><span class="ubow">${esc(bow)}${kon?` ${esc(kon)}`:''}</span><span class="ud">${esc(date)}</span>`
+    el.appendChild(row)
+  })
+}
+window.filterUsers=function(v){renderUsersList(v)}
 
 window.doAddAdmin=async function(){
   const email=document.getElementById('admin-email').value.trim();if(!email)return
   try{
     const snap=await getDocs(collection(db,'users'))
     const user=snap.docs.find(d=>d.data().email===email||d.data()['e-mail']===email)
-    if(!user){alert('Bruger ikke fundet');return}
+    if(!user){showToast('Bruger ikke fundet','error');return}
     await setDoc(doc(db,'admins',user.id),{email,created:serverTimestamp()})
-    alert(`${user.data().name||email} er nu admin`)
+    showToast(`${user.data().name||email} er nu admin`,'success')
     document.getElementById('admin-email').value=''
-  }catch(e){alert('Fejl: '+e.message)}
+  }catch(e){showToast('Fejl: '+e.message,'error')}
 }
 
 // ─── QR ───────────────────────────────────────────────────────────────────────
@@ -1545,7 +1589,7 @@ window.renderAnalyse=function(){
 }
 
 window.sendResults=async function(round){
-  if(!round){alert('Ingen runde at sende');return}
+  if(!round){showToast('Ingen runde at sende','error');return}
   const date=new Date().toLocaleDateString('da-DK')
   let body='3D Bueskydning - Resultater\n'
   body+='Dato: '+date+'\n'
