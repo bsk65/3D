@@ -170,9 +170,10 @@ select option{background:var(--surf);}
 .admin-sec{border-top:2px solid var(--acc);margin-top:14px;padding:14px 12px;}
 .admin-sec h3{font-family:var(--fd);font-size:16px;color:var(--acc);margin-bottom:10px;}
 .urow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bord);font-size:12px;}
-.urow .un{font-weight:600;color:var(--txt);}
-.urow .ue{color:var(--muted);flex:1;}
-.urow .ud{font-size:10px;color:var(--muted);}
+.urow .un{font-weight:600;color:var(--txt);min-width:90px;}
+.urow .ue{color:var(--muted);flex:1;word-break:break-all;}
+.urow .ubow{font-size:11px;color:var(--acc);white-space:nowrap;}
+.urow .ud{font-size:10px;color:var(--muted);white-space:nowrap;}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:500;padding:16px;}
 .modal.hidden{display:none;}
 .modal-box{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:20px;width:100%;max-width:360px;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
