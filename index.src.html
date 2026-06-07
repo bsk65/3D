@@ -252,6 +252,7 @@
           <option value="lastround">Seneste runde</option>
           <option value="10">Seneste 10</option>
           <option value="20">Seneste 20</option>
+          <option value="specific">Specifik runde</option>
         </select>
         <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
           <option value="all">Alle baner</option>
@@ -261,6 +262,11 @@
             style="flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;"
             oninput="renderAnalyse()" />
         </div>
+      </div>
+      <div id="analyse-runde-wrap" style="display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <select id="analyse-runde" onchange="renderAnalyse()" style="width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="">Vælg runde...</option>
+        </select>
       </div>
       <div id="analyse-content" style="padding:12px;"></div>
     </div>

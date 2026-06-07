@@ -346,6 +346,12 @@ window.saveProfilModal=async function(){
   }catch(e){errEl.textContent='Fejl ved gem. Prøv igen.';errEl.classList.remove('hidden')}
 }
 
+function analyseRound(id){
+  state.pendingAnalyseRound=id
+  document.getElementById('analyse-filter').value='specific'
+  window.switchTab('analyse')
+}
+
 function tryOpenPendingRound(){
   if(!state.pendingRound)return
   const r=state.rounds.find(x=>x.id===state.pendingRound)
@@ -823,8 +829,9 @@ function renderRoundsList(){
     const winner=shooters.length?findWinner(shooters):null
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta"><span class="rcard-date">${date}</span> · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="del-btn" data-id="${r.id}">✕</button>`
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${r.name||'Runde'}</div><div class="rcard-meta"><span class="rcard-date">${date}</span> · ${r.courseName||r.numTargets+' mål'}</div><div class="rcard-win">🏆 ${winner?.name||'—'} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser" style="font-size:16px;">📈</button><button class="del-btn" data-id="${r.id}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
+    card.querySelector('.rcard-analyse').onclick=()=>analyseRound(r.id)
     card.querySelector('.del-btn').onclick=e=>{
       const btn=e.currentTarget,key=`r-${r.id}`
       if(!state.deleteConfirm[key]){
@@ -1256,13 +1263,29 @@ window.renderAnalyse=function(){
     })
   }
   const filterVal=document.getElementById('analyse-filter')?.value||'all'
-  const filter=filterVal==='all'?0:filterVal==='lastround'?1:Number(filterVal)
+  const filter=filterVal==='all'?0:filterVal==='lastround'?1:filterVal==='specific'?0:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
   const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
+  // Vis/skjul og udfyld runde-dropdown ved "Specifik runde"
+  const rundeWrap=document.getElementById('analyse-runde-wrap')
+  const rundeEl=document.getElementById('analyse-runde')
+  if(rundeWrap)rundeWrap.style.display=filterVal==='specific'?'':'none'
+  if(filterVal==='specific'&&rundeEl){
+    // Genopbyg liste ved behov
+    const currentIds=new Set(Array.from(rundeEl.options).map(o=>o.value).filter(Boolean))
+    state.rounds.forEach(r=>{
+      if(!currentIds.has(r.id)){
+        const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
+        const o=document.createElement('option');o.value=r.id;o.textContent=`${date} — ${r.name||'Runde'}`;rundeEl.appendChild(o)
+      }
+    })
+    if(state.pendingAnalyseRound){rundeEl.value=state.pendingAnalyseRound;state.pendingAnalyseRound=null}
+  }
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
   let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
+  if(filterVal==='specific'){const sel=rundeEl?.value;filtered=sel?filtered.filter(r=>r.id===sel):[]}
   const antal=antalInput||filter
-  const rounds=antal?filtered.slice(0,antal):filtered
+  const rounds=antal&&filterVal!=='specific'?filtered.slice(0,antal):filtered
   if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
   const getMe=r=>r.shooters.find(x=>x.id===state.user?.uid)||r.shooters?.[0]
   const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
