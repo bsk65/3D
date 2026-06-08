@@ -59,7 +59,11 @@ function lsSave() {
       rounds:  state.rounds.slice(0, 200),
       courses: state.courses
     }))
-  } catch(e) {}
+  } catch(e) {
+    if (e?.name === 'QuotaExceededError') {
+      showToast('Lokalt lager er fuldt — nogle data blev ikke gemt', 'error')
+    }
+  }
 }
 
 // ─── SCORING HELPERS ──────────────────────────────────────────────────────────
@@ -212,6 +216,18 @@ async function acquireWakeLock(){try{if('wakeLock' in navigator)wakeLock=await n
 function releaseWakeLock(){if(wakeLock){wakeLock.release();wakeLock=null}}
 
 // ─── AUTH HELPERS ─────────────────────────────────────────────────────────────
+const AUTH_ERRORS = {
+  'auth/user-not-found':       'Bruger ikke fundet.',
+  'auth/wrong-password':       'Forkert kodeord.',
+  'auth/invalid-credential':   'Ugyldig email eller kodeord.',
+  'auth/email-already-in-use': 'Email er allerede i brug.',
+  'auth/weak-password':        'Kodeordet er for svagt (min. 6 tegn).',
+  'auth/invalid-email':        'Ugyldig email-adresse.',
+  'auth/too-many-requests':    'For mange forsøg. Prøv igen senere.',
+  'auth/network-request-failed': 'Netværksfejl. Tjek din forbindelse.',
+}
+function authErrMsg(code){ return AUTH_ERRORS[code] || 'Der opstod en fejl. Prøv igen.' }
+
 function showAuthErr(msg,type='error'){
   const el=document.getElementById('auth-err')
   el.textContent=msg; el.style.color=type==='ok'?'var(--success)':''; el.classList.remove('hidden')
@@ -231,7 +247,7 @@ window.doLogin = async function(){
   const btn=document.querySelector('#login-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{ await signInWithEmailAndPassword(auth,email,pw) }
-  catch(err){ showAuthErr(err.code==='auth/invalid-credential'?'Ugyldig email eller kodeord.':'Der opstod en fejl: '+err.code) }
+  catch(err){ showAuthErr(authErrMsg(err.code)) }
   finally{ btn.disabled=false; btn.textContent='LOG IND' }
 }
 
@@ -247,7 +263,7 @@ window.doSignup = async function(){
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
     await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp()})
-  }catch(err){showAuthErr('Fejl: '+err.code)}
+  }catch(err){showAuthErr(authErrMsg(err.code))}
   finally{btn.disabled=false;btn.textContent='OPRET KONTO'}
 }
 
@@ -255,7 +271,7 @@ window.doForgot = async function(){
   const email=document.getElementById('login-email').value.trim()
   if(!email){showAuthErr('Indtast din email først.');return}
   try{await sendPasswordResetEmail(auth,email);showAuthErr('Nulstillingsmail sendt!','ok')}
-  catch(err){showAuthErr('Fejl: '+err.code)}
+  catch(err){showAuthErr(authErrMsg(err.code))}
 }
 
 window.doLogout = async function(){
@@ -285,12 +301,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // Sørg for Firestore netværk er aktivt
       for(let attempt=0; attempt<3; attempt++){
         try{
-          console.log('Henter profil for uid:', user.uid)
           ;[profileSnap, adminSnap] = await Promise.all([
             getDoc(doc(db,'users',user.uid)),
             getDoc(doc(db,'admins',user.uid))
           ])
-          console.log('Profil:', profileSnap.exists(), profileSnap.data?.())
           break
         }catch(e){
           console.error('Profil fejl attempt', attempt, e.code, e.message)
@@ -473,14 +487,11 @@ function onLogin(){
       })
       lsSave(); renderRoundsList()
       if(state.pendingRound)tryOpenPendingRound()
-      console.log('Runder fra Firestore:',newRounds.length)
     }
   }).catch(e=>console.warn('Hent runder:',e))
 
   // Hent baner fra Firestore
-  console.log('Henter baner, user uid:', state.user?.uid)
   getDocs(collection(db,'courses')).then(snap=>{
-    console.log('Baner hentet:', snap.docs.length, snap.docs.map(d=>d.id))
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
@@ -618,7 +629,7 @@ window.selectFriend=function(id,name,email){
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
 window.startRound=async function(){
-  const name=document.getElementById('round-name').value.trim()||'Min Skydning'
+  const name=(document.getElementById('round-name').value.trim()||'Min Skydning').slice(0,80)
   const courseId=document.getElementById('course-sel').value
   const _tc=document.getElementById('target-count')
   const numTargets=(_tc.value==='custom'?Number(document.getElementById('target-count-custom').value):Number(_tc.value))||24
@@ -1075,8 +1086,8 @@ function renderCourseEditForm(course){
 }
 
 window.saveCourseEdit=async function(){
-  const name=document.getElementById('edit-cname').value.trim()
-  const loc=document.getElementById('edit-cloc').value.trim()
+  const name=document.getElementById('edit-cname').value.trim().slice(0,100)
+  const loc=document.getElementById('edit-cloc').value.trim().slice(0,100)
   if(!name)return
   await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
   state.currentCourse.name=name;state.currentCourse.location=loc
@@ -1136,20 +1147,6 @@ window.uploadTargetPhoto=async function(idx,input){
   }catch(e){showToast('Upload fejl: '+e.message,'error')}
 }
 
-window.uploadTargetPhoto=async function(idx,input){
-  const file=input.files[0];if(!file)return
-  try{
-    const b64=await compressImage(file)
-    const imgRef=ref(storage,`courses/${state.currentCourse.id}/target_${idx}.jpg`)
-    await uploadString(imgRef,b64,'base64',{contentType:'image/jpeg'})
-    const url=await getDownloadURL(imgRef)
-    state.currentCourse.targets[idx].imageUrl=url
-    await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
-    renderCourseEditForm(state.currentCourse)
-    showToast('Foto gemt!','success')
-  }catch(e){showToast('Upload fejl: '+e.message,'error')}
-}
-
 window.saveAllTargets=async function(){
   if(!state.currentCourse?.targets)return
   await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
@@ -1178,8 +1175,8 @@ window.doDeleteCourse=async function(){
 }
 
 window.doCreateCourse=async function(){
-  const name=document.getElementById('new-course-name').value.trim()
-  const loc=document.getElementById('new-course-loc').value.trim()
+  const name=document.getElementById('new-course-name').value.trim().slice(0,100)
+  const loc=document.getElementById('new-course-loc').value.trim().slice(0,100)
   const _nct=document.getElementById('new-course-targets')
   const num=(_nct.value==='custom'?Number(document.getElementById('new-course-targets-custom').value):Number(_nct.value))||24
   if(!name)return
@@ -1268,7 +1265,13 @@ window.openFriendModal=function(friend){
 }
 
 window.saveFriendModal=function(){
-  const data={name:document.getElementById('f-name').value.trim(),email:document.getElementById('f-email').value.trim(),phone:document.getElementById('f-phone').value.trim(),club:document.getElementById('f-club').value.trim(),bowType:document.getElementById('f-bow').value}
+  const data={
+    name:    document.getElementById('f-name').value.trim().slice(0,80),
+    email:   document.getElementById('f-email').value.trim().slice(0,100),
+    phone:   document.getElementById('f-phone').value.trim().slice(0,30),
+    club:    document.getElementById('f-club').value.trim().slice(0,80),
+    bowType: document.getElementById('f-bow').value
+  }
   if(!data.name)return
   if(state.editFriendId){const idx=state.friends.findIndex(f=>f.id===state.editFriendId);if(idx!==-1)state.friends[idx]={...data,id:state.editFriendId};else state.friends.push({...data,id:state.editFriendId})}
   else state.friends.push({...data,id:'f_'+Date.now()})
