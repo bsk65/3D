@@ -18,7 +18,7 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-GYaDFOxJ.js"></script>
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-bM1YEhIP.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-BF9ZLHil.css">
   </head>
 <body>
@@ -454,6 +454,17 @@
     <div class="brow">
       <button class="btn btn-gold" onclick="addGuest()">Tilføj</button>
       <button class="btn btn-dark" onclick="document.getElementById('guest-modal').classList.add('hidden')">Annuller</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-box">
+    <p id="confirm-msg" style="font-size:15px;text-align:center;color:var(--txt);"></p>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-dark" style="flex:1;" onclick="window._confirmReject&&window._confirmReject()">Annuller</button>
+      <button class="btn btn-red" style="flex:1;" onclick="window._confirmAccept&&window._confirmAccept()">Bekræft</button>
     </div>
   </div>
 </div>
