@@ -96,7 +96,9 @@
             <select id="target-count">
               <option value="24" selected>24 Mål</option>
               <option value="30">30 Mål</option>
-            </select></div>
+              <option value="custom">Andet...</option>
+            </select>
+            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" style="display:none;margin-top:6px;" /></div>
         </div>
 
         <div class="card">
@@ -198,7 +200,7 @@
           <span id="gps-time" style="font-family:var(--font-display);color:var(--accent);font-size:14px;">00:00</span>
           <span id="gps-dist" style="font-weight:600;">0 m</span>
           <span id="gps-coord" style="flex:1;font-size:11px;"></span>
-          <button class="btn-icon" onclick="toggleGpsPause();this.textContent=state.gpsPaused?'▶':'⏸'">⏸</button>
+          <button class="btn-icon" onclick="this.textContent=toggleGpsPause()?'▶':'⏸'">⏸</button>
         </div>
 
         <div class="shoot-bot">
@@ -307,10 +309,12 @@
         <div class="modal-box">
           <h3>Opret bane</h3>
           <input type="text" id="new-course-name" placeholder="Banenavn" />
-          <select id="new-course-targets">
+          <select id="new-course-targets" onchange="document.getElementById('new-course-targets-custom').style.display=this.value==='custom'?'':'none'">
             <option value="24" selected>24 mål</option>
             <option value="30">30 mål</option>
+            <option value="custom">Andet...</option>
           </select>
+          <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" style="display:none;margin-top:6px;" />
           <input type="text" id="new-course-loc" placeholder="Lokation (fx by)" />
           <div class="brow">
             <button class="btn btn-gold" onclick="doCreateCourse()">Opret</button>
@@ -333,7 +337,11 @@
           <input type="email" id="admin-email" placeholder="Email til ny admin" style="flex:1;" />
           <button class="btn btn-dark btn-sm" onclick="doAddAdmin()">Tilføj</button>
         </div>
-        <h4 style="font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin-bottom:8px;">ALLE BRUGERE</h4>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <h4 style="font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin:0;">ALLE BRUGERE</h4>
+          <span id="users-count" style="font-size:12px;color:var(--text-muted);"></span>
+        </div>
+        <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;" />
         <div id="users-list"></div>
       </div>
 

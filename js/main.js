@@ -847,6 +847,13 @@ window.abortRound=async function(){
 }
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
+function buildDistribution(round){
+  return '<div class="dist-grid">'+round.shooters.map(s=>{
+    const d=calcDistribution(s.scores)
+    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+  }).join('')+'</div>'
+}
+
 function renderResults(round){
   const winner=findWinner(round.shooters)
   document.getElementById('win-wrap').innerHTML=`<div class="win-trophy">🏆</div><div class="win-name">${esc(winner?.name||'—')}</div><div class="win-score">${winner?calcTotal(winner.scores):0} point</div>`
@@ -1181,9 +1188,14 @@ window.doCreateCourse=async function(){
   const num=(_nct.value==='custom'?Number(document.getElementById('new-course-targets-custom').value):Number(_nct.value))||24
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
-  await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
-  document.getElementById('create-course-modal').classList.add('hidden')
-  document.getElementById('new-course-name').value=''
+  try{
+    const docRef=await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
+    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[]})
+    lsSave();renderCoursesList();populateCourseDropdown()
+    document.getElementById('create-course-modal').classList.add('hidden')
+    document.getElementById('new-course-name').value=''
+    showToast('Bane oprettet!','success')
+  }catch(e){showToast('Fejl: Kunne ikke oprette bane','error')}
 }
 
 async function addCourseVisit(courseId,visitData){
