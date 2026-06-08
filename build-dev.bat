@@ -18,8 +18,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM Kopier build til 3D-dev mappe
+REM Kopier build til 3D-dev mappe (ryd assets foerst saa gamle filer ikke akkumulerer)
 if not exist "%PROJ%\3D-dev" mkdir "%PROJ%\3D-dev"
+if exist "%PROJ%\3D-dev\assets" rmdir /S /Q "%PROJ%\3D-dev\assets"
 xcopy "%PROJ%\dist-dev\*" "%PROJ%\3D-dev\" /E /Y /Q
 
 REM Brug git worktree saa vi ikke behover at skifte branch og miste dette script
