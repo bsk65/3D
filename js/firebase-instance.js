@@ -7,7 +7,7 @@ import { getStorage } from 'firebase/storage'
 const firebaseConfig = {
   apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
   authDomain: "archery-app-70e20.firebaseapp.com",
-  projectId: "bueskydning-app-70e20",
+  projectId: "archery-app-70e20",
   storageBucket: "archery-app-70e20.firebasestorage.app",
   messagingSenderId: "1025324581093",
   appId: "1:1025324581093:web:03b41dbee9cc81c6eb540c"

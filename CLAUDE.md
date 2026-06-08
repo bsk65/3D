@@ -9,13 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server
+npm run dev       # Start Vite dev server (localhost:5173/3D/)
 npm run build     # Build to /dist
 npm run preview   # Preview production build
-build.bat         # Full Windows build: copies index.src.html → index.html, builds, and git pushes
+build.bat         # Full Windows build → git push to produktion (/3D/)
+build-dev.bat     # Test-build → git push til dev-branch (/3D-dev/)
 ```
 
 The `build.bat` script is the production deployment path — it copies `index.src.html` to `index.html` before building. Edit `index.src.html`, not `index.html`.
+
+**Workflow:** Lav ændringer på `dev`-branchen og test via `build-dev.bat` på `https://bsk65.github.io/3D-dev/`. Når alt virker, merge til `main` og kør `build.bat`.
 
 ## Architecture
 
@@ -27,19 +30,19 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 
 | File | Responsibility |
 |------|---------------|
-| `js/main.js` | All app state, UI rendering, event handling, Firestore listeners |
-| `js/firebase-instance.js` | Firebase singleton (auth, db, storage) — import from here |
-| `js/auth.js` | Login/signup/logout/password reset |
-| `js/scoring.js` | Score values (11/10/8/5/M), totals, averages, serialization |
-| `js/courses.js` | Course CRUD, image upload/compression (400px max, 65% JPEG) |
-| `js/gps.js` | Geolocation watch, Haversine distance, route serialization |
-| `js/friends.js` | Local friends list, admin status check via Firestore |
+| `js/main.js` | **Eneste live fil.** Al app-logik: state, auth, UI, Firebase, GPS. Alt eksponeres via `window.*` til HTML onclick-handlers. |
+| `js/firebase-instance.js` | Firebase singleton — importeres IKKE af main.js (dead code, bevaret til reference) |
+| `js/legacy/` | Gamle moduler (app.js, auth.js, courses.js, gps.js, friends.js, scoring.js) — bruges ikke, flyttet hertil for at undgå forvirring |
+
+**Vigtig note:** Vite bundler kun `js/main.js`. Alle andre js/-filer er ikke en del af produktionsbuildet.
 
 ## Data Storage
 
-- **Firestore** (`kurser`, `brugere`, `administratorer`): courses, user profiles, admin list
-- **Firebase Storage**: course target images
-- **localStorage** (`archery_v5`): friends and rounds — local only, not synced to Firestore
+- **Firestore** (`courses`, `users`, `admins`): courses, user profiles, admin list
+- **Firebase Storage**: course target images (`courses/{courseId}/target_{idx}.jpg`)
+- **localStorage** (`archery_v5`): friends, rounds og courses — lokalt cache
+
+**Bemærk:** Gamle collection-navne (`kurser`, `brugere`, `administratorer`) er legacy fra tidligere version og bruges ikke i den nuværende kode. De live collection-navne er `courses`, `users`, `admins`.
 
 ## Key Data Structures
 
@@ -51,20 +54,25 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 
 ## Non-Obvious Behaviors
 
-- **Active rounds auto-resume** on page reload from localStorage (max 24h lifecycle).
+- **Active rounds auto-resume** on page reload from Firestore (`users/{uid}/aktiv/runde`, max 24h lifecycle).
 - **Service worker has no fetch handler** — intentionally no offline caching to avoid stale data.
 - **Wake Lock** is requested during GPS tracking to keep screen on.
-- **Admin check** is a simple `doc.exists()` on `administratorer/{uid}` — no role claims in Auth token.
-- Firebase config is hardcoded in both `main.js` and `firebase-instance.js` — no `.env` file.
+- **Admin check** is `doc.exists()` on `admins/{uid}` — no role claims in Auth token.
+- Firebase config is hardcoded in `main.js` — no `.env` file.
 - Firestore uses persistent local cache with multi-tab sync manager.
+- Courses are cached in localStorage and fetched fresh from Firestore on login.
+- Friends and rounds are primary-local (localStorage), with Firestore as backup/sync.
 
 ## Firestore Collections
 
 | Collection | Notes |
 |-----------|-------|
-| `kurser` | Courses — readable by all authenticated users, writable by admins only |
-| `brugere` | User profiles — each user reads/writes their own doc |
-| `administratorer` | Admin emails — checked on login to set `state.isAdmin` |
+| `courses` | Baner — læsbar af alle auth-brugere, skrives kun af admins |
+| `users` | Brugerprofiler — hver bruger læser/skriver eget doc |
+| `admins` | Admin-liste — `doc.exists()` afgør `state.isAdmin` |
+| `users/{uid}/rounds` | Runde-backup i Firestore (primary er localStorage) |
+| `users/{uid}/friends` | Venne-backup i Firestore (primary er localStorage) |
+| `users/{uid}/aktiv/runde` | Igangværende runde — slettes ved finish/abort |
 
 ## fix_*.mjs Scripts
 

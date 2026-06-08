@@ -38,6 +38,15 @@ function showToast(msg,type='info'){
   setTimeout(()=>{t.classList.remove('toast-show');setTimeout(()=>t.remove(),300)},3500)
 }
 
+function showConfirm(msg,onConfirm){
+  const modal=document.getElementById('confirm-modal')
+  document.getElementById('confirm-msg').textContent=msg
+  modal.classList.remove('hidden')
+  const cleanup=()=>{modal.classList.add('hidden');window._confirmAccept=null;window._confirmReject=null}
+  window._confirmAccept=()=>{cleanup();onConfirm()}
+  window._confirmReject=()=>{cleanup()}
+}
+
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 const LS = 'archery_v5'
 const LS_OLD = 'archery_v4'
@@ -59,7 +68,11 @@ function lsSave() {
       rounds:  state.rounds.slice(0, 200),
       courses: state.courses
     }))
-  } catch(e) {}
+  } catch(e) {
+    if (e?.name === 'QuotaExceededError') {
+      showToast('Lokalt lager er fuldt — nogle data blev ikke gemt', 'error')
+    }
+  }
 }
 
 // ─── SCORING HELPERS ──────────────────────────────────────────────────────────
@@ -128,6 +141,7 @@ function countScored(shooters, n) {
 
 function serializeRound(round) {
   return {
+    id: round.id||null,
     name: round.name, courseId: round.courseId||null, courseName: round.courseName||null,
     numTargets: round.numTargets, startTarget: round.startTarget||1,
     created: round.created, completed: round.completed||null,
@@ -212,6 +226,18 @@ async function acquireWakeLock(){try{if('wakeLock' in navigator)wakeLock=await n
 function releaseWakeLock(){if(wakeLock){wakeLock.release();wakeLock=null}}
 
 // ─── AUTH HELPERS ─────────────────────────────────────────────────────────────
+const AUTH_ERRORS = {
+  'auth/user-not-found':       'Bruger ikke fundet.',
+  'auth/wrong-password':       'Forkert kodeord.',
+  'auth/invalid-credential':   'Ugyldig email eller kodeord.',
+  'auth/email-already-in-use': 'Email er allerede i brug.',
+  'auth/weak-password':        'Kodeordet er for svagt (min. 6 tegn).',
+  'auth/invalid-email':        'Ugyldig email-adresse.',
+  'auth/too-many-requests':    'For mange forsøg. Prøv igen senere.',
+  'auth/network-request-failed': 'Netværksfejl. Tjek din forbindelse.',
+}
+function authErrMsg(code){ return AUTH_ERRORS[code] || 'Der opstod en fejl. Prøv igen.' }
+
 function showAuthErr(msg,type='error'){
   const el=document.getElementById('auth-err')
   el.textContent=msg; el.style.color=type==='ok'?'var(--success)':''; el.classList.remove('hidden')
@@ -231,7 +257,7 @@ window.doLogin = async function(){
   const btn=document.querySelector('#login-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{ await signInWithEmailAndPassword(auth,email,pw) }
-  catch(err){ showAuthErr(err.code==='auth/invalid-credential'?'Ugyldig email eller kodeord.':'Der opstod en fejl: '+err.code) }
+  catch(err){ showAuthErr(authErrMsg(err.code)) }
   finally{ btn.disabled=false; btn.textContent='LOG IND' }
 }
 
@@ -242,12 +268,14 @@ window.doSignup = async function(){
   const kon=document.getElementById('signup-kon').value
   const bueklasse=document.getElementById('signup-bueklasse').value
   if(!name||!email||!pw||!kon||!bueklasse){showAuthErr('Udfyld alle felter.');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Ugyldig email-adresse.');return}
+  if(pw.length<6){showAuthErr('Adgangskoden skal være mindst 6 tegn.');return}
   const btn=document.querySelector('#signup-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
     await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp()})
-  }catch(err){showAuthErr('Fejl: '+err.code)}
+  }catch(err){showAuthErr(authErrMsg(err.code))}
   finally{btn.disabled=false;btn.textContent='OPRET KONTO'}
 }
 
@@ -255,7 +283,7 @@ window.doForgot = async function(){
   const email=document.getElementById('login-email').value.trim()
   if(!email){showAuthErr('Indtast din email først.');return}
   try{await sendPasswordResetEmail(auth,email);showAuthErr('Nulstillingsmail sendt!','ok')}
-  catch(err){showAuthErr('Fejl: '+err.code)}
+  catch(err){showAuthErr(authErrMsg(err.code))}
 }
 
 window.doLogout = async function(){
@@ -285,12 +313,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // Sørg for Firestore netværk er aktivt
       for(let attempt=0; attempt<3; attempt++){
         try{
-          console.log('Henter profil for uid:', user.uid)
           ;[profileSnap, adminSnap] = await Promise.all([
             getDoc(doc(db,'users',user.uid)),
             getDoc(doc(db,'admins',user.uid))
           ])
-          console.log('Profil:', profileSnap.exists(), profileSnap.data?.())
           break
         }catch(e){
           console.error('Profil fejl attempt', attempt, e.code, e.message)
@@ -473,14 +499,11 @@ function onLogin(){
       })
       lsSave(); renderRoundsList()
       if(state.pendingRound)tryOpenPendingRound()
-      console.log('Runder fra Firestore:',newRounds.length)
     }
   }).catch(e=>console.warn('Hent runder:',e))
 
   // Hent baner fra Firestore
-  console.log('Henter baner, user uid:', state.user?.uid)
   getDocs(collection(db,'courses')).then(snap=>{
-    console.log('Baner hentet:', snap.docs.length, snap.docs.map(d=>d.id))
     const firestoreCourses = snap.docs.map(d=>{
       const data=d.data()
       return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
@@ -618,7 +641,7 @@ window.selectFriend=function(id,name,email){
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
 window.startRound=async function(){
-  const name=document.getElementById('round-name').value.trim()||'Min Skydning'
+  const name=(document.getElementById('round-name').value.trim()||'Min Skydning').slice(0,80)
   const courseId=document.getElementById('course-sel').value
   const _tc=document.getElementById('target-count')
   const numTargets=(_tc.value==='custom'?Number(document.getElementById('target-count-custom').value):Number(_tc.value))||24
@@ -634,7 +657,7 @@ window.startRound=async function(){
   let startIdx=startAt
   if(gpsAuto&&state.course?.targets){try{startIdx=findNearestTarget(state.course.targets,await getCurrentPosition())}catch(e){}}
 
-  state.round={name,courseId:courseId||null,courseName:state.course?.name||null,numTargets,startTarget:startIdx+1,
+  state.round={id:'r_'+Date.now(),name,courseId:courseId||null,courseName:state.course?.name||null,numTargets,startTarget:startIdx+1,
     shooters,created:Date.now(),traversalOrder:buildOrder(startIdx,numTargets),traversalPos:0}
 
   if(gpsTrack){
@@ -643,7 +666,7 @@ window.startRound=async function(){
     acquireWakeLock()
   }
 
-  showActivePanel();renderShooters();updateTopBar()
+  showActivePanel();renderShooters();updateTopBar();resetScroll()
   saveActiveRound()
 }
 
@@ -735,30 +758,31 @@ async function tryResumeRound(){
     const snap=await getDoc(doc(db,'users',state.user.uid,'active','round'))
     if(!snap.exists())return
     const data=snap.data()
+    if(data.id&&state.rounds.some(r=>r.id===data.id)){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
     const age=Date.now()-(data.created?.toMillis?data.created.toMillis():(data.created||0))
     if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
-    if(confirm('Genoptag den igangværende runde?')){
+    showConfirm('Genoptag den igangværende runde?',()=>{
       state.round=deserializeRound(data)
       state.round.traversalOrder=data.traversalOrder||buildOrder(0,state.round.numTargets)
       state.round.traversalPos=data.traversalPos||0
       if(state.round.courseId)state.course=state.courses.find(c=>c.id===state.round.courseId)||null
-      showActivePanel();renderShooters();updateTopBar()
-    }
+      showActivePanel();renderShooters();updateTopBar();resetScroll()
+    })
   }catch(e){console.warn(e)}
 }
 
 // ─── NAV BUTTONS ──────────────────────────────────────────────────────────────
+function resetScroll(){const el=document.getElementById('app-main');if(!el)return;el.scrollTop=0;requestAnimationFrame(()=>{el.scrollTop=0;setTimeout(()=>{el.scrollTop=0},100)})}
+
 window.prevTarget=function(){
   if(!state.round||state.round.traversalPos<=0)return
-  state.round.traversalPos--;saveActiveRound();renderShooters();updateTopBar()
-  document.getElementById('scroll-area').scrollTop=0
+  state.round.traversalPos--;saveActiveRound();renderShooters();updateTopBar();resetScroll()
 }
 
 window.nextTarget=function(){
   if(!state.round)return
   if(state.round.traversalPos<state.round.numTargets-1){
-    state.round.traversalPos++;saveActiveRound();renderShooters();updateTopBar()
-    document.getElementById('scroll-area').scrollTop=0
+    state.round.traversalPos++;saveActiveRound();renderShooters();updateTopBar();resetScroll()
   }else window.finishRound()
 }
 
@@ -791,12 +815,12 @@ window.finishRound=async function(){
   if(state.gpsTracking){gpsData=stopTracking();state.gpsTracking=false}
   releaseWakeLock()
 
-  const roundId='r_'+Date.now()
+  const roundId=state.round.id||'r_'+Date.now()
   const roundData={...serializeRound(state.round),completed:Date.now(),...gpsData,id:roundId}
   state.rounds.unshift({...roundData,created:Date.now()})
   lsSave();renderRoundsList()
   // Gem runde i Firestore
-  setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(e=>console.warn('Gem runde fejl:',e))
+  setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Runde gemt lokalt (netværksfejl)','error'))
 
   const finished=state.round
   // Gem anonym statistik til baneoversigt
@@ -816,7 +840,7 @@ window.finishRound=async function(){
       gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
     }).catch(console.warn)
   }
-  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
+  await deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
   renderResults(finished);showResultsPanel()
 }
 
@@ -831,11 +855,25 @@ window.abortRound=async function(){
   state.abortTap=0;btn.textContent='🗑 AFBRYD'
   if(state.gpsTracking){stopTracking();state.gpsTracking=false}
   releaseWakeLock()
-  deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
+  await deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
   state.round=null;showSetupPanel()
 }
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
+function buildDistribution(round){
+  return '<div class="dist-grid">'+round.shooters.map(s=>{
+    const d=calcDistribution(s.scores)
+    const total=calcTotal(s.scores)
+    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
+    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
+    const allArr=s.scores.flat().filter(v=>v!=null)
+    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+    const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
+    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row" style="font-weight:700;border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;"><span>Total</span><span>${total} pt</span></div><div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div><div class="dist-row" style="border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+  }).join('')+'</div>'
+}
+
 function renderResults(round){
   const winner=findWinner(round.shooters)
   document.getElementById('win-wrap').innerHTML=`<div class="win-trophy">🏆</div><div class="win-name">${esc(winner?.name||'—')}</div><div class="win-score">${winner?calcTotal(winner.scores):0} point</div>`
@@ -912,11 +950,8 @@ function renderRoundsList(){
         delete state.deleteConfirm[key]
         state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
         if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
+        if(state.user&&r.courseId)deleteDoc(doc(db,'bane_stats',r.courseId,'runder',r.id)).catch(e=>console.warn(e))
         if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
-        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
-        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
-        // Slet fra Firestore
-        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
       }
     }
     el.appendChild(card)
@@ -1002,14 +1037,17 @@ window.showVisitResults=function(roundId){
   showRoundPopup({...round,shooters})
 }
 
-window.deleteVisit=async function(idx){
-  if(!confirm('Slet dette besøg?'))return
-  const ref2=doc(db,'courses',state.currentCourse.id)
-  const snap=await getDoc(ref2)
-  if(!snap.exists())return
-  const visits=[...(snap.data().visits||snap.data().besøg||[])];visits.splice(idx,1)
-  await updateDoc(ref2,{visits,besøg:visits})
-  state.currentCourse.visits=visits;renderVisits(state.currentCourse)
+window.deleteVisit=function(idx){
+  showConfirm('Slet dette besøg?',async()=>{
+    try{
+      const ref2=doc(db,'courses',state.currentCourse.id)
+      const snap=await getDoc(ref2)
+      if(!snap.exists())return
+      const visits=[...(snap.data().visits||snap.data().besøg||[])];visits.splice(idx,1)
+      await updateDoc(ref2,{visits,besøg:visits})
+      state.currentCourse.visits=visits;renderVisits(state.currentCourse)
+    }catch(e){showToast('Fejl: Kunne ikke slette besøg','error')}
+  })
 }
 
 window.showRouteOnMap=function(points){
@@ -1075,8 +1113,8 @@ function renderCourseEditForm(course){
 }
 
 window.saveCourseEdit=async function(){
-  const name=document.getElementById('edit-cname').value.trim()
-  const loc=document.getElementById('edit-cloc').value.trim()
+  const name=document.getElementById('edit-cname').value.trim().slice(0,100)
+  const loc=document.getElementById('edit-cloc').value.trim().slice(0,100)
   if(!name)return
   await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
   state.currentCourse.name=name;state.currentCourse.location=loc
@@ -1098,17 +1136,19 @@ window.addTargetToCurrentCourse=async function(){
   showToast(`Mål ${targets.length} tilføjet!`,'success')
 }
 
-window.deleteTargetFromCourse=async function(idx){
+window.deleteTargetFromCourse=function(idx){
   if(!state.currentCourse?.targets)return
-  if(!confirm(`Slet mål ${idx+1}?`))return
-  const targets=[...state.currentCourse.targets]
-  targets.splice(idx,1)
-  // Renumber
-  targets.forEach((t,i)=>t.number=i+1)
-  await updateDoc(doc(db,'courses',state.currentCourse.id),{targets,numTargets:targets.length})
-  state.currentCourse.targets=targets
-  state.currentCourse.numTargets=targets.length
-  renderCourseEditForm(state.currentCourse)
+  showConfirm(`Slet mål ${idx+1}?`,async()=>{
+    try{
+      const targets=[...state.currentCourse.targets]
+      targets.splice(idx,1)
+      targets.forEach((t,i)=>t.number=i+1)
+      await updateDoc(doc(db,'courses',state.currentCourse.id),{targets,numTargets:targets.length})
+      state.currentCourse.targets=targets
+      state.currentCourse.numTargets=targets.length
+      renderCourseEditForm(state.currentCourse)
+    }catch(e){showToast('Fejl: Kunne ikke slette mål','error')}
+  })
 }
 
 window.setTargetGps=async function(idx){
@@ -1120,20 +1160,6 @@ window.setTargetGps=async function(idx){
     renderCourseEditForm(state.currentCourse)
     showToast(`GPS sat for mål ${idx+1}!`,'success')
   }catch(e){showToast('GPS fejl: '+e.message,'error')}
-}
-
-window.uploadTargetPhoto=async function(idx,input){
-  const file=input.files[0];if(!file)return
-  try{
-    const b64=await compressImage(file)
-    const imgRef=ref(storage,`courses/${state.currentCourse.id}/target_${idx}.jpg`)
-    await uploadString(imgRef,b64,'base64',{contentType:'image/jpeg'})
-    const url=await getDownloadURL(imgRef)
-    state.currentCourse.targets[idx].imageUrl=url
-    await updateDoc(doc(db,'courses',state.currentCourse.id),{targets:state.currentCourse.targets})
-    renderCourseEditForm(state.currentCourse)
-    showToast('Foto gemt!','success')
-  }catch(e){showToast('Upload fejl: '+e.message,'error')}
 }
 
 window.uploadTargetPhoto=async function(idx,input){
@@ -1170,23 +1196,37 @@ window.toggleMyPos=async function(){
   }
 }
 
-window.doDeleteCourse=async function(){
-  if(!state.currentCourse||!confirm(`Slet banen "${state.currentCourse.name}"?`))return
-  await deleteDoc(doc(db,'courses',state.currentCourse.id))
-  document.getElementById('courses-list-view').classList.remove('hidden')
-  document.getElementById('course-detail-view').classList.add('hidden')
+window.doDeleteCourse=function(){
+  if(!state.currentCourse)return
+  const id=state.currentCourse.id,name=state.currentCourse.name
+  showConfirm(`Slet banen "${name}"?`,async()=>{
+    try{
+      await deleteDoc(doc(db,'courses',id))
+      state.courses=state.courses.filter(c=>c.id!==id)
+      state.currentCourse=null
+      lsSave();renderCoursesList();populateCourseDropdown()
+      document.getElementById('courses-list-view').classList.remove('hidden')
+      document.getElementById('course-detail-view').classList.add('hidden')
+      showToast('Bane slettet','success')
+    }catch(e){showToast('Fejl: Kunne ikke slette bane','error')}
+  })
 }
 
 window.doCreateCourse=async function(){
-  const name=document.getElementById('new-course-name').value.trim()
-  const loc=document.getElementById('new-course-loc').value.trim()
+  const name=document.getElementById('new-course-name').value.trim().slice(0,100)
+  const loc=document.getElementById('new-course-loc').value.trim().slice(0,100)
   const _nct=document.getElementById('new-course-targets')
   const num=(_nct.value==='custom'?Number(document.getElementById('new-course-targets-custom').value):Number(_nct.value))||24
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
-  await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
-  document.getElementById('create-course-modal').classList.add('hidden')
-  document.getElementById('new-course-name').value=''
+  try{
+    const docRef=await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
+    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[]})
+    lsSave();renderCoursesList();populateCourseDropdown()
+    document.getElementById('create-course-modal').classList.add('hidden')
+    document.getElementById('new-course-name').value=''
+    showToast('Bane oprettet!','success')
+  }catch(e){showToast('Fejl: Kunne ikke oprette bane','error')}
 }
 
 async function addCourseVisit(courseId,visitData){
@@ -1268,7 +1308,13 @@ window.openFriendModal=function(friend){
 }
 
 window.saveFriendModal=function(){
-  const data={name:document.getElementById('f-name').value.trim(),email:document.getElementById('f-email').value.trim(),phone:document.getElementById('f-phone').value.trim(),club:document.getElementById('f-club').value.trim(),bowType:document.getElementById('f-bow').value}
+  const data={
+    name:    document.getElementById('f-name').value.trim().slice(0,80),
+    email:   document.getElementById('f-email').value.trim().slice(0,100),
+    phone:   document.getElementById('f-phone').value.trim().slice(0,30),
+    club:    document.getElementById('f-club').value.trim().slice(0,80),
+    bowType: document.getElementById('f-bow').value
+  }
   if(!data.name)return
   if(state.editFriendId){const idx=state.friends.findIndex(f=>f.id===state.editFriendId);if(idx!==-1)state.friends[idx]={...data,id:state.editFriendId};else state.friends.push({...data,id:state.editFriendId})}
   else state.friends.push({...data,id:'f_'+Date.now()})
@@ -1280,9 +1326,10 @@ window.saveFriendModal=function(){
 }
 
 window.doDeleteFriend=function(id,name){
-  if(!confirm(`Slet ${name}?`))return
-  state.friends=state.friends.filter(f=>f.id!==id);lsSave();renderFriendsList();renderQuickFriends()
-  if(state.user)deleteDoc(doc(db,'users',state.user.uid,'friends',id)).catch(e=>console.warn(e))
+  showConfirm(`Slet ${name}?`,()=>{
+    state.friends=state.friends.filter(f=>f.id!==id);lsSave();renderFriendsList();renderQuickFriends()
+    if(state.user)deleteDoc(doc(db,'users',state.user.uid,'friends',id)).catch(e=>console.warn(e))
+  })
 }
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
@@ -1568,19 +1615,20 @@ window.renderAnalyse=function(){
         compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
         return
       }
-      const andresSnit=(sammeKlasse.reduce((s,d)=>s+d.score,0)/sammeKlasse.length).toFixed(1)
-      const diff=Number(avg)-Number(andresSnit)
-      const diffStr=(diff>0?'+':'')+diff.toFixed(1)
-      const diffColor=diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
+      const validEntries=sammeKlasse.filter(d=>d.numTargets>0)
+      const andresSnit=validEntries.length?(validEntries.reduce((s,d)=>s+d.score/(d.numTargets*2),0)/validEntries.length).toFixed(2):'—'
+      const diff=andresSnit!=='—'?Number(pilAvg)-Number(andresSnit):null
+      const diffStr=diff!==null?(diff>0?'+':'')+diff.toFixed(2):'—'
+      const diffColor=diff===null?'var(--muted)':diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
       compEl.innerHTML=`<div class="card" style="margin-bottom:16px;">
         <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-          <div><div style="font-size:11px;color:var(--muted);">DIT SNIT</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${avg}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);">DIT SNT/PIL</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${pilAvg}</div></div>
           <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
             <div style="font-size:11px;color:var(--muted);">DIFFERENCE</div>
             <div style="font-size:22px;font-weight:700;color:${diffColor};">${diffStr}</div>
           </div>
-          <div><div style="font-size:11px;color:var(--muted);">ANDRES SNIT</div><div style="font-size:22px;font-weight:700;color:var(--txt);">${andresSnit}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);">ANDRES SNT/PIL</div><div style="font-size:22px;font-weight:700;color:var(--txt);">${andresSnit}</div></div>
         </div>
         <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">Baseret på ${sammeKlasse.length} runde${sammeKlasse.length!==1?'r':''} fra andre skytter</div>
       </div>`
@@ -1605,7 +1653,16 @@ window.sendResults=async function(round){
       const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
       body+='  Mål '+(t+1)+': '+r.map(v=>v??'-').join('+')+' = '+sum+'\n'
     }
+    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
+    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
+    const allArr=s.scores.flat().filter(v=>v!=null)
+    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+    const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
+    const dist=calcDistribution(s.scores)
     body+='  Total: '+calcTotal(s.scores)+' point\n'
+    body+='  Snit pil 1: '+avg1+' | Snit pil 2: '+avg2+' | Samlet snit: '+avgAll+'\n'
+    body+='  Fordeling: '+Object.entries(dist).map(([k,v])=>k+':'+v+'x').join('  ')+'\n'
   })
   if(round.id)body+=`\n\nSe resultater i appen:\nhttps://bsk65.github.io/3D/?round=${round.id}\n(Kræver login med din bruger)`
   const emails=round.shooters.map(s=>state.friends.find(f=>f.id===s.id)?.email).filter(Boolean)
