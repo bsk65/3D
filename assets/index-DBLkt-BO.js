@@ -3802,8 +3802,8 @@ Content-Type: `+h.contentType+`\r
       </div>
     </div>`),ut+=`<div class="card" style="margin-bottom:16px;">
     <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">FORDELING PR. SCOREZONE</div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">`,In.forEach(H=>{const G=Z[H]||0,X=Q[H]||0,oe=G+X,Y=30;let Re="";if(oe===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="var(--surface2)"/>`;else if(X===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="#00cc44"/>`;else if(G===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="#ffd700"/>`;else{const Se=G/oe,_e=Se*2*Math.PI,ke=Y+Y*Math.sin(0),Oe=Y-Y*Math.cos(0),me=Y+Y*Math.sin(_e),Ke=Y-Y*Math.cos(_e),dt=_e>Math.PI?1:0;Re=`<path d="M${Y},${Y} L${ke},${Oe} A${Y},${Y} 0 ${dt},1 ${me},${Ke} Z" fill="#00cc44"/>
-           <path d="M${Y},${Y} L${me},${Ke} A${Y},${Y} 0 ${1-dt},1 ${ke},${Oe} Z" fill="#ffd700"/>`}ut+=`<div style="text-align:center;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">`,In.forEach(H=>{const G=Z[H]||0,X=Q[H]||0,oe=G+X,Y=30;let Re="";if(oe===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="var(--surface2)"/>`;else if(X===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="#ffd700"/>`;else if(G===0)Re=`<circle cx="${Y}" cy="${Y}" r="${Y}" fill="#00cc44"/>`;else{const Se=G/oe,_e=Se*2*Math.PI,ke=Y+Y*Math.sin(0),Oe=Y-Y*Math.cos(0),me=Y+Y*Math.sin(_e),Ke=Y-Y*Math.cos(_e),dt=_e>Math.PI?1:0;Re=`<path d="M${Y},${Y} L${ke},${Oe} A${Y},${Y} 0 ${dt},1 ${me},${Ke} Z" fill="#ffd700"/>
+           <path d="M${Y},${Y} L${me},${Ke} A${Y},${Y} 0 ${1-dt},1 ${ke},${Oe} Z" fill="#00cc44"/>`}ut+=`<div style="text-align:center;">
       <div style="font-weight:700;font-size:20px;color:#ffd700;margin-bottom:2px;">${H}</div>
       <svg viewBox="0 0 ${Y*2} ${Y*2}" style="width:56px;height:56px;">${Re}</svg>
       <div style="font-size:14px;color:var(--muted);margin-top:2px;">${G}/${X}</div>
