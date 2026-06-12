@@ -214,7 +214,7 @@ function findNearestTarget(targets,pos) {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 const state = {
-  user:null, profile:null, isAdmin:false,
+  user:null, profile:null, isAdmin:false, isSuperAdmin:false,
   friends:[], courses:[], rounds:[], round:null, course:null,
   currentCourse:null, courseMap:null, courseMapLayer:null,
   gpsTracking:false, warnThreshold:8,
@@ -327,6 +327,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email,kon:d.kon||null,bueklasse:d.bueklasse||null}}
       else if(!state.profile) state.profile={name:user.email,email:user.email}
       state.isAdmin=adminSnap?.exists()||false
+      state.isSuperAdmin=state.isAdmin&&user.email==='bsklausen@proton.me'
       onLogin()
     } else {
       onLogout()
@@ -1337,17 +1338,25 @@ let _allUsers=[]
 async function renderAdminSection(){
   if(!state.isAdmin)return
   document.getElementById('admin-section').classList.remove('hidden')
+  if(!state.isSuperAdmin)return
+  document.getElementById('users-section').classList.remove('hidden')
   try{
     const snap=await getDocs(collection(db,'users'))
     _allUsers=snap.docs.map(u=>({uid:u.id,...u.data()})).sort((a,b)=>(a.name||a.yam||'').localeCompare(b.name||b.yam||'','da'))
     renderUsersList()
   }catch(e){console.warn(e)}
 }
+const _bowLabels={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}
 function renderUsersList(filter=''){
   const el=document.getElementById('users-list');el.innerHTML=''
   const q=filter.toLowerCase()
   const users=q?_allUsers.filter(d=>(d.name||d.yam||'').toLowerCase().includes(q)||(d.email||d['e-mail']||'').toLowerCase().includes(q)):_allUsers
-  document.getElementById('users-count').textContent=`${users.length} brugere`
+  document.getElementById('users-count').textContent=`${_allUsers.length} brugere`
+  const summaryEl=document.getElementById('users-summary')
+  const counts={}
+  _allUsers.forEach(d=>{const b=d.bueklasse||'Ukendt';counts[b]=(counts[b]||0)+1})
+  const chips=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span style="display:inline-block;background:var(--card-bg,#222);border:1px solid var(--border,#444);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;white-space:nowrap;"><b>${v}</b> ${esc(_bowLabels[k]||k)}</span>`).join('')
+  summaryEl.innerHTML=`<div style="margin-bottom:8px;">${chips}</div>`
   users.forEach(d=>{
     const row=document.createElement('div');row.className='urow'
     const date=d.created?.toDate?d.created.toDate().toLocaleDateString('da-DK'):'—'
@@ -1501,15 +1510,15 @@ window.renderAnalyse=function(){
     const r=30
     let pie=''
     if(tot===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="var(--surface2)"/>`}
-    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#00cc44"/>`}
-    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#ffd700"/>`}
+    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#ffd700"/>`}
+    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#00cc44"/>`}
     else{
       const pct=v1/tot,angle=pct*2*Math.PI
-      const x1=r+r*Math.sin(0),y1=r-r*Math.cos(0)
-      const x2=r+r*Math.sin(angle),y2=r-r*Math.cos(angle)
+      const x1=r,y1=0
+      const x2=r-r*Math.sin(angle),y2=r-r*Math.cos(angle)
       const large=angle>Math.PI?1:0
-      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="#00cc44"/>
-           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},1 ${x1},${y1} Z" fill="#ffd700"/>`
+      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},0 ${x2},${y2} Z" fill="#ffd700"/>
+           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},0 ${x1},${y1} Z" fill="#00cc44"/>`
     }
     html+=`<div style="text-align:center;">
       <div style="font-weight:700;font-size:20px;color:#ffd700;margin-bottom:2px;">${z}</div>

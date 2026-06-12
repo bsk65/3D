@@ -24,7 +24,8 @@ if exist "%PROJ%\3D-dev\assets" rmdir /S /Q "%PROJ%\3D-dev\assets"
 xcopy "%PROJ%\dist-dev\*" "%PROJ%\3D-dev\" /E /Y /Q
 
 REM Brug git worktree saa vi ikke behover at skifte branch og miste dette script
-set TMPWT=%PROJ%\..\3D-main-worktree
+for %%i in ("%PROJ%\..") do set PARENT=%%~fi
+set TMPWT=%PARENT%\3D-main-worktree
 if exist "%TMPWT%" (
   git worktree remove "%TMPWT%" --force >nul 2>&1
 )
