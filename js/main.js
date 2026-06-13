@@ -82,11 +82,11 @@ function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }
 
 function parseScores(str) {
   if (!str) return []
-  return str.split(';').map(t => t.split(',').map(v => v === 'M' ? 'M' : Number(v)))
+  return str.split(';').map(t => t.split(',').map(v => v === 'M' ? 'M' : v === '-' ? null : Number(v)))
 }
 
 function serializeScores(arr) {
-  return arr.map(t => t.map(v => v == null ? 'M' : v).join(',')).join(';')
+  return arr.map(t => t.map(v => v == null ? '-' : v).join(',')).join(';')
 }
 
 function calcTotal(scores) {
@@ -898,20 +898,50 @@ function buildResultsTable(round){
 }
 
 function buildSummaryCards(round){
-  const cardHtml=round.shooters.map((s,i)=>{
+  const zones=['11','10','8','5','M']
+  const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+  return round.shooters.map(s=>{
     const total=calcTotal(s.scores)
-    const flat=s.scores.flat().filter(v=>v!=null)
-    const totalArrows=flat.length
-    const avg=totalArrows?(flat.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):0
-    return `<div onclick="window.toggleRpopDetail(${i})" style="flex:1;min-width:130px;background:var(--surface2);border-radius:10px;padding:12px 10px;cursor:pointer;text-align:center;"><div style="font-size:15px;font-weight:700;color:var(--txt);margin-bottom:4px;">${s.name}</div><div style="font-size:42px;font-weight:700;color:var(--acc);line-height:1.1;">${total}</div><div style="font-size:13px;color:var(--muted);margin-bottom:8px;">POINT</div><div style="display:flex;justify-content:center;gap:16px;"><div><div style="font-size:18px;font-weight:700;color:var(--acc);">${avg}</div><div style="font-size:11px;color:var(--muted);">SNT/PIL</div></div><div><div style="font-size:18px;font-weight:700;color:var(--acc);">${totalArrows}</div><div style="font-size:11px;color:var(--muted);">PILE</div></div></div></div>`
-  }).join('')
-  const detailHtml=round.shooters.map((s,i)=>{
+    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
+    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
+    const allArr=s.scores.flat().filter(v=>v!=null)
+    const totalArrows=allArr.length
+    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+    const avgAll=totalArrows?(allArr.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):'—'
     const dist=calcDistribution(s.scores)
-    return `<div id="rpop-detail-${i}" style="display:none;margin-bottom:8px;" class="dist-card"><div class="dist-name">${s.name}</div>${Object.entries(dist).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+    return `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:10px;">${esc(s.name)}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;margin-bottom:8px;">
+        <div style="background:var(--card);border-radius:8px;padding:8px;">
+          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${total}</div>
+          <div style="font-size:10px;color:var(--muted);">POINT</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:8px;">
+          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${totalArrows}</div>
+          <div style="font-size:10px;color:var(--muted);">PILE</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:8px;">
+          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${avgAll}</div>
+          <div style="font-size:10px;color:var(--muted);">SNT/PIL</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:center;margin-bottom:10px;">
+        <div style="background:var(--card);border-radius:8px;padding:6px;">
+          <div style="font-size:18px;font-weight:700;color:var(--acc);">${avg1}</div>
+          <div style="font-size:10px;color:var(--muted);">SNIT PIL 1</div>
+        </div>
+        <div style="background:var(--card);border-radius:8px;padding:6px;">
+          <div style="font-size:18px;font-weight:700;color:var(--acc);">${avg2}</div>
+          <div style="font-size:10px;color:var(--muted);">SNIT PIL 2</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;border-top:1px solid var(--card);padding-top:8px;">
+        ${zones.map(z=>`<div><div style="font-size:20px;font-weight:700;color:var(--text);">${z}</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${dist[z]||0}</div></div>`).join('')}
+      </div>
+    </div>`
   }).join('')
-  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${cardHtml}</div>${detailHtml}`
 }
-window.toggleRpopDetail=function(i){const el=document.getElementById('rpop-detail-'+i);if(el)el.style.display=el.style.display==='none'?'':'none'}
 
 function buildActualResults(round){
   const data=round.shooters.map(s=>{
@@ -1389,6 +1419,100 @@ window.showQR=function(){
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 
 
+function calcAnalyseStats(rounds,userId){
+  const getMe=r=>r.shooters.find(x=>x.id===userId)||r.shooters?.[0]
+  const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
+  let p1t=0,p1n=0,p2t=0,p2n=0
+  const distP1={11:0,10:0,8:0,5:0,M:0},distP2={11:0,10:0,8:0,5:0,M:0}
+  rounds.forEach(r=>{
+    const s=getMe(r);if(!s)return
+    s.scores.forEach(t=>{
+      if(t[0]!=null){if(t[0]==='M')distP1.M++;else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
+      if(t[1]!=null){if(t[1]==='M')distP2.M++;else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
+    })
+  })
+  const p1avg=p1n?(p1t/p1n).toFixed(2):0,p2avg=p2n?(p2t/p2n).toFixed(2):0
+  const pilAvg=(p1n+p2n)?((p1t+p2t)/(p1n+p2n)).toFixed(2):0
+  const numTargets=rounds[0]?.numTargets||24
+  const targetAvgs=Array.from({length:numTargets},(_,ti)=>{
+    let tot=0,cnt=0
+    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const row=s.scores[ti]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
+    return cnt?(tot/cnt):null
+  })
+  const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
+  const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
+  const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
+  return {myScores,p1avg,p2avg,pilAvg,distP1,distP2,bestTarget,worstTarget}
+}
+
+function buildCompareHtml(st1,lbl1,st2,lbl2){
+  const zones=['11','10','8','5','M']
+  const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+  const sc1=st1.myScores[0]||0,sc2=st2.myScores[0]||0,diff=Math.abs(sc1-sc2)
+  const sep='<div style="border-top:1px solid var(--surface2);margin:10px 0;"></div>'
+  const pilRow=(st,lbl,col)=>`<div style="font-size:11px;color:${col};margin-bottom:4px;">${esc(lbl)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+      <div><div style="font-size:10px;color:var(--muted);">PIL 1</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${st.p1avg}</div></div>
+      <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
+        <div style="font-size:10px;color:var(--muted);">SNT/PIL</div><div style="font-size:20px;font-weight:700;color:#f0c030;">${st.pilAvg}</div>
+      </div>
+      <div><div style="font-size:10px;color:var(--muted);">PIL 2</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${st.p2avg}</div></div>
+    </div>`
+  const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
+      <div style="background:rgba(42,170,90,0.15);border-radius:8px;padding:8px;">
+        <div style="font-size:10px;color:var(--muted);">BEDSTE</div>
+        <div style="font-size:22px;font-weight:700;color:#2aaa5a;">Mål ${st.bestTarget.i+1}</div>
+        <div style="font-size:12px;color:var(--muted);">⌀ ${st.bestTarget.v.toFixed(2)}</div>
+      </div>
+      <div style="background:rgba(204,51,51,0.15);border-radius:8px;padding:8px;">
+        <div style="font-size:10px;color:var(--muted);">SVÆRESTE</div>
+        <div style="font-size:22px;font-weight:700;color:var(--danger);">Mål ${st.worstTarget.i+1}</div>
+        <div style="font-size:12px;color:var(--muted);">⌀ ${st.worstTarget.v.toFixed(2)}</div>
+      </div>
+    </div>`:''
+  let h=''
+  h+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">SAMMENLIGNING</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;">
+      <div>
+        <div style="font-size:11px;color:var(--acc);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl1)}</div>
+        <div style="font-size:36px;font-weight:700;color:var(--acc);">${sc1}</div>
+        <div style="font-size:11px;color:var(--muted);">POINT</div>
+      </div>
+      <div style="font-size:18px;color:var(--muted);font-weight:700;">VS</div>
+      <div>
+        <div style="font-size:11px;color:#f0c030;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl2)}</div>
+        <div style="font-size:36px;font-weight:700;color:#f0c030;">${sc2}</div>
+        <div style="font-size:11px;color:var(--muted);">POINT</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">${sc1>sc2?`${esc(lbl1)} vandt med ${diff} point`:sc2>sc1?`${esc(lbl2)} vandt med ${diff} point`:'Uafgjort!'}</div>
+  </div>`
+  h+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">PIL STATISTIK</div>
+    ${pilRow(st1,lbl1,'var(--acc)')}${sep}${pilRow(st2,lbl2,'#f0c030')}
+  </div>`
+  if(st1.bestTarget||st2.bestTarget){
+    h+=`<div class="card" style="margin-bottom:16px;">
+      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">BEDSTE OG SVÆRESTE MÅL</div>
+      ${targetRow(st1,lbl1,'var(--acc)')}${sep}${targetRow(st2,lbl2,'#f0c030')}
+    </div>`
+  }
+  h+=`<div class="card" style="margin-bottom:16px;">
+    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">FORDELING PR. SCOREZONE</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) repeat(5,minmax(0,1fr));gap:4px 6px;align-items:center;font-size:13px;">
+      <div></div>
+      ${zones.map(z=>`<div style="text-align:center;font-weight:700;color:${zColors[z]};">${z}</div>`).join('')}
+      <div style="font-size:11px;color:var(--acc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl1)}</div>
+      ${zones.map(z=>`<div style="text-align:center;font-weight:700;">${(st1.distP1[z]||0)+(st1.distP2[z]||0)}</div>`).join('')}
+      <div style="font-size:11px;color:#f0c030;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl2)}</div>
+      ${zones.map(z=>`<div style="text-align:center;font-weight:700;">${(st2.distP1[z]||0)+(st2.distP2[z]||0)}</div>`).join('')}
+    </div>
+  </div>`
+  return h
+}
+
 window.renderAnalyse=function(){
   const el=document.getElementById('analyse-content')
   if(!el)return
@@ -1406,20 +1530,34 @@ window.renderAnalyse=function(){
   const filter=filterVal==='all'?0:filterVal==='lastround'?1:filterVal==='specific'?0:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
   const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
-  // Vis/skjul og udfyld runde-dropdown ved "Specifik runde"
   const rundeWrap=document.getElementById('analyse-runde-wrap')
   const rundeEl=document.getElementById('analyse-runde')
-  if(rundeWrap)rundeWrap.style.display=filterVal==='specific'?'':'none'
-  if(filterVal==='specific'&&rundeEl){
-    // Genopbyg liste ved behov
+  const rundeWrap2=document.getElementById('analyse-runde-wrap-2')
+  const rundeEl2=document.getElementById('analyse-runde-2')
+  const rundeLbl=document.getElementById('analyse-runde-lbl')
+  const isCompare=filterVal==='compare'
+  if(rundeWrap)rundeWrap.style.display=(filterVal==='specific'||isCompare)?'':'none'
+  if(rundeWrap2)rundeWrap2.style.display=isCompare?'':'none'
+  if(rundeLbl)rundeLbl.style.display=isCompare?'':'none'
+  const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
+  if((filterVal==='specific'||isCompare)&&rundeEl){
     const currentIds=new Set(Array.from(rundeEl.options).map(o=>o.value).filter(Boolean))
-    state.rounds.forEach(r=>{
-      if(!currentIds.has(r.id)){
-        const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
-        const o=document.createElement('option');o.value=r.id;o.textContent=`${date} — ${r.name||'Runde'}`;rundeEl.appendChild(o)
-      }
-    })
+    state.rounds.forEach(r=>{if(!currentIds.has(r.id)){const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;rundeEl.appendChild(o)}})
     if(state.pendingAnalyseRound){rundeEl.value=state.pendingAnalyseRound;state.pendingAnalyseRound=null}
+  }
+  if(isCompare&&rundeEl2){
+    const currentIds2=new Set(Array.from(rundeEl2.options).map(o=>o.value).filter(Boolean))
+    state.rounds.forEach(r=>{if(!currentIds2.has(r.id)){const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;rundeEl2.appendChild(o)}})
+  }
+  if(isCompare){
+    const sel1=rundeEl?.value,sel2=rundeEl2?.value
+    if(!sel1||!sel2){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div>Vælg to runder ovenfor</div>';return}
+    const allR=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+    const r1=allR.find(r=>r.id===sel1),r2=allR.find(r=>r.id===sel2)
+    if(!r1||!r2){el.innerHTML='<div class="empty">Kunne ikke finde runderne</div>';return}
+    const lbl1=`${r1.name||'Runde'} (${fmtRD(r1)})`,lbl2=`${r2.name||'Runde'} (${fmtRD(r2)})`
+    el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],state.user?.uid),lbl1,calcAnalyseStats([r2],state.user?.uid),lbl2)
+    return
   }
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
   let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
@@ -1446,9 +1584,9 @@ window.renderAnalyse=function(){
   const p2avg=p2n?(p2t/p2n).toFixed(2):0
   const pilAvg=(p1n+p2n)?((p1t+p2t)/(p1n+p2n)).toFixed(2):0
   const numTargets=rounds[0]?.numTargets||24
-  const targetAvgs=Array.from({length:numTargets},(_,ti)=>{
+  const targetAvgs=Array.from({length:numTargets},(_,pos)=>{
     let tot=0,cnt=0
-    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const row=s.scores[ti]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
+    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const order=r.traversalOrder||Array.from({length:r.numTargets||numTargets},(_,i)=>i);const tIdx=order[pos];if(tIdx===undefined)return;const row=s.scores[tIdx]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
     return cnt?(tot/cnt):null
   })
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
@@ -1489,12 +1627,12 @@ window.renderAnalyse=function(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
         <div style="background:rgba(42,170,90,0.15);border-radius:8px;padding:10px;">
           <div style="font-size:11px;color:var(--muted);">BEDSTE</div>
-          <div style="font-size:24px;font-weight:700;color:#2aaa5a;">Mål ${bestTarget.i+1}</div>
+          <div style="font-size:24px;font-weight:700;color:#2aaa5a;">Skud nr. ${bestTarget.i+1}</div>
           <div style="font-size:13px;color:var(--muted);">⌀ ${bestTarget.v.toFixed(2)}</div>
         </div>
         <div style="background:rgba(204,51,51,0.15);border-radius:8px;padding:10px;">
           <div style="font-size:11px;color:var(--muted);">SVÆRESTE</div>
-          <div style="font-size:24px;font-weight:700;color:var(--danger);">Mål ${worstTarget.i+1}</div>
+          <div style="font-size:24px;font-weight:700;color:var(--danger);">Skud nr. ${worstTarget.i+1}</div>
           <div style="font-size:13px;color:var(--muted);">⌀ ${worstTarget.v.toFixed(2)}</div>
         </div>
       </div>
@@ -1576,7 +1714,7 @@ window.renderAnalyse=function(){
     const dotsLargeSvgFS=validTA.map(({v,i})=>`<circle cx="${toXFS(i)}" cy="${toY(v)}" r="5" fill="var(--acc)"/><text x="${toXFS(i)}" y="${toY(v)-10}" text-anchor="middle" font-size="10" fill="#fff">${v.toFixed(1)}</text>`).join('')
     html+=`<div class="card" style="margin-bottom:16px;">
       <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span>GENNEMSNIT PR. MÅL</span>
+        <span>GENNEMSNIT PR. SKUDRÆKKEFØLGE</span>
         <button class="btn-icon" onclick="document.getElementById('graph-fs').classList.remove('hidden')" style="font-size:16px;">⤢</button>
       </div>
       <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
@@ -1588,10 +1726,11 @@ window.renderAnalyse=function(){
         <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
         <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
       </svg>
+      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:2px;">Skudrækkefølge — 1 = første mål skudt</div>
     </div>
     <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:center;justify-content:center;padding:16px;">
       <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:90vw;overflow:hidden;" onclick="event.stopPropagation()">
-        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. MÅL · knib for zoom · dobbelttryk for reset</div>
+        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. SKUDRÆKKEFØLGE · knib for zoom · dobbelttryk for reset</div>
         <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" style="width:100%;display:block;touch-action:none;overflow:visible;">
           <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
           <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>

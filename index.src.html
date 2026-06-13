@@ -255,6 +255,7 @@
           <option value="10">Seneste 10</option>
           <option value="20">Seneste 20</option>
           <option value="specific">Specifik runde</option>
+          <option value="compare">Sammenlign runder</option>
         </select>
         <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
           <option value="all">Alle baner</option>
@@ -266,8 +267,15 @@
         </div>
       </div>
       <div id="analyse-runde-wrap" style="display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <div id="analyse-runde-lbl" style="display:none;font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;">RUNDE 1</div>
         <select id="analyse-runde" onchange="renderAnalyse()" style="width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
           <option value="">Vælg runde...</option>
+        </select>
+      </div>
+      <div id="analyse-runde-wrap-2" style="display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);">
+        <div style="font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;">RUNDE 2</div>
+        <select id="analyse-runde-2" onchange="renderAnalyse()" style="width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+          <option value="">Vælg runde 2...</option>
         </select>
       </div>
       <div id="analyse-content" style="padding:12px;"></div>
