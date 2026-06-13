@@ -883,9 +883,11 @@ function renderResults(round){
 }
 
 function buildResultsTable(round){
+  const startT=(round.startTarget||1)-1
   let h=`<div class="tbl-wrap"><table class="rtbl"><tr><th>Mål</th>${round.shooters.map(s=>`<th>${s.name}</th>`).join('')}</tr>`
   for(let t=0;t<round.numTargets;t++){
-    h+=`<tr><td class="tc">${t+1}</td>`
+    const isStart=t===startT
+    h+=`<tr><td class="tc">${isStart?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:4px;vertical-align:middle;"></span>`:''}${t+1}</td>`
     round.shooters.forEach(s=>{
       const r=s.scores[t]||[null,null]
       const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
@@ -1427,8 +1429,8 @@ function calcAnalyseStats(rounds,userId){
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
     s.scores.forEach(t=>{
-      if(t[0]!=null){if(t[0]==='M')distP1.M++;else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
-      if(t[1]!=null){if(t[1]==='M')distP2.M++;else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
+      if(t[0]!=null){if(t[0]==='M'){distP1.M++;p1n++}else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
+      if(t[1]!=null){if(t[1]==='M'){distP2.M++;p2n++}else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
     })
   })
   const p1avg=p1n?(p1t/p1n).toFixed(2):0,p2avg=p2n?(p2t/p2n).toFixed(2):0
@@ -1436,7 +1438,7 @@ function calcAnalyseStats(rounds,userId){
   const numTargets=rounds[0]?.numTargets||24
   const targetAvgs=Array.from({length:numTargets},(_,ti)=>{
     let tot=0,cnt=0
-    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const row=s.scores[ti]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
+    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const row=s.scores[ti]||[null,null];row.forEach(v=>{if(v!=null){tot+=scoreVal(v);cnt++}})})
     return cnt?(tot/cnt):null
   })
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
@@ -1576,8 +1578,8 @@ window.renderAnalyse=function(){
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
     s.scores.forEach(t=>{
-      if(t[0]!=null){if(t[0]==='M')distP1.M++;else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
-      if(t[1]!=null){if(t[1]==='M')distP2.M++;else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
+      if(t[0]!=null){if(t[0]==='M'){distP1.M++;p1n++}else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
+      if(t[1]!=null){if(t[1]==='M'){distP2.M++;p2n++}else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
     })
   })
   const p1avg=p1n?(p1t/p1n).toFixed(2):0
@@ -1586,7 +1588,7 @@ window.renderAnalyse=function(){
   const numTargets=rounds[0]?.numTargets||24
   const targetAvgs=Array.from({length:numTargets},(_,pos)=>{
     let tot=0,cnt=0
-    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const order=r.traversalOrder||Array.from({length:r.numTargets||numTargets},(_,i)=>i);const tIdx=order[pos];if(tIdx===undefined)return;const row=s.scores[tIdx]||[null,null];row.forEach(v=>{if(v!=null&&v!=='M'){tot+=Number(v);cnt++}})})
+    rounds.forEach(r=>{const s=getMe(r);if(!s)return;const order=r.traversalOrder||Array.from({length:r.numTargets||numTargets},(_,i)=>i);const tIdx=order[pos];if(tIdx===undefined)return;const row=s.scores[tIdx]||[null,null];row.forEach(v=>{if(v!=null){tot+=scoreVal(v);cnt++}})})
     return cnt?(tot/cnt):null
   })
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
