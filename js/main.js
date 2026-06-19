@@ -1370,6 +1370,9 @@ let _allUsers=[]
 async function renderAdminSection(){
   if(!state.isAdmin)return
   document.getElementById('admin-section').classList.remove('hidden')
+  try{
+    await renderAdminsList()
+  }catch(e){console.warn(e)}
   if(!state.isSuperAdmin)return
   document.getElementById('users-section').classList.remove('hidden')
   try{
@@ -1377,6 +1380,29 @@ async function renderAdminSection(){
     _allUsers=snap.docs.map(u=>({uid:u.id,...u.data()})).sort((a,b)=>(a.name||a.yam||'').localeCompare(b.name||b.yam||'','da'))
     renderUsersList()
   }catch(e){console.warn(e)}
+}
+async function renderAdminsList(){
+  const el=document.getElementById('admins-list');if(!el)return
+  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);">Henter admins…</div>'
+  const snap=await getDocs(collection(db,'admins'))
+  if(snap.empty){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);">Ingen admins fundet</div>';return}
+  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-display);">NUVÆRENDE ADMINISTRATORER</div>'
+  snap.docs.forEach(d=>{
+    const row=document.createElement('div')
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);'
+    const email=d.data().email||d.id
+    const isMe=d.id===state.user?.uid
+    row.innerHTML=`<span style="font-size:13px;">${esc(email)}${isMe?' <span style="font-size:11px;color:var(--text-muted);">(dig)</span>':''}</span>`
+    if(state.isSuperAdmin&&!isMe){
+      const btn=document.createElement('button')
+      btn.className='btn btn-dark btn-sm'
+      btn.style.cssText='padding:2px 8px;font-size:11px;'
+      btn.textContent='Fjern'
+      btn.onclick=()=>doRemoveAdmin(d.id,email)
+      row.appendChild(btn)
+    }
+    el.appendChild(row)
+  })
 }
 const _bowLabels={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}
 function renderUsersList(filter=''){
@@ -1408,6 +1434,16 @@ window.doAddAdmin=async function(){
     await setDoc(doc(db,'admins',user.id),{email,created:serverTimestamp()})
     showToast(`${user.data().name||email} er nu admin`,'success')
     document.getElementById('admin-email').value=''
+    await renderAdminsList()
+  }catch(e){showToast('Fejl: '+e.message,'error')}
+}
+window.doRemoveAdmin=async function(uid,email){
+  if(!state.isSuperAdmin)return
+  if(!confirm(`Fjern ${email} som administrator?`))return
+  try{
+    await deleteDoc(doc(db,'admins',uid))
+    showToast(`${email} er fjernet som admin`,'success')
+    await renderAdminsList()
   }catch(e){showToast('Fejl: '+e.message,'error')}
 }
 
