@@ -827,6 +827,10 @@ window.finishRound=async function(){
   lsSave();renderRoundsList()
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Runde gemt lokalt (netværksfejl)','error'))
+  // Gem runde direkte hos medskytter med bruger-konto (ikke gæster)
+  state.round.shooters.filter(s=>!s.isGuest&&s.id!==state.user.uid).forEach(s=>{
+    setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>{})
+  })
 
   const finished=state.round
   // Gem anonym statistik til baneoversigt
