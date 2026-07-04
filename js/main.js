@@ -696,7 +696,12 @@ function updateTopBar(){
   document.getElementById('stat-tot').textContent=sum
   document.getElementById('stat-rem').textContent=n-scored
   const imgEl=document.getElementById('anim-img')
-  if(target?.imageUrl||target?.photo){imgEl.src=target.imageUrl||target.photo;imgEl.classList.remove('hidden')}else imgEl.classList.add('hidden')
+  if(target?.imageUrl||target?.photo){
+    imgEl.classList.add('hidden')
+    imgEl.onload=()=>imgEl.classList.remove('hidden')
+    imgEl.onerror=()=>imgEl.classList.add('hidden')
+    imgEl.src=target.imageUrl||target.photo
+  }else{imgEl.src='';imgEl.classList.add('hidden')}
   document.getElementById('edit-target-btn').classList.toggle('hidden',!(state.isAdmin&&state.round.courseId))
   document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?'AFSLUT →':'NÆSTE →'
   const tAvg=calcTargetAverage(state.round.shooters,tIdx)
@@ -832,15 +837,6 @@ window.finishRound=async function(){
   window._lastRound=finished
   state.round=null
 
-  if(finished.courseId){
-    const winner=findWinner(finished.shooters)
-    addCourseVisit(finished.courseId,{
-      roundId,date:new Date().toLocaleDateString('da-DK'),
-      participants:finished.shooters.map(shooter=>shooter.name),
-      winner:winner?.name,winnerScore:winner?calcTotal(winner.scores):0,
-      gpsRoute:gpsData.route||null,gpsDuration:gpsData.duration||null,gpsDistance:gpsData.distance||null
-    }).catch(console.warn)
-  }
   await deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
   renderResults(finished);showResultsPanel()
 }
@@ -1049,18 +1045,29 @@ function initCourseMap(course){
 
 function renderVisits(course){
   const el=document.getElementById('visits-list')
-  const visits=course.visits||course.besøg||[]
-  if(!visits.length){el.innerHTML='<div class="empty"><div class="empty-icon">📍</div>Ingen besøg endnu</div>';return}
+  const myRounds=state.rounds
+    .filter(r=>r.courseId===course.id)
+    .map(r=>{
+      const shooters=(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
+      const winner=findWinner(shooters)
+      return {
+        roundId:r.id,
+        date:r.completed?new Date(r.completed).toLocaleDateString('da-DK'):(r.created?new Date(r.created).toLocaleDateString('da-DK'):'—'),
+        participants:shooters.map(s=>s.name),
+        winner:winner?.name,
+        winnerScore:winner?calcTotal(winner.scores):0
+      }
+    })
+  if(!myRounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📍</div>Ingen besøg endnu</div>';return}
   el.innerHTML=''
-  visits.forEach((v,idx)=>{
+  myRounds.forEach(v=>{
     const card=document.createElement('div');card.className='visit-card'
     card.style.cursor='pointer'
     card.onclick=(e)=>{if(!e.target.closest('.btn-icon'))window.showVisitResults(v.roundId)}
-    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${esc(v.date)}</span><div style="display:flex;gap:6px;"><button class="btn-icon" onclick="window.showVisitResults('${esc(v.roundId)}')" title="Se resultat">📊</button><button class="btn-icon" style="color:var(--danger);" onclick="deleteVisit(${idx})">✕</button></div></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).map(esc).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${esc(v.winner)} (${v.winnerScore} pt)</div>`:''}`
+    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${esc(v.date)}</span><button class="btn-icon" onclick="window.showVisitResults('${esc(v.roundId)}')" title="Se resultat">📊</button></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).map(esc).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${esc(v.winner)} (${v.winnerScore} pt)</div>`:''}`
     el.appendChild(card)
   })
 }
-
 
 window.showVisitResults=function(roundId){
   const round=state.rounds.find(r=>r.id===roundId)
@@ -1068,19 +1075,6 @@ window.showVisitResults=function(roundId){
   const shooters=(round.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
   window.switchTab('results')
   showRoundPopup({...round,shooters})
-}
-
-window.deleteVisit=function(idx){
-  showConfirm('Slet dette besøg?',async()=>{
-    try{
-      const ref2=doc(db,'courses',state.currentCourse.id)
-      const snap=await getDoc(ref2)
-      if(!snap.exists())return
-      const visits=[...(snap.data().visits||snap.data().besøg||[])];visits.splice(idx,1)
-      await updateDoc(ref2,{visits,besøg:visits})
-      state.currentCourse.visits=visits;renderVisits(state.currentCourse)
-    }catch(e){showToast('Fejl: Kunne ikke slette besøg','error')}
-  })
 }
 
 window.showRouteOnMap=function(points){
@@ -1260,15 +1254,6 @@ window.doCreateCourse=async function(){
     document.getElementById('new-course-name').value=''
     showToast('Bane oprettet!','success')
   }catch(e){showToast('Fejl: Kunne ikke oprette bane','error')}
-}
-
-async function addCourseVisit(courseId,visitData){
-  try{
-    const ref2=doc(db,'courses',courseId);const snap=await getDoc(ref2)
-    if(!snap.exists())return
-    const visits=[visitData,...(snap.data().visits||snap.data().besøg||[])].slice(0,50)
-    await updateDoc(ref2,{visits,besøg:visits})
-  }catch(e){console.warn(e)}
 }
 
 async function updateTargetInFirestore(courseId,targetIndex,targetData){
