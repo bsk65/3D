@@ -824,7 +824,10 @@ window.finishRound=async function(){
   // Gem anonym statistik til baneoversigt
   if(finished.courseId&&state.profile?.kon&&state.profile?.bueklasse){
     const me=finished.shooters.find(x=>x.id===state.user?.uid)||finished.shooters?.[0]
-    if(me){setDoc(doc(db,'bane_stats',finished.courseId,'runder',roundId),{score:calcTotal(me.scores),kon:state.profile.kon,bueklasse:state.profile.bueklasse,numTargets:finished.numTargets,dato:serverTimestamp()}).catch(e=>console.warn('bane_stats fejl:',e))}
+    if(me){
+      const arrowsShot=me.scores.flat().filter(v=>v!=null).length
+      setDoc(doc(db,'bane_stats',finished.courseId,'runder',roundId),{score:calcTotal(me.scores),arrowsShot,kon:state.profile.kon,bueklasse:state.profile.bueklasse,numTargets:finished.numTargets,dato:serverTimestamp()}).catch(e=>console.warn('bane_stats fejl:',e))
+    }
   }
   window._lastRound=finished
   state.round=null
@@ -1898,8 +1901,8 @@ window.renderAnalyse=function(){
         compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
         return
       }
-      const validEntries=sammeKlasse.filter(d=>d.numTargets>0)
-      const andresSnit=validEntries.length?(validEntries.reduce((s,d)=>s+d.score/(d.numTargets*2),0)/validEntries.length).toFixed(2):'—'
+      const validEntries=sammeKlasse.filter(d=>(d.arrowsShot||d.numTargets*2)>0)
+      const andresSnit=validEntries.length?(validEntries.reduce((s,d)=>s+d.score/(d.arrowsShot||d.numTargets*2),0)/validEntries.length).toFixed(2):'—'
       const diff=andresSnit!=='—'?Number(pilAvg)-Number(andresSnit):null
       const diffStr=diff!==null?(diff>0?'+':'')+diff.toFixed(2):'—'
       const diffColor=diff===null?'var(--muted)':diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
