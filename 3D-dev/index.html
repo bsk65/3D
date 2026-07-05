@@ -18,7 +18,7 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-DwKu4RZm.js"></script>
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-ChefU3Kz.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-BF9ZLHil.css">
   </head>
 <body>
@@ -285,7 +285,7 @@
       <div id="courses-list-view">
         <div class="tab-header">
           <span class="tab-title">Baner</span>
-          <button class="btn btn-gold btn-sm" onclick="document.getElementById('create-course-modal').classList.remove('hidden')">+ Opret bane</button>
+          <button class="btn btn-gold btn-sm" onclick="openCreateCourseModal()">+ Opret bane</button>
         </div>
         <div id="courses-list"></div>
       </div>
@@ -332,7 +332,15 @@
           </select>
           <div class="trow-sub" style="margin-top:-4px;">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
           <div id="new-course-approved-wrap" style="display:none;">
-            <textarea id="new-course-approved" placeholder="Godkendte emails, én pr. linje eller komma-separeret" rows="3" style="width:100%;"></textarea>
+            <div class="ac-wrap fg">
+              <input type="text" id="new-course-approved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('new',this.value)" />
+              <div id="new-course-approved-ac" class="ac-list hidden"></div>
+            </div>
+            <div id="new-course-approved-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="new-course-approved-manual" placeholder="…eller indtast email direkte" style="flex:1;" />
+              <button type="button" class="btn btn-dark" onclick="addApprovedEmailManual('new')">Tilføj</button>
+            </div>
           </div>
           <div class="brow">
             <button class="btn btn-gold" onclick="doCreateCourse()">Opret</button>
