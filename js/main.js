@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
-         updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+         updateDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ function findNearestTarget(targets,pos) {
 const state = {
   user:null, profile:null, isAdmin:false, isSuperAdmin:false,
   friends:[], courses:[], rounds:[], round:null, course:null,
-  currentCourse:null, courseMap:null, courseMapLayer:null,
+  currentCourse:null, courseMap:null, courseMapLayer:null, approvedDraft:{new:[],edit:[]},
   gpsTracking:false, warnThreshold:8,
   deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0
 }
@@ -504,19 +504,7 @@ function onLogin(){
   }).catch(e=>console.warn('Hent runder:',e))
 
   // Hent baner fra Firestore
-  getDocs(collection(db,'courses')).then(snap=>{
-    const firestoreCourses = snap.docs.map(d=>{
-      const data=d.data()
-      return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
-        location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[]}
-    })
-    if(firestoreCourses.length){
-      state.courses = firestoreCourses
-      lsSave()
-      renderCoursesList()
-      populateCourseDropdown()
-    }
-  }).catch(err=>console.warn('courses:',err))
+  fetchCourses()
 
   tryResumeRound()
 }
@@ -1011,13 +999,44 @@ function showRoundPopup(round){window._lastRound=round;
 }
 
 // ─── COURSES ──────────────────────────────────────────────────────────────────
+function mapCourseDoc(d){
+  const data=d.data()
+  return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
+    location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[],
+    private:data.private??data.privat??false,hidden:data.hidden??data.skjult??false,
+    approvedUsers:data.approvedUsers||data.godkendteBrugere||[]}
+}
+
+async function fetchCourses(){
+  try{
+    const email=(state.user?.email||'').toLowerCase()
+    let snaps
+    if(state.isAdmin){
+      snaps=[await getDocs(collection(db,'courses'))]
+    }else{
+      const qs=[getDocs(query(collection(db,'courses'),where('hidden','==',false)))]
+      if(email)qs.push(getDocs(query(collection(db,'courses'),where('hidden','==',true),where('approvedUsers','array-contains',email))))
+      snaps=await Promise.all(qs)
+    }
+    const byId=new Map()
+    snaps.forEach(s=>s.docs.forEach(d=>byId.set(d.id,d)))
+    const firestoreCourses=[...byId.values()].map(mapCourseDoc)
+    if(firestoreCourses.length){
+      state.courses = firestoreCourses
+      lsSave()
+      renderCoursesList()
+      populateCourseDropdown()
+    }
+  }catch(err){console.warn('courses:',err)}
+}
+
 function renderCoursesList(){
   const el=document.getElementById('courses-list')
   if(!state.courses.length){el.innerHTML='<div class="empty"><div class="empty-icon">🗺️</div>Ingen baner endnu</div>';return}
   el.innerHTML=''
   state.courses.forEach(c=>{
     const card=document.createElement('div');card.className='ccard'
-    card.innerHTML=`<div class="ccard-name">${esc(c.name)}</div><div class="ccard-meta">${c.numTargets} mål · ${esc(c.location||'—')}</div>`
+    card.innerHTML=`<div class="ccard-name">${esc(c.name)}${c.private?' <span style="font-weight:400;color:var(--muted);">(Banen er kun for medlemmer)</span>':''}</div><div class="ccard-meta">${c.numTargets} mål · ${esc(c.location||'—')}</div>`
     card.onclick=()=>openCourseDetail(c);el.appendChild(card)
   })
 }
@@ -1026,7 +1045,7 @@ function openCourseDetail(course){
   state.currentCourse=course
   document.getElementById('courses-list-view').classList.add('hidden')
   document.getElementById('course-detail-view').classList.remove('hidden')
-  document.getElementById('course-detail-title').textContent=course.name
+  document.getElementById('course-detail-title').textContent=course.name+(course.private?' (Banen er kun for medlemmer)':'')
   window.switchSubtab('map');initCourseMap(course);renderVisits(course);renderCourseEditForm(course)
 }
 
@@ -1098,6 +1117,23 @@ function renderCourseEditForm(course){
       <div class="card-title">Baneinfo</div>
       <div class="fg"><label class="lbl">Banenavn</label><input type="text" id="edit-cname" value="${course.name}" /></div>
       <div class="fg"><label class="lbl">Lokation</label><input type="text" id="edit-cloc" value="${course.location||''}" /></div>
+      <div class="fg"><label class="lbl">Synlighed</label>
+        <select id="edit-cvisibility" onchange="document.getElementById('edit-capproved-wrap').style.display=this.value==='hidden'?'':'none'">
+          <option value="public" ${!course.private?'selected':''}>Offentlig</option>
+          <option value="private" ${course.private&&!course.hidden?'selected':''}>Privat</option>
+          <option value="hidden" ${course.hidden?'selected':''}>Skjult (kun godkendte)</option>
+        </select>
+      </div>
+      <div class="trow-sub" style="margin-top:-6px;">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
+      <div id="edit-capproved-wrap" style="display:${course.hidden?'':'none'};">
+        <div class="ac-wrap fg">
+          <input type="text" id="edit-capproved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('edit',this.value)" />
+          <div id="edit-capproved-ac" class="ac-list hidden"></div>
+        </div>
+        <div id="edit-capproved-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <input type="text" id="edit-capproved-manual" placeholder="…eller indtast email direkte" />
+        <button type="button" class="btn btn-dark" style="width:100%;margin-top:6px;" onclick="addApprovedEmailManual('edit')">Tilføj</button>
+      </div>
       <button class="btn btn-gold" style="width:100%" onclick="saveCourseEdit()">Gem baneinfo</button>
     </div>
     <div class="card">
@@ -1141,15 +1177,25 @@ function renderCourseEditForm(course){
   
   html+=`</div></div>`
   document.getElementById('course-edit-form').innerHTML=html
+  state.approvedDraft.edit=[...(course.approvedUsers||[])]
+  renderApprovedChips('edit')
 }
 
 window.saveCourseEdit=async function(){
   const name=document.getElementById('edit-cname').value.trim().slice(0,100)
   const loc=document.getElementById('edit-cloc').value.trim().slice(0,100)
+  const visibility=document.getElementById('edit-cvisibility').value
+  const isPrivate=visibility!=='public',isHidden=visibility==='hidden'
+  const approvedUsers=isHidden?[...state.approvedDraft.edit]:[]
   if(!name)return
-  await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc})
-  state.currentCourse.name=name;state.currentCourse.location=loc
-  document.getElementById('course-detail-title').textContent=name;showToast('Gemt!','success')
+  await updateDoc(doc(db,'courses',state.currentCourse.id),{name,yam:name,location:loc,beliggenhed:loc,
+    private:isPrivate,privat:isPrivate,hidden:isHidden,skjult:isHidden,approvedUsers,godkendteBrugere:approvedUsers})
+  state.currentCourse.name=name;state.currentCourse.location=loc;state.currentCourse.private=isPrivate
+  state.currentCourse.hidden=isHidden;state.currentCourse.approvedUsers=approvedUsers
+  const idx=state.courses.findIndex(c=>c.id===state.currentCourse.id)
+  if(idx>-1)state.courses[idx]={...state.courses[idx],name,location:loc,private:isPrivate,hidden:isHidden,approvedUsers}
+  lsSave();renderCoursesList()
+  document.getElementById('course-detail-title').textContent=name+(isPrivate?' (Banen er kun for medlemmer)':'');showToast('Gemt!','success')
 }
 
 window.updateTargetField=function(idx,field,value){
@@ -1243,19 +1289,81 @@ window.doDeleteCourse=function(){
   })
 }
 
+const approvedIds={new:'new-course-approved',edit:'edit-capproved'}
+
+function renderApprovedChips(mode){
+  const emails=state.approvedDraft[mode]
+  document.getElementById(`${approvedIds[mode]}-chips`).innerHTML=emails.length?emails.map(e=>
+    `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border:1px solid var(--bord);border-radius:16px;font-size:12px;">${esc(e)}<span style="cursor:pointer;color:var(--danger);font-weight:700;" onclick="removeApprovedEmail('${mode}','${esc(e)}')">✕</span></span>`
+  ).join(''):'<span style="font-size:12px;color:var(--muted);">Ingen godkendt endnu</span>'
+}
+
+function addApprovedEmailToDraft(mode,raw){
+  const email=raw.trim().toLowerCase()
+  if(!email||!email.includes('@'))return
+  if(!state.approvedDraft[mode].includes(email))state.approvedDraft[mode].push(email)
+  renderApprovedChips(mode)
+}
+
+window.removeApprovedEmail=function(mode,email){
+  state.approvedDraft[mode]=state.approvedDraft[mode].filter(e=>e!==email)
+  renderApprovedChips(mode)
+}
+
+window.addApprovedEmailManual=function(mode){
+  const input=document.getElementById(`${approvedIds[mode]}-manual`)
+  addApprovedEmailToDraft(mode,input.value)
+  input.value=''
+}
+
+window.searchApprovedUsers=async function(mode,val){
+  const list=document.getElementById(`${approvedIds[mode]}-ac`)
+  if(!val.trim()){list.classList.add('hidden');return}
+  let users=[]
+  try{
+    const snap=await getDocs(collection(db,'users'))
+    users=snap.docs.map(d=>d.data())
+      .map(u=>({name:u.name||u.yam||u.email||'—',email:(u.email||u['e-mail']||'').toLowerCase()}))
+      .filter(u=>u.email&&(u.name.toLowerCase().includes(val.toLowerCase())||u.email.includes(val.toLowerCase())))
+  }catch(e){console.warn(e)}
+  if(!users.length){list.classList.add('hidden');return}
+  list.innerHTML=users.map(u=>`<div class="ac-item" data-email="${esc(u.email)}">${esc(u.name)} <span style='font-size:11px;opacity:.6'>${esc(u.email)}</span></div>`).join('')
+  list.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>{
+    addApprovedEmailToDraft(mode,el.dataset.email)
+    document.getElementById(`${approvedIds[mode]}-search`).value=''
+    list.classList.add('hidden')
+  }))
+  list.classList.remove('hidden')
+}
+
+window.openCreateCourseModal=function(){
+  state.approvedDraft.new=[]
+  renderApprovedChips('new')
+  document.getElementById('new-course-visibility').value='public'
+  document.getElementById('new-course-approved-wrap').style.display='none'
+  document.getElementById('create-course-modal').classList.remove('hidden')
+}
+
 window.doCreateCourse=async function(){
   const name=document.getElementById('new-course-name').value.trim().slice(0,100)
   const loc=document.getElementById('new-course-loc').value.trim().slice(0,100)
+  const visibility=document.getElementById('new-course-visibility').value
+  const isPrivate=visibility!=='public',isHidden=visibility==='hidden'
+  const approvedUsers=isHidden?[...state.approvedDraft.new]:[]
   const _nct=document.getElementById('new-course-targets')
   const num=(_nct.value==='custom'?Number(document.getElementById('new-course-targets-custom').value):Number(_nct.value))||24
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
   try{
-    const docRef=await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,created:serverTimestamp(),visits:[],besøg:[]})
-    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[]})
+    const docRef=await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,
+      private:isPrivate,privat:isPrivate,hidden:isHidden,skjult:isHidden,approvedUsers,godkendteBrugere:approvedUsers,
+      created:serverTimestamp(),visits:[],besøg:[]})
+    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[],private:isPrivate,hidden:isHidden,approvedUsers})
     lsSave();renderCoursesList();populateCourseDropdown()
     document.getElementById('create-course-modal').classList.add('hidden')
     document.getElementById('new-course-name').value=''
+    document.getElementById('new-course-visibility').value='public'
+    document.getElementById('new-course-approved-wrap').style.display='none'
     showToast('Bane oprettet!','success')
   }catch(e){showToast('Fejl: Kunne ikke oprette bane','error')}
 }
