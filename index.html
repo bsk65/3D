@@ -18,7 +18,7 @@
 <style>
   #fs-img { transform-origin: center; transition: transform 0.1s; }
   </style>
-    <script type="module" crossorigin src="/3D/assets/index-CVXDhZOn.js"></script>
+    <script type="module" crossorigin src="/3D/assets/index-CMsmJmhY.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/assets/index-BF9ZLHil.css">
   </head>
 <body>
@@ -285,7 +285,7 @@
       <div id="courses-list-view">
         <div class="tab-header">
           <span class="tab-title">Baner</span>
-          <button class="btn btn-gold btn-sm" onclick="document.getElementById('create-course-modal').classList.remove('hidden')">+ Opret bane</button>
+          <button class="btn btn-gold btn-sm" onclick="openCreateCourseModal()">+ Opret bane</button>
         </div>
         <div id="courses-list"></div>
       </div>
@@ -325,6 +325,21 @@
           </select>
           <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" style="display:none;margin-top:6px;" />
           <input type="text" id="new-course-loc" placeholder="Lokation (fx by)" />
+          <select id="new-course-visibility" onchange="document.getElementById('new-course-approved-wrap').style.display=this.value==='hidden'?'':'none'">
+            <option value="public" selected>Offentlig</option>
+            <option value="private">Privat</option>
+            <option value="hidden">Skjult (kun godkendte)</option>
+          </select>
+          <div class="trow-sub" style="margin-top:-4px;">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
+          <div id="new-course-approved-wrap" style="display:none;">
+            <div class="ac-wrap fg">
+              <input type="text" id="new-course-approved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('new',this.value)" />
+              <div id="new-course-approved-ac" class="ac-list hidden"></div>
+            </div>
+            <div id="new-course-approved-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+            <input type="text" id="new-course-approved-manual" placeholder="…eller indtast email direkte" />
+            <button type="button" class="btn btn-dark" style="width:100%;margin-top:6px;" onclick="addApprovedEmailManual('new')">Tilføj</button>
+          </div>
           <div class="brow">
             <button class="btn btn-gold" onclick="doCreateCourse()">Opret</button>
             <button class="btn btn-dark" onclick="document.getElementById('create-course-modal').classList.add('hidden')">Annuller</button>
