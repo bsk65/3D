@@ -810,14 +810,15 @@ window.finishRound=async function(){
   releaseWakeLock()
 
   const roundId=state.round.id||'r_'+Date.now()
-  const roundData={...serializeRound(state.round),completed:Date.now(),...gpsData,id:roundId}
+  const shooterIds=state.round.shooters.filter(s=>!s.isGuest).map(s=>s.id)
+  const roundData={...serializeRound(state.round),completed:Date.now(),...gpsData,id:roundId,shooterIds}
   state.rounds.unshift({...roundData,created:Date.now()})
   lsSave();renderRoundsList()
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Runde gemt lokalt (netværksfejl)','error'))
   // Gem runde direkte hos medskytter med bruger-konto (ikke gæster)
   state.round.shooters.filter(s=>!s.isGuest&&s.id!==state.user.uid).forEach(s=>{
-    setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>{})
+    setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Kunne ikke dele runde med medskytte','error'))
   })
 
   const finished=state.round
