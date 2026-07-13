@@ -14,32 +14,7 @@ export { esc }
 
 
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
-const LS = 'archery_v5'
-const LS_OLD = 'archery_v4'
-
-function lsLoad() {
-  try {
-    const n = JSON.parse(localStorage.getItem(LS) || 'null')
-    if (n) return n
-    // Migrer fra gammel app - inkl. baner
-    const o = JSON.parse(localStorage.getItem(LS_OLD) || '{}')
-    return { friends: o.friends || [], rounds: o.rounds || [], courses: o.courses || [] }
-  } catch(e) { return { friends: [], rounds: [], courses: [] } }
-}
-
-function lsSave() {
-  try {
-    localStorage.setItem(LS, JSON.stringify({
-      friends: state.friends,
-      rounds:  state.rounds.slice(0, 200),
-      courses: state.courses
-    }))
-  } catch(e) {
-    if (e?.name === 'QuotaExceededError') {
-      showToast('Lokalt lager er fuldt — nogle data blev ikke gemt', 'error')
-    }
-  }
-}
+import { lsLoad, lsSave } from './storage.js'
 
 // ─── SCORING HELPERS ──────────────────────────────────────────────────────────
 // Ren scoringslogik ligger i ./scoring.js. Re-eksporteres her så testsuiten
