@@ -1,29 +1,11 @@
 // js/main.js — Indgangspunkt
 
-import { initializeApp } from 'firebase/app'
-import { getAuth, onAuthStateChanged, 
+import { auth, db, storage, onAuthStateChanged,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
-         sendPasswordResetEmail, signOut } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, getDocs, deleteDoc,
-         updateDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
-
-// ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
-  authDomain: "archery-app-70e20.firebaseapp.com",
-  projectId: "archery-app-70e20",
-  storageBucket: "archery-app-70e20.firebasestorage.app",
-  messagingSenderId: "1025324581093",
-  appId: "1:1025324581093:web:03b41dbee9cc81c6eb540c"
-}
-
-const app  = initializeApp(firebaseConfig)
-const auth = getAuth(app)
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
-})
-const storage = getStorage(app)
+         sendPasswordResetEmail, signOut,
+         collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+         updateDoc, addDoc, serverTimestamp, query, where,
+         ref, uploadString, getDownloadURL, deleteObject } from './firebase-init.js'
 
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
