@@ -33,7 +33,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 - Bevar bilingval feltnavngivning ved skrivning til Firestore (name/yam,
   location/beliggenhed, email/e-mail, private/privat, hidden/skjult osv.).
 
-## Færdige moduler (main.js: 1986 → ~1635 linjer)
+## Færdige moduler (main.js: 1986 → ~1255 linjer)
 
 | Modul | Indhold | Test |
 |-------|---------|------|
@@ -46,39 +46,54 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 | `js/stats.js` | `calcAnalyseStats`. | ✔ |
 | `js/auth.js` | Login/opret/nulstil/logud + fejlbeskeder (self-registrerende window-handlere). | — |
 | `js/friends.js` | Venne-UI: liste, søgning, tilføj/rediger/slet. | — |
+| `js/courses.js` | Bane-CRUD (`mapCourseDoc`, `fetchCourses`, `renderCoursesList`), banedetalje (`openCourseDetail`, `initCourseMap`, `renderVisits`, `renderCourseEditForm`), mål-CRUD, godkendte-brugere (approved-users chips), opret/slet bane (`doCreateCourse`/`doDeleteCourse`), `updateTargetInFirestore`, `compressImage`, `removeVisitFromCourse`. Ét samlet modul (ikke splittet i courses+course-edit — se note nedenfor). | — |
 
 Ingen adfærd er ændret; hvert skridt er committet separat med grønne tests+build.
 
-## Mangler (rest i main.js, ~1635 linjer) — foreslået rækkefølge
+### Note om courses.js: hvorfor ikke splittet i to filer
+REWRITE_STATUS foreslog oprindeligt at splitte i `courses.js` + `course-edit.js`.
+Det blev fravalgt: `openCourseDetail` (liste→detalje) kalder `renderCourseEditForm`
+(redigering), og redigerings-handlere (`saveCourseEdit`/`doCreateCourse`/
+`doDeleteCourse`) kalder tilbage til `renderCoursesList` — en ægte cirkulær
+afhængighed mellem de to ansvarsområder. Fremfor at indføre cirkulære ES-imports
+(risikabelt i utestet UI-kode) blev alt samlet i ét `js/courses.js`.
+
+### Nyt bro-mønster: `window.populateCourseDropdown`
+`populateCourseDropdown` (runde-opsætningens bane-dropdown) bor fortsat i
+`main.js`, men `courses.js` skal kunne kalde den efter `fetchCourses`/
+`doCreateCourse`/`doDeleteCourse`. Løst ved at main.js sætter
+`window.populateCourseDropdown = populateCourseDropdown` (samme mønster som
+`friends.js` kalder `window.addParticipant`) — undgår cirkulær import mellem
+main.js og courses.js.
+
+## Mangler (rest i main.js, ~1255 linjer) — foreslået rækkefølge
 
 Alt herunder er DOM/Firebase-tungt UI-lim **uden testdækning** → udtræk
 forsigtigt, ét skridt ad gangen, byg+test imellem.
 
-1. **`js/courses.js`** — banelogik: `mapCourseDoc`, `fetchCourses`,
-   `renderCoursesList`, `openCourseDetail`, `initCourseMap`, `renderVisits`,
-   `renderCourseEditForm`, `saveCourseEdit`, target-CRUD (`updateTargetField`,
-   `addTargetToCurrentCourse`, `deleteTargetFromCourse`, `setTargetGps`,
-   `uploadTargetPhoto`, `saveAllTargets`), `switchSubtab`, `toggleMyPos`,
-   `doDeleteCourse`, approved-users (`renderApprovedChips`,
-   `addApprovedEmailToDraft`/`Manual`, `removeApprovedEmail`,
-   `searchApprovedUsers`), `openCreateCourseModal`, `doCreateCourse`,
-   `updateTargetInFirestore`, `compressImage`, `removeVisitFromCourse`.
-   Bruger Leaflet via `window.L`. Størst blok — split evt. i courses + course-edit.
-2. **`js/admin.js`** — `renderAdminSection`, `renderAdminsList`, `renderUsersList`,
+1. **`js/admin.js`** — `renderAdminSection`, `renderAdminsList`, `renderUsersList`,
    `filterUsers`, `doAddAdmin`, `doRemoveAdmin`, `_bowLabels`, `_allUsers`.
    Bemærk: admin-check er `doc.exists()` på `admins/{uid}` (sat i main's
    auth-state-lytter) — bevar.
-3. **`js/results.js`** — resultatvisning: `buildDistribution`, `renderResults`,
+2. **`js/results.js`** — resultatvisning: `buildDistribution`, `renderResults`,
    `buildResultsTable`, `buildSummaryCards`, `buildActualResults`,
-   `showRoundPopup`, `sendResults`, `renderRoundsList`.
-4. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
+   `showRoundPopup`, `sendResults`, `renderRoundsList`. Bemærk: `renderRoundsList`
+   kalder `removeVisitFromCourse` (nu i `js/courses.js`) — importér normalt.
+   `showRoundPopup`/`renderVisits`-kæden bruger også `window.showVisitResults`
+   (stadig i main.js, tæt koblet til runde/resultat-visning — flyt evt. med
+   hertil eller lad blive, vurdér ved udtræk) og `window.showRouteOnMap`
+   (bruger `state.courseMap` fra courses.js, kaldes via `window.switchSubtab`).
+3. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
    `initGraphPinch`, `analyseRound`. Bruger `calcAnalyseStats` fra stats.js.
-5. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
+4. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
    `renderShooters`, `setScore`, nav (`prevTarget`/`nextTarget`/`skipToTarget`/
    `doSkip`), `finishRound`, `abortRound`, `saveActiveRound`, `tryResumeRound`,
    panel-skift, `curTargetIdx`, `getParticipants`, `addParticipant`,
-   `updateGpsBar`, `resetScroll`. Kernen — flest afhængigheder; tag til sidst.
-6. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
+   `updateGpsBar`, `resetScroll`, samt `openEditTarget`/`saveEditTarget`/
+   `editGps` (target-redigering under aktiv runde — bruger
+   `updateTargetInFirestore` fra courses.js, allerede importeret normalt).
+   Kernen — flest afhængigheder; tag til sidst.
+5. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
    `onLogin`/`onLogout`), PWA-install-prompt, event-bindinger, wakeLock-hjælpere.
 
 ### Ikke-oplagte ting der SKAL bevares
