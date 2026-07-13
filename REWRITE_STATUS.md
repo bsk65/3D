@@ -33,7 +33,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 - Bevar bilingval feltnavngivning ved skrivning til Firestore (name/yam,
   location/beliggenhed, email/e-mail, private/privat, hidden/skjult osv.).
 
-## Færdige moduler (main.js: 1986 → ~1178 linjer)
+## Færdige moduler (main.js: 1986 → ~1004 linjer)
 
 | Modul | Indhold | Test |
 |-------|---------|------|
@@ -48,6 +48,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 | `js/friends.js` | Venne-UI: liste, søgning, tilføj/rediger/slet. | — |
 | `js/courses.js` | Bane-CRUD (`mapCourseDoc`, `fetchCourses`, `renderCoursesList`), banedetalje (`openCourseDetail`, `initCourseMap`, `renderVisits`, `renderCourseEditForm`), mål-CRUD, godkendte-brugere (approved-users chips), opret/slet bane (`doCreateCourse`/`doDeleteCourse`), `updateTargetInFirestore`, `compressImage`, `removeVisitFromCourse`. Ét samlet modul (ikke splittet i courses+course-edit — se note nedenfor). | — |
 | `js/admin.js` | `renderAdminSection` (kaldes af switchTab('friends')), `renderAdminsList`, `renderUsersList`, `filterUsers`, `doAddAdmin`, `doRemoveAdmin`. Admin-check (`doc.exists()` på `admins/{uid}`) forbliver i main.js' auth-state-lytter. | — |
+| `js/results.js` | Resultatvisning: `buildDistribution`, `renderResults`, `buildResultsTable`, `buildSummaryCards`, `buildActualResults`, `renderRoundsList`, `showRoundPopup`, `sendResults`. `renderResults`/`renderRoundsList`/`showRoundPopup` eksporteres normalt (kaldes af main.js' `finishRound`/`onLogin`/`tryOpenPendingRound`/`showVisitResults`). `renderRoundsList` kalder `window.analyseRound` (bro til main.js, samme mønster som `window.populateCourseDropdown`). | — |
 
 Ingen adfærd er ændret; hvert skridt er committet separat med grønne tests+build.
 
@@ -67,22 +68,20 @@ afhængighed mellem de to ansvarsområder. Fremfor at indføre cirkulære ES-imp
 `friends.js` kalder `window.addParticipant`) — undgår cirkulær import mellem
 main.js og courses.js.
 
-## Mangler (rest i main.js, ~1178 linjer) — foreslået rækkefølge
+## Mangler (rest i main.js, ~1004 linjer) — foreslået rækkefølge
 
 Alt herunder er DOM/Firebase-tungt UI-lim **uden testdækning** → udtræk
 forsigtigt, ét skridt ad gangen, byg+test imellem.
 
-1. **`js/results.js`** — resultatvisning: `buildDistribution`, `renderResults`,
-   `buildResultsTable`, `buildSummaryCards`, `buildActualResults`,
-   `showRoundPopup`, `sendResults`, `renderRoundsList`. Bemærk: `renderRoundsList`
-   kalder `removeVisitFromCourse` (nu i `js/courses.js`) — importér normalt.
-   `showRoundPopup`/`renderVisits`-kæden bruger også `window.showVisitResults`
-   (stadig i main.js, tæt koblet til runde/resultat-visning — flyt evt. med
-   hertil eller lad blive, vurdér ved udtræk) og `window.showRouteOnMap`
-   (bruger `state.courseMap` fra courses.js, kaldes via `window.switchSubtab`).
-2. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
+Bemærk: `window.showVisitResults` og `window.showRouteOnMap` (begge i main.js,
+tæt koblet til `showRoundPopup`/`state.courseMap`) samt `analyseRound` (nu
+bro'et via `window.analyseRound` til results.js) hører naturligt til enten
+`results.js` eller `analyse.js` — tag stilling ved udtræk af analyse.js
+(næste punkt), da `analyseRound` bruges der.
+
+1. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
    `initGraphPinch`, `analyseRound`. Bruger `calcAnalyseStats` fra stats.js.
-3. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
+2. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
    `renderShooters`, `setScore`, nav (`prevTarget`/`nextTarget`/`skipToTarget`/
    `doSkip`), `finishRound`, `abortRound`, `saveActiveRound`, `tryResumeRound`,
    panel-skift, `curTargetIdx`, `getParticipants`, `addParticipant`,
@@ -90,7 +89,7 @@ forsigtigt, ét skridt ad gangen, byg+test imellem.
    `editGps` (target-redigering under aktiv runde — bruger
    `updateTargetInFirestore` fra courses.js, allerede importeret normalt).
    Kernen — flest afhængigheder; tag til sidst.
-4. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
+3. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
    `onLogin`/`onLogout`), PWA-install-prompt, event-bindinger, wakeLock-hjælpere.
 
 ### Ikke-oplagte ting der SKAL bevares
