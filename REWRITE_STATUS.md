@@ -33,7 +33,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 - Bevar bilingval feltnavngivning ved skrivning til Firestore (name/yam,
   location/beliggenhed, email/e-mail, private/privat, hidden/skjult osv.).
 
-## Færdige moduler (main.js: 1986 → ~1255 linjer)
+## Færdige moduler (main.js: 1986 → ~1178 linjer)
 
 | Modul | Indhold | Test |
 |-------|---------|------|
@@ -47,6 +47,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 | `js/auth.js` | Login/opret/nulstil/logud + fejlbeskeder (self-registrerende window-handlere). | — |
 | `js/friends.js` | Venne-UI: liste, søgning, tilføj/rediger/slet. | — |
 | `js/courses.js` | Bane-CRUD (`mapCourseDoc`, `fetchCourses`, `renderCoursesList`), banedetalje (`openCourseDetail`, `initCourseMap`, `renderVisits`, `renderCourseEditForm`), mål-CRUD, godkendte-brugere (approved-users chips), opret/slet bane (`doCreateCourse`/`doDeleteCourse`), `updateTargetInFirestore`, `compressImage`, `removeVisitFromCourse`. Ét samlet modul (ikke splittet i courses+course-edit — se note nedenfor). | — |
+| `js/admin.js` | `renderAdminSection` (kaldes af switchTab('friends')), `renderAdminsList`, `renderUsersList`, `filterUsers`, `doAddAdmin`, `doRemoveAdmin`. Admin-check (`doc.exists()` på `admins/{uid}`) forbliver i main.js' auth-state-lytter. | — |
 
 Ingen adfærd er ændret; hvert skridt er committet separat med grønne tests+build.
 
@@ -66,16 +67,12 @@ afhængighed mellem de to ansvarsområder. Fremfor at indføre cirkulære ES-imp
 `friends.js` kalder `window.addParticipant`) — undgår cirkulær import mellem
 main.js og courses.js.
 
-## Mangler (rest i main.js, ~1255 linjer) — foreslået rækkefølge
+## Mangler (rest i main.js, ~1178 linjer) — foreslået rækkefølge
 
 Alt herunder er DOM/Firebase-tungt UI-lim **uden testdækning** → udtræk
 forsigtigt, ét skridt ad gangen, byg+test imellem.
 
-1. **`js/admin.js`** — `renderAdminSection`, `renderAdminsList`, `renderUsersList`,
-   `filterUsers`, `doAddAdmin`, `doRemoveAdmin`, `_bowLabels`, `_allUsers`.
-   Bemærk: admin-check er `doc.exists()` på `admins/{uid}` (sat i main's
-   auth-state-lytter) — bevar.
-2. **`js/results.js`** — resultatvisning: `buildDistribution`, `renderResults`,
+1. **`js/results.js`** — resultatvisning: `buildDistribution`, `renderResults`,
    `buildResultsTable`, `buildSummaryCards`, `buildActualResults`,
    `showRoundPopup`, `sendResults`, `renderRoundsList`. Bemærk: `renderRoundsList`
    kalder `removeVisitFromCourse` (nu i `js/courses.js`) — importér normalt.
@@ -83,9 +80,9 @@ forsigtigt, ét skridt ad gangen, byg+test imellem.
    (stadig i main.js, tæt koblet til runde/resultat-visning — flyt evt. med
    hertil eller lad blive, vurdér ved udtræk) og `window.showRouteOnMap`
    (bruger `state.courseMap` fra courses.js, kaldes via `window.switchSubtab`).
-3. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
+2. **`js/analyse.js`** — `renderAnalyse` (stor), `buildCompareHtml`,
    `initGraphPinch`, `analyseRound`. Bruger `calcAnalyseStats` fra stats.js.
-4. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
+3. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
    `renderShooters`, `setScore`, nav (`prevTarget`/`nextTarget`/`skipToTarget`/
    `doSkip`), `finishRound`, `abortRound`, `saveActiveRound`, `tryResumeRound`,
    panel-skift, `curTargetIdx`, `getParticipants`, `addParticipant`,
@@ -93,7 +90,7 @@ forsigtigt, ét skridt ad gangen, byg+test imellem.
    `editGps` (target-redigering under aktiv runde — bruger
    `updateTargetInFirestore` fra courses.js, allerede importeret normalt).
    Kernen — flest afhængigheder; tag til sidst.
-5. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
+4. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
    `onLogin`/`onLogout`), PWA-install-prompt, event-bindinger, wakeLock-hjælpere.
 
 ### Ikke-oplagte ting der SKAL bevares
