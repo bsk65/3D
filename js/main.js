@@ -6,6 +6,7 @@ import { auth, db, storage, onAuthStateChanged,
          ref, uploadString, getDownloadURL, deleteObject } from './firebase-init.js'
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
+import { renderFriendsList, renderQuickFriends } from './friends.js'
 
 // Re-eksporterer esc så den eksisterende testsuite (import fra main.js) stadig virker.
 export { esc }
@@ -348,41 +349,6 @@ function getParticipants(){
     name:c.querySelector('.pchip-name').textContent.replace('🎯 ','').trim(),
     isGuest:c.id.startsWith('chip-guest-')
   }))
-}
-
-function renderQuickFriends(){
-  const el=document.getElementById('qfriends');el.innerHTML=''
-  state.friends.forEach(f=>{
-    const btn=document.createElement('button');btn.className='qfbtn';btn.textContent=f.name
-    btn.onclick=()=>window.addParticipant(f.id,f.name);el.appendChild(btn)
-  })
-}
-
-window.searchFriends=async function(val){
-  const list=document.getElementById('ac-list')
-  if(!val.trim()){list.classList.add('hidden');return}
-  const local=state.friends.filter(f=>f.name.toLowerCase().includes(val.toLowerCase()))
-  let remote=[]
-  try{
-    const snap=await getDocs(collection(db,'users'))
-    remote=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(u=>(u.name||u.yam||'').toLowerCase().includes(val.toLowerCase())&&u.id!==state.user?.uid&&!local.find(l=>l.id===u.id))
-      .map(u=>({id:u.id,name:u.name||u.yam||u.email||'—',email:u.email||u['e-mail']||''}))
-  }catch(e){console.warn(e)}
-  const all=[...local,...remote]
-  if(!all.length){list.classList.add('hidden');return}
-  list.innerHTML=all.map(f=>`<div class="ac-item" data-id="${esc(f.id)}" data-name="${esc(f.name||'')}" data-email="${esc(f.email||'')}">${esc(f.name)}${f.email?` <span style='font-size:11px;opacity:.6'>${esc(f.email)}</span>`:''}</div>`).join('')
-  list.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>{
-    selectFriend(el.dataset.id,el.dataset.name,el.dataset.email)
-    document.getElementById('friend-search').value=''
-    document.getElementById('ac-list').classList.add('hidden')
-  }))
-  list.classList.remove('hidden')
-}
-
-window.selectFriend=function(id,name,email){
-  if(!state.friends.find(f=>f.id===id)){state.friends.push({id,name,email});lsSave();renderFriendsList();renderQuickFriends()}
-  window.addParticipant(id,name)
 }
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
@@ -1169,56 +1135,6 @@ window.saveEditTarget=async function(){
 window.editGps=async function(){
   try{const pos=await getCurrentPosition(),tIdx=curTargetIdx();await updateTargetInFirestore(state.round.courseId,tIdx,{gps:pos});if(state.course?.targets)state.course.targets[tIdx].gps=pos;showToast('GPS gemt!','success')}
   catch(e){showToast('GPS fejl: '+e.message,'error')}
-}
-
-// ─── FRIENDS ──────────────────────────────────────────────────────────────────
-function renderFriendsList(){
-  const el=document.getElementById('friends-list')
-  if(!state.friends.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>Ingen venner endnu</div>';return}
-  el.innerHTML=''
-  state.friends.forEach(f=>{
-    const card=document.createElement('div');card.className='fcard'
-    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del" style="color:var(--danger);">🗑</button></div>`
-    card.querySelector('.frd-edit').addEventListener('click',()=>openFriendModal(f))
-    card.querySelector('.frd-del').addEventListener('click',()=>doDeleteFriend(f.id,f.name))
-    el.appendChild(card)
-  })
-}
-
-window.openFriendModal=function(friend){
-  state.editFriendId=friend?.id||null
-  document.getElementById('friend-modal-title').textContent=friend?'Rediger ven':'Tilføj ven'
-  document.getElementById('f-name').value=friend?.name||''
-  document.getElementById('f-email').value=friend?.email||''
-  document.getElementById('f-phone').value=friend?.phone||''
-  document.getElementById('f-club').value=friend?.club||''
-  document.getElementById('f-bow').value=friend?.bowType||''
-  document.getElementById('friend-modal').classList.remove('hidden')
-}
-
-window.saveFriendModal=function(){
-  const data={
-    name:    document.getElementById('f-name').value.trim().slice(0,80),
-    email:   document.getElementById('f-email').value.trim().slice(0,100),
-    phone:   document.getElementById('f-phone').value.trim().slice(0,30),
-    club:    document.getElementById('f-club').value.trim().slice(0,80),
-    bowType: document.getElementById('f-bow').value
-  }
-  if(!data.name)return
-  if(state.editFriendId){const idx=state.friends.findIndex(f=>f.id===state.editFriendId);if(idx!==-1)state.friends[idx]={...data,id:state.editFriendId};else state.friends.push({...data,id:state.editFriendId})}
-  else state.friends.push({...data,id:'f_'+Date.now()})
-  const fid=state.editFriendId||('f_'+Date.now())
-  if(!state.editFriendId)state.friends[state.friends.length-1].id=fid
-  const fdata=state.friends.find(f=>f.id===(state.editFriendId||fid))
-  if(fdata&&state.user)setDoc(doc(db,'users',state.user.uid,'friends',fdata.id),fdata).catch(e=>console.warn(e))
-  lsSave();document.getElementById('friend-modal').classList.add('hidden');renderFriendsList();renderQuickFriends()
-}
-
-window.doDeleteFriend=function(id,name){
-  showConfirm(`Slet ${name}?`,()=>{
-    state.friends=state.friends.filter(f=>f.id!==id);lsSave();renderFriendsList();renderQuickFriends()
-    if(state.user)deleteDoc(doc(db,'users',state.user.uid,'friends',id)).catch(e=>console.warn(e))
-  })
 }
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
