@@ -7,28 +7,11 @@ import { auth, db, storage, onAuthStateChanged,
          updateDoc, addDoc, serverTimestamp, query, where,
          ref, uploadString, getDownloadURL, deleteObject } from './firebase-init.js'
 import { state } from './state.js'
+import { esc, showToast, showConfirm } from './utils.js'
 
+// Re-eksporterer esc så den eksisterende testsuite (import fra main.js) stadig virker.
+export { esc }
 
-// ─── UTILS ────────────────────────────────────────────────────────────────────
-export function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-
-function showToast(msg,type='info'){
-  const t=document.createElement('div')
-  t.className=`toast toast-${type}`
-  t.textContent=msg
-  document.body.appendChild(t)
-  requestAnimationFrame(()=>t.classList.add('toast-show'))
-  setTimeout(()=>{t.classList.remove('toast-show');setTimeout(()=>t.remove(),300)},3500)
-}
-
-function showConfirm(msg,onConfirm){
-  const modal=document.getElementById('confirm-modal')
-  document.getElementById('confirm-msg').textContent=msg
-  modal.classList.remove('hidden')
-  const cleanup=()=>{modal.classList.add('hidden');window._confirmAccept=null;window._confirmReject=null}
-  window._confirmAccept=()=>{cleanup();onConfirm()}
-  window._confirmReject=()=>{cleanup()}
-}
 
 // ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 const LS = 'archery_v5'
