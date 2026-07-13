@@ -6,6 +6,7 @@ import { auth, db, storage, onAuthStateChanged,
          collection, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp, query, where,
          ref, uploadString, getDownloadURL, deleteObject } from './firebase-init.js'
+import { state } from './state.js'
 
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -195,13 +196,7 @@ export function findNearestTarget(targets,pos) {
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
-const state = {
-  user:null, profile:null, isAdmin:false, isSuperAdmin:false,
-  friends:[], courses:[], rounds:[], round:null, course:null,
-  currentCourse:null, courseMap:null, courseMapLayer:null, approvedDraft:{new:[],edit:[]},
-  gpsTracking:false, warnThreshold:8,
-  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0
-}
+// state importeres fra ./state.js (delt singleton).
 
 let wakeLock=null
 async function acquireWakeLock(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
