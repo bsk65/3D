@@ -42,85 +42,16 @@ function lsSave() {
 }
 
 // ─── SCORING HELPERS ──────────────────────────────────────────────────────────
-const SCORE_VALUES = [11, 10, 8, 5, 'M']
-
-export function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }
-
-export function parseScores(str) {
-  if (!str) return []
-  return str.split(';').map(t => t.split(',').map(v => v === 'M' ? 'M' : v === '-' ? null : Number(v)))
-}
-
-export function serializeScores(arr) {
-  return arr.map(t => t.map(v => v == null ? '-' : v).join(',')).join(';')
-}
-
-export function calcTotal(scores) {
-  return scores.flat().reduce((s, v) => s + scoreVal(v), 0)
-}
-
-export function calcAverage(scores) {
-  const all = scores.flat().filter(v => v != null)
-  if (!all.length) return null
-  return (all.reduce((s, v) => s + scoreVal(v), 0) / all.length).toFixed(1)
-}
-
-export function calcTargetAverage(shooters, tIdx) {
-  const vals = shooters.flatMap(s => (s.scores[tIdx]||[]).filter(v => v != null).map(scoreVal))
-  if (!vals.length) return null
-  return (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1)
-}
-
-export function calcDistribution(scores) {
-  const d = {11:0, 10:0, 8:0, 5:0, M:0}
-  scores.flat().forEach(v => {
-    if (v === 'M') d.M++
-    else if (v != null && d[Number(v)] !== undefined) d[Number(v)]++
-  })
-  return d
-}
-
-export function findWinner(shooters) {
-  if (!shooters.length) return null
-  return shooters.reduce((b, s) => calcTotal(s.scores) > calcTotal(b.scores) ? s : b, shooters[0])
-}
-
-export function isBelowThreshold(scores, threshold) {
-  const all = scores.flat().filter(v => v != null)
-  if (!all.length) return false
-  return (all.reduce((s,v) => s + scoreVal(v), 0) / all.length) < threshold
-}
-
-export function makeShooter(id, name, isGuest) { return { id, name, isGuest: !!isGuest, scores: [] } }
-
-export function normalizeScores(s, n) {
-  while (s.scores.length < n) s.scores.push([null, null])
-}
-
-export function countScored(shooters, n) {
-  let c = 0
-  for (let t = 0; t < n; t++) {
-    if (shooters.every(s => { const r = s.scores[t]||[null,null]; return r[0]!=null && r[1]!=null })) c++
-  }
-  return c
-}
-
-export function serializeRound(round) {
-  return {
-    id: round.id||null,
-    name: round.name, courseId: round.courseId||null, courseName: round.courseName||null,
-    numTargets: round.numTargets, startTarget: round.startTarget||1,
-    created: round.created, completed: round.completed||null,
-    gpsRoute: round.gpsRoute||null, gpsDuration: round.gpsDuration||null, gpsDistance: round.gpsDistance||null,
-    traversalOrder: round.traversalOrder, traversalPos: round.traversalPos||0,
-    shooters: round.shooters.map(s => ({ id:s.id, name:s.name, isGuest:s.isGuest||false,
-      scores: serializeScores(s.scores) }))
-  }
-}
-
-export function deserializeRound(data) {
-  return { ...data, shooters: (data.shooters||[]).map(s => ({ ...s, scores: parseScores(s.scores) })) }
-}
+// Ren scoringslogik ligger i ./scoring.js. Re-eksporteres her så testsuiten
+// (import fra main.js) fortsat virker.
+import { SCORE_VALUES, scoreVal, parseScores, serializeScores, calcTotal,
+         calcAverage, calcTargetAverage, calcDistribution, findWinner,
+         isBelowThreshold, makeShooter, normalizeScores, countScored,
+         serializeRound, deserializeRound, buildOrder } from './scoring.js'
+export { scoreVal, parseScores, serializeScores, calcTotal, calcAverage,
+         calcTargetAverage, calcDistribution, findWinner, isBelowThreshold,
+         makeShooter, normalizeScores, countScored, serializeRound,
+         deserializeRound, buildOrder }
 
 // ─── GPS ──────────────────────────────────────────────────────────────────────
 let _watchId=null, _tracking=false, _paused=false, _route=[], _startTime=null, _totalDist=0, _lastPoint=null, _timerInterval=null, _onUpdate=null
@@ -619,7 +550,6 @@ window.startRound=async function(){
   saveActiveRound()
 }
 
-export function buildOrder(start,total){return Array.from({length:total},(_,i)=>(start+i)%total)}
 function curTargetIdx(){return state.round.traversalOrder[state.round.traversalPos]}
 
 // ─── PANELS ───────────────────────────────────────────────────────────────────
