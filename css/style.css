@@ -159,6 +159,9 @@ select option{background:var(--surf);}
 .ccard:hover{border-color:var(--acc);}
 .ccard-name{font-family:var(--fd);font-size:16px;color:var(--acc);margin-bottom:3px;}
 .ccard-meta{font-size:11px;color:var(--muted);}
+.ccard-private-note{font-weight:400;color:var(--muted);}
+.map-marker-num{background:#e8a020;color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;}
+.popup-target-img{max-width:140px;border-radius:4px;}
 .subtabs{display:flex;border-bottom:1px solid var(--bord);padding:0 12px;}
 .stab{padding:9px 13px;background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:var(--fd);font-size:12px;cursor:pointer;text-transform:uppercase;}
 .stab.active{border-bottom-color:var(--acc);color:var(--acc);}
@@ -166,6 +169,34 @@ select option{background:var(--surf);}
 .stab-c.active{display:block;}
 #course-map{border-radius:var(--r);border:1px solid var(--bord);margin-bottom:8px;overflow:hidden;}
 .visit-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;cursor:pointer;}
+.visit-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.visit-card-date{font-weight:700;font-size:13px;}
+.visit-card-participants{font-size:12px;color:var(--muted);}
+.visit-card-winner{font-size:12px;color:var(--acc);font-weight:600;}
+.edit-info-card{margin-bottom:12px;}
+.edit-visibility-hint{margin-top:-6px;}
+.edit-approved-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.edit-approved-add-btn{width:100%;margin-top:6px;}
+.edit-save-btn{width:100%;}
+.targets-card-title{display:flex;justify-content:space-between;align-items:center;}
+.add-target-btn{font-size:20px;}
+.target-edit-block{border-bottom:1px solid var(--surface2);padding-bottom:12px;margin-bottom:12px;}
+.target-edit-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.target-edit-title{font-weight:700;color:var(--acc);}
+.target-edit-actions{display:flex;gap:6px;}
+.target-delete-btn{color:var(--danger);}
+.target-edit-input{padding:6px 10px;}
+.target-edit-row{display:flex;gap:8px;}
+.target-edit-col{flex:1;}
+.target-gps-info{font-size:12px;color:var(--muted);}
+.target-gps-missing{font-size:12px;color:var(--danger);}
+.target-photo-preview{max-width:100%;max-height:100px;border-radius:8px;margin-top:6px;object-fit:cover;}
+.target-upload-label{margin-top:6px;display:inline-block;font-size:12px;padding:4px 10px;cursor:pointer;}
+.target-file-input{display:none;}
+.target-save-btn{margin-top:6px;font-size:12px;padding:4px 10px;}
+.approved-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border:1px solid var(--bord);border-radius:16px;font-size:12px;}
+.approved-chip-remove{cursor:pointer;color:var(--danger);font-weight:700;}
+.approved-empty{font-size:12px;color:var(--muted);}
 .fcard{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:12px 14px;margin:0 12px 8px;display:flex;align-items:center;gap:10px;}
 .favatar{width:36px;height:36px;background:var(--surf2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;border:1px solid var(--bord);flex-shrink:0;}
 .finfo{flex:1;}

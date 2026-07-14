@@ -57,7 +57,7 @@ export function renderCoursesList(){
   el.innerHTML=''
   state.courses.forEach(c=>{
     const card=document.createElement('div');card.className='ccard'
-    card.innerHTML=`<div class="ccard-name">${esc(c.name)}${c.private?' <span style="font-weight:400;color:var(--muted);">(Banen er kun for medlemmer)</span>':''}</div><div class="ccard-meta">${c.numTargets} mål · ${esc(c.location||'—')}</div>`
+    card.innerHTML=`<div class="ccard-name">${esc(c.name)}${c.private?' <span class="ccard-private-note">(Banen er kun for medlemmer)</span>':''}</div><div class="ccard-meta">${c.numTargets} mål · ${esc(c.location||'—')}</div>`
     card.onclick=()=>openCourseDetail(c);el.appendChild(card)
   })
 }
@@ -79,9 +79,9 @@ function initCourseMap(course){
   (course.targets||[]).forEach((t,i)=>{
     const tgps=t.gps||t.GPS;if(!tgps||!tgps.lat||!tgps.lng)return;bounds.push([tgps.lat,tgps.lng])
     window.L.marker([(t.gps||t.GPS).lat,(t.gps||t.GPS).lng],{icon:window.L.divIcon({className:'',
-      html:`<div style="background:#e8a020;color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;">${i+1}</div>`,
+      html:`<div class="map-marker-num">${i+1}</div>`,
       iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.courseMap)
-      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" style="max-width:140px;border-radius:4px;"/>`:''}`)
+      .bindPopup(`<b>${i+1}. ${t.name||'Mål'}</b>${t.emoji?`<br>${t.emoji}`:''}${t.imageUrl||t.photo?`<br><img src="${t.imageUrl||t.photo}" class="popup-target-img"/>`:''}`)
   })
   if(bounds.length)state.courseMap.fitBounds(bounds,{padding:[20,20]})
   else state.courseMap.setView([55.7,12.5],10)
@@ -106,9 +106,10 @@ function renderVisits(course){
   el.innerHTML=''
   myRounds.forEach(v=>{
     const card=document.createElement('div');card.className='visit-card'
-    card.style.cursor='pointer'
+    // Bemærk: card.style.cursor='pointer' fjernet — .visit-card sætter allerede
+    // cursor:pointer i css/style.css, den inline sætning var en no-op.
     card.onclick=(e)=>{if(!e.target.closest('.btn-icon'))window.showVisitResults(v.roundId)}
-    card.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-weight:700;font-size:13px;">${esc(v.date)}</span><button class="btn-icon" onclick="window.showVisitResults('${esc(v.roundId)}')" title="Se resultat">📊</button></div><div style="font-size:12px;color:var(--muted);">${(v.participants||[]).map(esc).join(', ')}</div>${v.winner?`<div style="font-size:12px;color:var(--acc);font-weight:600;">🏆 ${esc(v.winner)} (${v.winnerScore} pt)</div>`:''}`
+    card.innerHTML=`<div class="visit-card-head"><span class="visit-card-date">${esc(v.date)}</span><button class="btn-icon" onclick="window.showVisitResults('${esc(v.roundId)}')" title="Se resultat">📊</button></div><div class="visit-card-participants">${(v.participants||[]).map(esc).join(', ')}</div>${v.winner?`<div class="visit-card-winner">🏆 ${esc(v.winner)} (${v.winnerScore} pt)</div>`:''}`
     el.appendChild(card)
   })
 }
@@ -116,7 +117,7 @@ function renderVisits(course){
 function renderCourseEditForm(course){
   const targets=course.targets||[]
   let html=`
-    <div class="card" style="margin-bottom:12px;">
+    <div class="card edit-info-card">
       <div class="card-title">Baneinfo</div>
       <div class="fg"><label class="lbl">Banenavn</label><input type="text" id="edit-cname" value="${course.name}" /></div>
       <div class="fg"><label class="lbl">Lokation</label><input type="text" id="edit-cloc" value="${course.location||''}" /></div>
@@ -127,54 +128,54 @@ function renderCourseEditForm(course){
           <option value="hidden" ${course.hidden?'selected':''}>Skjult (kun godkendte)</option>
         </select>
       </div>
-      <div class="trow-sub" style="margin-top:-6px;">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
+      <div class="trow-sub edit-visibility-hint">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
       <div id="edit-capproved-wrap" style="display:${course.hidden?'':'none'};">
         <div class="ac-wrap fg">
           <input type="text" id="edit-capproved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('edit',this.value)" />
           <div id="edit-capproved-ac" class="ac-list hidden"></div>
         </div>
-        <div id="edit-capproved-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <div id="edit-capproved-chips" class="edit-approved-chips-wrap"></div>
         <input type="text" id="edit-capproved-manual" placeholder="…eller indtast email direkte" />
-        <button type="button" class="btn btn-dark" style="width:100%;margin-top:6px;" onclick="addApprovedEmailManual('edit')">Tilføj</button>
+        <button type="button" class="btn btn-dark edit-approved-add-btn" onclick="addApprovedEmailManual('edit')">Tilføj</button>
       </div>
-      <button class="btn btn-gold" style="width:100%" onclick="saveCourseEdit()">Gem baneinfo</button>
+      <button class="btn btn-gold edit-save-btn" onclick="saveCourseEdit()">Gem baneinfo</button>
     </div>
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="card-title targets-card-title">
         <span>Mål (${targets.length})</span>
-        <button class="btn-icon" onclick="addTargetToCurrentCourse()" style="font-size:20px;">＋</button>
+        <button class="btn-icon add-target-btn" onclick="addTargetToCurrentCourse()">＋</button>
       </div>
       <div id="targets-edit-list">`
 
   targets.forEach((t,i)=>{
-    html+=`<div class="fg" style="border-bottom:1px solid var(--surface2);padding-bottom:12px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-weight:700;color:var(--acc);">Mål ${i+1}</span>
-        <div style="display:flex;gap:6px;">
+    html+=`<div class="fg target-edit-block">
+      <div class="target-edit-head">
+        <span class="target-edit-title">Mål ${i+1}</span>
+        <div class="target-edit-actions">
           <button class="btn-icon" onclick="setTargetGps(${i})" title="Sæt GPS">📍</button>
-          <button class="btn-icon" onclick="deleteTargetFromCourse(${i})" style="color:var(--danger)">🗑</button>
+          <button class="btn-icon target-delete-btn" onclick="deleteTargetFromCourse(${i})">🗑</button>
         </div>
       </div>
       <div class="fg"><label class="lbl">Navn</label>
-        <input type="text" value="${t.name||''}" onchange="updateTargetField(${i},'name',this.value)" style="padding:6px 10px;" /></div>
-      <div style="display:flex;gap:8px;">
-        <div class="fg" style="flex:1"><label class="lbl">Emoji</label>
-          <input type="text" value="${t.emoji||''}" onchange="updateTargetField(${i},'emoji',this.value)" style="padding:6px 10px;" /></div>
-        <div class="fg" style="flex:1"><label class="lbl">Afstand (m)</label>
-          <input type="number" value="${t.distance||''}" onchange="updateTargetField(${i},'distance',this.value)" style="padding:6px 10px;" /></div>
+        <input type="text" value="${t.name||''}" onchange="updateTargetField(${i},'name',this.value)" class="target-edit-input" /></div>
+      <div class="target-edit-row">
+        <div class="fg target-edit-col"><label class="lbl">Emoji</label>
+          <input type="text" value="${t.emoji||''}" onchange="updateTargetField(${i},'emoji',this.value)" class="target-edit-input" /></div>
+        <div class="fg target-edit-col"><label class="lbl">Afstand (m)</label>
+          <input type="number" value="${t.distance||''}" onchange="updateTargetField(${i},'distance',this.value)" class="target-edit-input" /></div>
       </div>
       ${t.gps||t.GPS?
-        `<div style="font-size:12px;color:var(--muted);">📍 GPS: ${(t.gps||t.GPS).lat.toFixed(5)}, ${(t.gps||t.GPS).lng.toFixed(5)}</div>`:
-        `<div style="font-size:12px;color:var(--danger);">Ingen GPS</div>`
+        `<div class="target-gps-info">📍 GPS: ${(t.gps||t.GPS).lat.toFixed(5)}, ${(t.gps||t.GPS).lng.toFixed(5)}</div>`:
+        `<div class="target-gps-missing">Ingen GPS</div>`
       }
       ${t.imageUrl||t.photo?
-        `<img src="${t.imageUrl||t.photo}" style="max-width:100%;max-height:100px;border-radius:8px;margin-top:6px;object-fit:cover;" />`:''
+        `<img src="${t.imageUrl||t.photo}" class="target-photo-preview" />`:''
       }
-      <label class="btn btn-dark" style="margin-top:6px;display:inline-block;font-size:12px;padding:4px 10px;cursor:pointer;">
+      <label class="btn btn-dark target-upload-label">
         📷 Upload foto
-        <input type="file" accept="image/*" style="display:none;" onchange="uploadTargetPhoto(${i},this)" />
+        <input type="file" accept="image/*" class="target-file-input" onchange="uploadTargetPhoto(${i},this)" />
       </label>
-      <button class="btn btn-gold" style="margin-top:6px;font-size:12px;padding:4px 10px;" onclick="saveAllTargets()">💾 Gem alle mål</button>
+      <button class="btn btn-gold target-save-btn" onclick="saveAllTargets()">💾 Gem alle mål</button>
     </div>`
   })
 
@@ -297,8 +298,8 @@ const approvedIds={new:'new-course-approved',edit:'edit-capproved'}
 function renderApprovedChips(mode){
   const emails=state.approvedDraft[mode]
   document.getElementById(`${approvedIds[mode]}-chips`).innerHTML=emails.length?emails.map(e=>
-    `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border:1px solid var(--bord);border-radius:16px;font-size:12px;">${esc(e)}<span style="cursor:pointer;color:var(--danger);font-weight:700;" onclick="removeApprovedEmail('${mode}','${esc(e)}')">✕</span></span>`
-  ).join(''):'<span style="font-size:12px;color:var(--muted);">Ingen godkendt endnu</span>'
+    `<span class="approved-chip">${esc(e)}<span class="approved-chip-remove" onclick="removeApprovedEmail('${mode}','${esc(e)}')">✕</span></span>`
+  ).join(''):'<span class="approved-empty">Ingen godkendt endnu</span>'
 }
 
 function addApprovedEmailToDraft(mode,raw){
