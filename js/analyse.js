@@ -68,65 +68,65 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
   const zones=['11','10','8','5','M']
   const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
   const sc1=st1.myScores[0]||0,sc2=st2.myScores[0]||0,diff=Math.abs(sc1-sc2)
-  const sep='<div style="border-top:1px solid var(--surface2);margin:10px 0;"></div>'
+  const sep='<div class="cmp-sep"></div>'
   const pilRow=(st,lbl,col)=>`<div style="font-size:11px;color:${col};margin-bottom:4px;">${esc(lbl)}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-      <div><div style="font-size:10px;color:var(--muted);">PIL 1</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${st.p1avg}</div></div>
-      <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
-        <div style="font-size:10px;color:var(--muted);">SNT/PIL</div><div style="font-size:20px;font-weight:700;color:#f0c030;">${st.pilAvg}</div>
+    <div class="cmp-pil-grid">
+      <div><div class="cmp-pil-lbl">PIL 1</div><div class="cmp-pil-val">${st.p1avg}</div></div>
+      <div class="cmp-pil-mid">
+        <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
       </div>
-      <div><div style="font-size:10px;color:var(--muted);">PIL 2</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${st.p2avg}</div></div>
+      <div><div class="cmp-pil-lbl">PIL 2</div><div class="cmp-pil-val">${st.p2avg}</div></div>
     </div>`
   const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
-      <div style="background:rgba(42,170,90,0.15);border-radius:8px;padding:8px;">
-        <div style="font-size:10px;color:var(--muted);">BEDSTE</div>
-        <div style="font-size:22px;font-weight:700;color:#2aaa5a;">Mål ${st.bestTarget.i+1}</div>
-        <div style="font-size:12px;color:var(--muted);">⌀ ${st.bestTarget.v.toFixed(2)}</div>
+    <div class="cmp-target-grid">
+      <div class="cmp-target-best">
+        <div class="cmp-pil-lbl">BEDSTE</div>
+        <div class="cmp-target-best-val">Mål ${st.bestTarget.i+1}</div>
+        <div class="cmp-target-sub">⌀ ${st.bestTarget.v.toFixed(2)}</div>
       </div>
-      <div style="background:rgba(204,51,51,0.15);border-radius:8px;padding:8px;">
-        <div style="font-size:10px;color:var(--muted);">SVÆRESTE</div>
-        <div style="font-size:22px;font-weight:700;color:var(--danger);">Mål ${st.worstTarget.i+1}</div>
-        <div style="font-size:12px;color:var(--muted);">⌀ ${st.worstTarget.v.toFixed(2)}</div>
+      <div class="cmp-target-worst">
+        <div class="cmp-pil-lbl">SVÆRESTE</div>
+        <div class="cmp-target-worst-val">Mål ${st.worstTarget.i+1}</div>
+        <div class="cmp-target-sub">⌀ ${st.worstTarget.v.toFixed(2)}</div>
       </div>
     </div>`:''
   let h=''
-  h+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">SAMMENLIGNING</div>
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;">
+  h+=`<div class="card card-mb16">
+    <div class="cmp-section-title">SAMMENLIGNING</div>
+    <div class="cmp-score-grid">
       <div>
-        <div style="font-size:11px;color:var(--acc);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl1)}</div>
-        <div style="font-size:36px;font-weight:700;color:var(--acc);">${sc1}</div>
-        <div style="font-size:11px;color:var(--muted);">POINT</div>
+        <div class="cmp-score-lbl-a">${esc(lbl1)}</div>
+        <div class="cmp-score-val-a">${sc1}</div>
+        <div class="cmp-score-unit">POINT</div>
       </div>
-      <div style="font-size:18px;color:var(--muted);font-weight:700;">VS</div>
+      <div class="cmp-vs">VS</div>
       <div>
-        <div style="font-size:11px;color:#f0c030;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl2)}</div>
-        <div style="font-size:36px;font-weight:700;color:#f0c030;">${sc2}</div>
-        <div style="font-size:11px;color:var(--muted);">POINT</div>
+        <div class="cmp-score-lbl-b">${esc(lbl2)}</div>
+        <div class="cmp-score-val-b">${sc2}</div>
+        <div class="cmp-score-unit">POINT</div>
       </div>
     </div>
-    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">${sc1>sc2?`${esc(lbl1)} vandt med ${diff} point`:sc2>sc1?`${esc(lbl2)} vandt med ${diff} point`:'Uafgjort!'}</div>
+    <div class="cmp-winner-line">${sc1>sc2?`${esc(lbl1)} vandt med ${diff} point`:sc2>sc1?`${esc(lbl2)} vandt med ${diff} point`:'Uafgjort!'}</div>
   </div>`
-  h+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">PIL STATISTIK</div>
+  h+=`<div class="card card-mb16">
+    <div class="cmp-section-title">PIL STATISTIK</div>
     ${pilRow(st1,lbl1,'var(--acc)')}${sep}${pilRow(st2,lbl2,'#f0c030')}
   </div>`
   if(st1.bestTarget||st2.bestTarget){
-    h+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">BEDSTE OG SVÆRESTE MÅL</div>
+    h+=`<div class="card card-mb16">
+      <div class="cmp-section-title">BEDSTE OG SVÆRESTE MÅL</div>
       ${targetRow(st1,lbl1,'var(--acc)')}${sep}${targetRow(st2,lbl2,'#f0c030')}
     </div>`
   }
-  h+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:10px;">FORDELING PR. SCOREZONE</div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) repeat(5,minmax(0,1fr));gap:4px 6px;align-items:center;font-size:13px;">
+  h+=`<div class="card card-mb16">
+    <div class="cmp-section-title">FORDELING PR. SCOREZONE</div>
+    <div class="cmp-dist-grid">
       <div></div>
       ${zones.map(z=>`<div style="text-align:center;font-weight:700;color:${zColors[z]};">${z}</div>`).join('')}
-      <div style="font-size:11px;color:var(--acc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl1)}</div>
-      ${zones.map(z=>`<div style="text-align:center;font-weight:700;">${(st1.distP1[z]||0)+(st1.distP2[z]||0)}</div>`).join('')}
-      <div style="font-size:11px;color:#f0c030;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lbl2)}</div>
-      ${zones.map(z=>`<div style="text-align:center;font-weight:700;">${(st2.distP1[z]||0)+(st2.distP2[z]||0)}</div>`).join('')}
+      <div class="cmp-dist-lbl-a">${esc(lbl1)}</div>
+      ${zones.map(z=>`<div class="cmp-dist-val">${(st1.distP1[z]||0)+(st1.distP2[z]||0)}</div>`).join('')}
+      <div class="cmp-dist-lbl-b">${esc(lbl2)}</div>
+      ${zones.map(z=>`<div class="cmp-dist-val">${(st2.distP1[z]||0)+(st2.distP2[z]||0)}</div>`).join('')}
     </div>
   </div>`
   return h
@@ -216,52 +216,52 @@ window.renderAnalyse=function(){
   let html=''
 
   // Nøgletal
-  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">RUNDER</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${rounds.length}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">SNIT/RUNDE</div><div style="font-size:28px;font-weight:700;color:var(--acc);">${avg}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">BEDSTE</div><div style="font-size:28px;font-weight:700;color:#2aaa5a;">${best}</div></div>
-    <div class="card" style="text-align:center;padding:12px;"><div style="font-size:11px;color:var(--muted);">LAVESTE</div><div style="font-size:28px;font-weight:700;color:var(--danger);">${worst}</div></div>
+  html+=`<div class="stats-grid2">
+    <div class="card stat-card"><div class="stat-lbl">RUNDER</div><div class="stat-val-28">${rounds.length}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">SNIT/RUNDE</div><div class="stat-val-28">${avg}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">BEDSTE</div><div class="stat-val-28-good">${best}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">LAVESTE</div><div class="stat-val-28-bad">${worst}</div></div>
   </div>`
 
   // Pil statistik
-  html+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">PIL STATISTIK</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-      <div><div style="font-size:11px;color:var(--muted);">PIL 1</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${p1avg}</div></div>
-      <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
-        <div style="font-size:11px;color:var(--muted);">SNT/PIL</div>
-        <div style="font-size:22px;font-weight:700;color:#f0c030;">${pilAvg}</div>
+  html+=`<div class="card card-mb16">
+    <div class="section-title-mb8">PIL STATISTIK</div>
+    <div class="cmp-pil-grid">
+      <div><div class="stat-lbl">PIL 1</div><div class="stat-val-22">${p1avg}</div></div>
+      <div class="cmp-pil-mid">
+        <div class="stat-lbl">SNT/PIL</div>
+        <div class="stat-val-22-mid">${pilAvg}</div>
       </div>
-      <div><div style="font-size:11px;color:var(--muted);">PIL 2</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${p2avg}</div></div>
+      <div><div class="stat-lbl">PIL 2</div><div class="stat-val-22">${p2avg}</div></div>
     </div>
-    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">
+    <div class="pil-best-note">
       ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
     </div>
   </div>`
 
   // Bedste/dårligste mål
   if(bestTarget&&worstTarget&&bestTarget.i!==worstTarget.i){
-    html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">BEDSTE OG SVÆRESTE MÅL</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;">
-        <div style="background:rgba(42,170,90,0.15);border-radius:8px;padding:10px;">
-          <div style="font-size:11px;color:var(--muted);">BEDSTE</div>
-          <div style="font-size:24px;font-weight:700;color:#2aaa5a;">Skud nr. ${bestTarget.i+1}</div>
-          <div style="font-size:13px;color:var(--muted);">⌀ ${bestTarget.v.toFixed(2)}</div>
+    html+=`<div class="card card-mb16">
+      <div class="section-title-mb8">BEDSTE OG SVÆRESTE MÅL</div>
+      <div class="cmp-target-grid">
+        <div class="target-best-box">
+          <div class="stat-lbl">BEDSTE</div>
+          <div class="target-best-val">Skud nr. ${bestTarget.i+1}</div>
+          <div class="target-sub-13">⌀ ${bestTarget.v.toFixed(2)}</div>
         </div>
-        <div style="background:rgba(204,51,51,0.15);border-radius:8px;padding:10px;">
-          <div style="font-size:11px;color:var(--muted);">SVÆRESTE</div>
-          <div style="font-size:24px;font-weight:700;color:var(--danger);">Skud nr. ${worstTarget.i+1}</div>
-          <div style="font-size:13px;color:var(--muted);">⌀ ${worstTarget.v.toFixed(2)}</div>
+        <div class="target-worst-box">
+          <div class="stat-lbl">SVÆRESTE</div>
+          <div class="target-worst-val">Skud nr. ${worstTarget.i+1}</div>
+          <div class="target-sub-13">⌀ ${worstTarget.v.toFixed(2)}</div>
         </div>
       </div>
     </div>`
   }
 
   // Lagkagediagrammer
-  html+=`<div class="card" style="margin-bottom:16px;">
-    <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">FORDELING PR. SCOREZONE</div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">`
+  html+=`<div class="card card-mb16">
+    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>
+    <div class="pie-grid">`
   zones.forEach(z=>{
     const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
     const r=30
@@ -277,17 +277,17 @@ window.renderAnalyse=function(){
       pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},0 ${x2},${y2} Z" fill="#ffd700"/>
            <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},0 ${x1},${y1} Z" fill="#00cc44"/>`
     }
-    html+=`<div style="text-align:center;">
-      <div style="font-weight:700;font-size:20px;color:#ffd700;margin-bottom:2px;">${z}</div>
-      <svg viewBox="0 0 ${r*2} ${r*2}" style="width:56px;height:56px;">${pie}</svg>
-      <div style="font-size:14px;color:var(--muted);margin-top:2px;">${v1}/${v2}</div>
-      <div style="font-size:15px;font-weight:700;color:var(--text);">${tot}</div>
+    html+=`<div class="pie-cell">
+      <div class="pie-zone-label">${z}</div>
+      <svg viewBox="0 0 ${r*2} ${r*2}" class="pie-svg">${pie}</svg>
+      <div class="pie-count">${v1}/${v2}</div>
+      <div class="pie-total">${tot}</div>
     </div>`
   })
   html+=`</div>
-    <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted);">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ffd700;margin-right:4px;vertical-align:middle;"></span>PIL 1</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00cc44;margin-right:4px;vertical-align:middle;"></span>PIL 2</span>
+    <div class="pie-legend">
+      <span><span class="pie-legend-dot-1"></span>PIL 1</span>
+      <span><span class="pie-legend-dot-2"></span>PIL 2</span>
     </div>
   </div>`
 
@@ -298,9 +298,9 @@ window.renderAnalyse=function(){
       const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad)
       return `${x},${y}`
     }).join(' ')
-    html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">UDVIKLING (RUNDER)</div>
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+    html+=`<div class="card card-mb16">
+      <div class="section-title-mb8">UDVIKLING (RUNDER)</div>
+      <svg viewBox="0 0 ${w} ${h}" class="graph-svg">
         <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
         ${myScores.slice().reverse().map((v,i)=>{const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`}).join('')}
         <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
@@ -331,12 +331,12 @@ window.renderAnalyse=function(){
     const ptsFS=validTA.map(({v,i})=>toXFS(i)+','+toY(v)).join(' ')
     const ticksSvgFS=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${wFS-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
     const dotsLargeSvgFS=validTA.map(({v,i})=>`<circle cx="${toXFS(i)}" cy="${toY(v)}" r="5" fill="var(--acc)"/><text x="${toXFS(i)}" y="${toY(v)-10}" text-anchor="middle" font-size="10" fill="#fff">${v.toFixed(1)}</text>`).join('')
-    html+=`<div class="card" style="margin-bottom:16px;">
-      <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+    html+=`<div class="card card-mb16">
+      <div class="graph-header-row">
         <span>GENNEMSNIT PR. SKUDRÆKKEFØLGE</span>
-        <button class="btn-icon" onclick="document.getElementById('graph-fs').classList.remove('hidden')" style="font-size:16px;">⤢</button>
+        <button class="btn-icon graph-fs-btn" onclick="document.getElementById('graph-fs').classList.remove('hidden')">⤢</button>
       </div>
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;overflow:visible;">
+      <svg viewBox="0 0 ${w} ${h}" class="graph-svg">
         <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
         <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
         ${ticksSvg}
@@ -345,12 +345,12 @@ window.renderAnalyse=function(){
         <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
         <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
       </svg>
-      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:2px;">Skudrækkefølge — 1 = første mål skudt</div>
+      <div class="graph-caption">Skudrækkefølge — 1 = første mål skudt</div>
     </div>
-    <div id="graph-fs" class="fs-ov hidden" onclick="this.classList.add('hidden')" style="align-items:center;justify-content:center;padding:16px;">
-      <div style="background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:90vw;overflow:hidden;" onclick="event.stopPropagation()">
-        <div style="font-family:var(--fd);font-size:14px;color:var(--muted);margin-bottom:8px;">GENNEMSNIT PR. SKUDRÆKKEFØLGE · knib for zoom · dobbelttryk for reset</div>
-        <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" style="width:100%;display:block;touch-action:none;overflow:visible;">
+    <div id="graph-fs" class="fs-ov hidden graph-fs-overlay" onclick="this.classList.add('hidden')">
+      <div class="graph-fs-box" onclick="event.stopPropagation()">
+        <div class="graph-fs-title">GENNEMSNIT PR. SKUDRÆKKEFØLGE · knib for zoom · dobbelttryk for reset</div>
+        <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" class="graph-fs-svg">
           <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
           <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
           ${ticksSvgFS}
@@ -359,7 +359,7 @@ window.renderAnalyse=function(){
           <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
           <text x="${toXFS(numTargets-1)}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
         </svg>
-        <button class="btn btn-dark" style="width:100%;margin-top:12px;" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
+        <button class="btn btn-dark graph-fs-close-btn" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
       </div>
     </div>`
   }
@@ -373,13 +373,13 @@ window.renderAnalyse=function(){
     const konNavn=state.profile.kon==='herre'?'Herre':'Dame'
     const klasseNavn={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}[state.profile.bueklasse]||state.profile.bueklasse
     const compEl=document.createElement('div')
-    compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Henter...</div></div>`
+    compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div class="comp-loading-msg">Henter...</div></div>`
     el.appendChild(compEl)
     getDocs(collection(db,'bane_stats',bane,'runder')).then(snap=>{
       const alle=snap.docs.map(d=>d.data())
       const sammeKlasse=alle.filter(d=>d.kon===state.profile.kon&&d.bueklasse===state.profile.bueklasse)
       if(!sammeKlasse.length){
-        compEl.innerHTML=`<div class="card" style="margin-bottom:16px;"><div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:8px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
+        compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div class="comp-loading-msg">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
         return
       }
       const validEntries=sammeKlasse.filter(d=>(d.arrowsShot||d.numTargets*2)>0)
@@ -387,17 +387,17 @@ window.renderAnalyse=function(){
       const diff=andresSnit!=='—'?Number(pilAvg)-Number(andresSnit):null
       const diffStr=diff!==null?(diff>0?'+':'')+diff.toFixed(2):'—'
       const diffColor=diff===null?'var(--muted)':diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
-      compEl.innerHTML=`<div class="card" style="margin-bottom:16px;">
-        <div style="font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-          <div><div style="font-size:11px;color:var(--muted);">DIT SNT/PIL</div><div style="font-size:22px;font-weight:700;color:var(--acc);">${pilAvg}</div></div>
-          <div style="border-left:1px solid var(--surface2);border-right:1px solid var(--surface2);">
-            <div style="font-size:11px;color:var(--muted);">DIFFERENCE</div>
+      compEl.innerHTML=`<div class="card card-mb16">
+        <div class="section-title-mb12">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
+        <div class="cmp-pil-grid">
+          <div><div class="stat-lbl">DIT SNT/PIL</div><div class="stat-val-22">${pilAvg}</div></div>
+          <div class="cmp-pil-mid">
+            <div class="stat-lbl">DIFFERENCE</div>
             <div style="font-size:22px;font-weight:700;color:${diffColor};">${diffStr}</div>
           </div>
-          <div><div style="font-size:11px;color:var(--muted);">ANDRES SNT/PIL</div><div style="font-size:22px;font-weight:700;color:var(--txt);">${andresSnit}</div></div>
+          <div><div class="stat-lbl">ANDRES SNT/PIL</div><div class="stat-val-22-txt">${andresSnit}</div></div>
         </div>
-        <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">Baseret på ${sammeKlasse.length} runde${sammeKlasse.length!==1?'r':''} fra andre skytter</div>
+        <div class="pil-best-note">Baseret på ${sammeKlasse.length} runde${sammeKlasse.length!==1?'r':''} fra andre skytter</div>
       </div>`
     }).catch(()=>{compEl.remove()})
   }
