@@ -265,6 +265,51 @@ browser, klar til menneskelig visuel test (fx via `build-dev.bat` →
 kendte åbne tråde i selve omprogrammeringen ud over den manglende visuelle
 verifikation af denne sessions ændringer.
 
+## RETTET REGRESSION (fundet ved menneskelig visuel test, commit `af872b7`)
+
+Bjarne testede den lokale preview og fandt at "Sammenlign runder" og
+"Specifik runde" ikke virkede i analyse-fanen. Årsag: en systematisk fejl i
+CSS-udtræksmetoden, som ramte **4 elementer** på tværs af Del 1 og Del 2:
+
+**Buggens mønster:** Når `display:none` lå som inline `style="display:none"`
+og JS viste elementet igen med `el.style.display=''` (tom streng), faldt
+visningen oprindeligt tilbage til browserens standard (synlig). Da
+`display:none` blev flyttet ind i en CSS-klasse i stedet, blev `''` ikke
+længere en "vis igen"-værdi — den fjernede blot den (nu ikke-eksisterende)
+inline-override, og elementet faldt tilbage til **klassens** `display:none`,
+dvs. forblev skjult for evigt.
+
+**Ramte elementer:** `#target-count-custom`, `#new-course-targets-custom`
+(begge delte klassen `.custom-count-field`), `#analyse-runde-wrap`,
+`#analyse-runde-wrap-2` (delte `.analyse-runde-panel`), `#analyse-runde-lbl`
+(`.analyse-runde-lbl-style`), `#new-course-approved-wrap`
+(`.new-course-approved-wrap-style`).
+
+**Fix:** `display:none` flyttet tilbage til inline `style="display:none"` på
+selve elementet i `index.src.html` (matcher adfærden før omprogrammeringen
+præcist), resten af de udtrukne CSS-egenskaber (padding/margin/farve osv.)
+forbliver i klasserne. `.new-course-approved-wrap-style` indeholdt kun
+`display:none` og blev derfor slettet helt (element bruger nu ren inline
+style, ingen klasse).
+
+**VIGTIG LÆRDOM til fremtidig CSS-oprydning (også hvis flere runder laves):**
+Før et element med `display:none` udtrækkes til en klasse, GREP altid
+`js/*.js` OG `index.src.html` for `getElementById('<id>').style.display=`
+eller tilsvarende. Hvis JS nogensinde sætter `.style.display=''` (tom
+streng, ikke et eksplicit `'none'`/`'flex'`/`'block'`) for at vise
+elementet, SKAL `display:none` blive inline på elementet — den må ALDRIG
+flyttes til en klasse, uanset hvor "statisk" den ellers ser ud. Elementer
+der altid får en eksplicit værdi begge veje (fx `pwa-banner`, som altid får
+`'flex'` eller `'none'`, aldrig `''`) er trygge at klasse-ificere.
+`#edit-capproved-wrap` i `js/courses.js` var allerede korrekt identificeret
+og efterladt inline af en tidligere session — den fejltype var kendt, men
+blev overset for disse 4 andre, tilsyneladende fordi de ikke blev
+kryds-tjekket mod JS-baserede toggles under selve udtrækket, kun mod
+skabelon-strengens egen dynamik.
+
+Efter denne rettelse: Bjarne har bekræftet "Det ser ud til at virke nu".
+Ingen kendte åbne fejl i branchen på nuværende tidspunkt.
+
 ## Hurtig-tjek før commit
 ```sh
 npm test           # 57 tests skal være grønne (40 + 17)
