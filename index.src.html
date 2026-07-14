@@ -43,12 +43,12 @@
       <input type="text" id="signup-name" placeholder="Navn" autocomplete="name" />
       <input type="email" id="signup-email" placeholder="Email" autocomplete="email" />
       <input type="password" id="signup-password" placeholder="Kodeord (min. 6 tegn)" autocomplete="new-password" />
-      <select id="signup-kon" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+      <select id="signup-kon" class="select-surface2-w100">
         <option value="">Vælg køn</option>
         <option value="herre">Herre</option>
         <option value="dame">Dame</option>
       </select>
-      <select id="signup-bueklasse" style="background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;">
+      <select id="signup-bueklasse" class="select-surface2-w100">
         <option value="">Vælg bueklasse</option>
         <option value="langbue">Langbue</option>
         <option value="trad">Traditionel</option>
@@ -98,7 +98,7 @@
               <option value="30">30 Mål</option>
               <option value="custom">Andet...</option>
             </select>
-            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" style="display:none;margin-top:6px;" /></div>
+            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" /></div>
         </div>
 
         <div class="card">
@@ -109,28 +109,28 @@
             <div id="ac-list" class="ac-list hidden"></div>
           </div>
           <div id="qfriends" class="qfriends"></div>
-          <button class="btn btn-dark btn-sm" onclick="openGuestModal()" style="margin-top:6px;">+ Tilføj gæst</button>
+          <button class="btn btn-dark btn-sm mt6" onclick="openGuestModal()">+ Tilføj gæst</button>
         </div>
 
         <div class="card">
           <div class="card-title">🔴 Advarsel</div>
-          <div style="font-size:14px;padding:4px 0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="warn-box">
+            <div class="warn-enable-row">
               <span>Aktiver advarsel</span>
               <div class="tswitch on" id="warn-enabled-sw"></div>
             </div>
             Rød prik hvis gns. under
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
-              style="width:50px;display:inline-block;padding:6px 8px;margin:0 6px;" />
+              class="warn-thresh-input" />
             point/pil
           </div>
         </div>
 
         <div class="card">
           <div class="card-title">📍 GPS</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;margin-bottom:6px;">
-            <span style="font-size:14px;font-weight:600;">Startmål</span>
-            <select id="start-target" style="width:70px;padding:7px 6px;"></select>
+          <div class="gps-startmaal-row">
+            <span class="gps-startmaal-lbl">Startmål</span>
+            <select id="start-target" class="start-target-select"></select>
           </div>
           <div class="trow">
             <div class="trow-left"><div class="trow-main">Auto-find nærmeste mål</div>
@@ -144,8 +144,8 @@
           </div>
         </div>
 
-        <div style="padding:0 12px 16px;">
-          <button class="btn btn-gold" style="padding:17px;font-size:18px;letter-spacing:2px;" onclick="startRound()">
+        <div class="start-round-wrap">
+          <button class="btn btn-gold btn-start-round" onclick="startRound()">
             START RUNDE →
           </button>
         </div>
