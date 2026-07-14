@@ -117,7 +117,9 @@ udtrækket.
 
 ## CSS (inline styles → klasser)
 
-### Status: admin.js, friends.js, round.js, courses.js, results.js og analyse.js er færdige
+### Status: FÆRDIG — både Del 1 (JS-genereret HTML) og Del 2 (index.src.html) er udtrukket
+
+### Del 1: admin.js, friends.js, round.js, courses.js, results.js og analyse.js
 Rækkefølgen blev valgt efter antal `style="..."`-forekomster (mindst risiko
 først): `admin.js` (7) → `friends.js` (1) → `round.js` (6) → `courses.js`
 (35) → `results.js` (49) → `analyse.js` (119, størst og sidst). Metode for
@@ -165,7 +167,6 @@ faktisk er identiske tegn-for-tegn, før de får samme klasse.
   klassebaseret omskrivning ville kræve at ændre selve toggle-logikken, ikke
   bare flytte statisk CSS, og er derfor udenfor "ren udtræk"-scope.
 
-### Ikke påbegyndt / resterende arbejde
 Alle moduler med `style="..."`-forekomster ved sessionens start er nu
 gennemgået. `js/gps.js`, `js/auth.js`, `js/main.js`, `js/app-init.js`,
 `js/state.js`, `js/storage.js`, `js/scoring.js`, `js/stats.js`,
@@ -174,11 +175,95 @@ i disse). Kør `grep -o 'style="' js/*.js | wc -l` pr. fil for at
 genbekræfte status ved en fremtidig session — kun de 5 dynamiske blokke
 listet ovenfor bør give hits.
 
-Ikke undersøgt i denne omgang: inline `style`-attributter direkte i
-`index.src.html` (den statiske markup, ikke JS-genereret HTML) — cirka 77
-forekomster ved seneste optælling (`grep -o 'style="' index.src.html | wc -l`).
-Det var uden for opgavens scope ("UI genereret af render-funktioner i JS"),
-men kan være relevant for en fremtidig CSS-oprydningsrunde.
+### Del 2: `index.src.html` (statisk markup) — FÆRDIG
+Alle 77 `style="..."`-forekomster i den statiske HTML (`index.src.html`
+selv — modaler, paneler, faner, PWA-banner osv., til forskel fra Del 1's
+JS-genererede HTML) er nu udtrukket til klasser i `css/style.css`. Samme
+metode som Del 1: ren mekanisk 1:1-oversættelse, ingen redesign, genbrug af
+byte-for-byte identiske blokke (både nye og allerede eksisterende klasser
+fra Del 1, fx `.custom-count-field`, `.edit-approved-chips-wrap`,
+`.edit-approved-add-btn`).
+
+Rækkefølge (fulgte filens naturlige sektioner, committet separat efter hver
+med grønne tests+build): auth-skærm → setup-panel (scoring) → active-panel +
+results-panel → analyse-fanen → baner-fanen → venner/admin-fanen →
+resterende modaler (profil/QR/fullscreen/confirm/PWA-banner).
+
+**Dynamisk/JS-manipuleret markup i index.src.html — vurderet, IKKE dobbelt-
+dynamisk, derfor trygt udtrukket (til forskel fra `#edit-capproved-wrap` i
+courses.js, som forbliver inline):**
+- `#pbar` — `round.js` sætter kun `.style.width` (fremgangs-bjælke). Statiske
+  egenskaber (height/background/border-radius/transition) + initial
+  `width:0%` ligger nu i `.pbar-fill`; JS's inline `.style.width=...` vinder
+  altid over klassen ved næste opdatering (ingen `!important` i konflikt).
+- `#target-count-custom` / `#new-course-targets-custom` — kun ét
+  toggle-punkt hver (hhv. `app-init.js`'s changelistener og en inline
+  `onchange` i samme HTML), ikke to uafhængige datakilder som
+  `edit-capproved-wrap`. Delt klasse `.custom-count-field`.
+- `#new-course-approved-wrap` — kun `display` sat direkte (inline `onchange`
+  + to reset-steder i `courses.js`, alle til samme værdi-logik). Klassen
+  `.new-course-approved-wrap-style` har bevidst IKKE `!important`, så JS's
+  `.style.display=...` fortsat vinder normalt over cascade.
+- `#analyse-runde-wrap` / `-wrap-2` / `#analyse-runde-lbl` — `analyse.js`
+  sætter kun `.style.display` ud fra filterValget, initial værdi i markup
+  var allerede `display:none` (samme som første render). Klasser uden
+  `!important`.
+- `#pwa-banner` — `app-init.js` sætter kun `.style.display='flex'/'none'`.
+  Klasse `.pwa-banner-style` uden `!important`.
+- `#active-panel` — style-attributten var kombineret med `class="hidden"`;
+  toggles sker udelukkende via `classList.add/remove('hidden')` i
+  `round.js` (ikke `.style.display` direkte), så `.hidden`s `!important`
+  fortsat styrer synlighed uændret. Ny klasse `.active-panel-flex` holder de
+  statiske flex-egenskaber.
+- `#fs-img` — det statiske `<style>#fs-img{transform-origin:center;
+  transition:transform 0.1s;}</style>`-blok i `<head>` er flyttet ind i den
+  nye `.fs-img-style`-klasse (sammen med de tidligere inline egenskaber på
+  selve `<img>`-tagget). Pinch-zoom-scriptet i bunden af `index.src.html`
+  sætter fortsat kun `img.style.transform` direkte — uændret adfærd.
+
+**Reelt overflødig inline style fjernet (ikke en design-ændring):** `.trow`
+på kort-fanens "Vis min position"-række havde `style="padding:8px 0;"` —
+byte-identisk med hvad `.trow`-klassen allerede sætter. Fjernet uden
+erstatning (var et no-op).
+
+**Verifikation:** `grep -c 'style=' index.src.html` → 0. `npm test` grønt
+(57/57) og `sh check-build.sh` grønt efter hvert commit. Ingen browser i
+miljøet — sidste tjek var en engangs `vite.preview.mjs`-build (ryddet op
+igen efter brug, ikke committet) hvor det byggede `dist-preview/`-output
+blev stikprøvekontrolleret for at bekræfte 0 tilbageværende
+`style="..."`-attributter og at de nye klassenavne rent faktisk optræder i
+den bundlede CSS.
+
+**Intet tilbage inline i `index.src.html`** — alle 77 oprindelige
+forekomster er væk. De 5 bevidst-inline dynamiske blokke fra Del 1
+(`js/analyse.js` x3, `js/courses.js`'s `edit-capproved-wrap`) er JS-genereret
+markup og ligger uden for dette dokuments "index.src.html"-scope; de er
+fortsat korrekt efterladt inline af de grunde, der er beskrevet ovenfor.
+
+## Samlet status for hele omprogrammerings-indsatsen
+
+| Del | Status |
+|-----|--------|
+| Modulopsplitning (`js/main.js` 1986 linjer → 14 moduler + ~35-linjers facade) | ✅ Færdig, testet (57/57), **menneske-verificeret** via lokal preview-build |
+| CSS-oprydning Del 1 (inline styles i JS-genererede render-funktioner) | ✅ Færdig (admin/friends/round/courses/results/analyse.js), testet, **menneske-verificeret** |
+| CSS-oprydning Del 2 (inline styles i `index.src.html`s statiske markup) | ✅ Færdig denne session — testet (57/57) + build grønt efter hvert skridt. **Ikke menneske-verificeret endnu** (ingen browser i denne session, kun mekanisk/strukturel sanity-check af build-output) |
+
+**Hvad er IKKE lavet / bør overvejes før merge til `dev`:**
+- Menneskelig visuel gennemgang af Del 2's ændringer (samme niveau som Del 1
+  og modulopsplitningen fik). Ændringerne er rent mekaniske 1:1-udtræk, men
+  ingen browser har renderet dem i denne session.
+- Ingen nye automatiserede tests er tilføjet for CSS/markup (giver ikke
+  mening for ren CSS-flytning — de 57 eksisterende tests dækker JS-logik,
+  ikke visuel gengivelse).
+- Selve mergen til `dev` (og senere `main`) er bevidst IKKE udført af denne
+  session — det er en beslutning ejeren af projektet skal tage, jf.
+  opgavebeskrivelsen.
+
+Konklusion: branchen `rewrite-modular` er, så vidt en agent kan afgøre uden
+browser, klar til menneskelig visuel test (fx via `build-dev.bat` →
+`https://bsk65.github.io/3D-dev/`) og herefter evt. merge til `dev`. Ingen
+kendte åbne tråde i selve omprogrammeringen ud over den manglende visuelle
+verifikation af denne sessions ændringer.
 
 ## Hurtig-tjek før commit
 ```sh
