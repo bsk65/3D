@@ -355,18 +355,18 @@
       <div id="friends-list"></div>
       <div id="admin-section" class="admin-sec admin-only hidden">
         <h3>Administrator</h3>
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <input type="email" id="admin-email" placeholder="Email til ny admin" style="flex:1;" />
+        <div class="admin-add-row">
+          <input type="email" id="admin-email" placeholder="Email til ny admin" class="flex-1" />
           <button class="btn btn-dark btn-sm" onclick="doAddAdmin()">Tilføj</button>
         </div>
-        <div id="admins-list" style="margin-bottom:12px;"></div>
+        <div id="admins-list" class="mb12"></div>
         <div id="users-section" class="hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <h4 style="font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin:0;">ALLE BRUGERE</h4>
-            <span id="users-count" style="font-size:12px;color:var(--text-muted);"></span>
+          <div class="users-section-head">
+            <h4 class="users-section-title">ALLE BRUGERE</h4>
+            <span id="users-count" class="users-count-lbl"></span>
           </div>
           <div id="users-summary"></div>
-          <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;" />
+          <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" class="users-search-input" />
           <div id="users-list"></div>
         </div>
       </div>

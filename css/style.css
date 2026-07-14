@@ -387,3 +387,9 @@ select option{background:var(--surf);}
 .delete-course-btn{margin-top:8px;}
 .course-visibility-hint{margin-top:-4px;}
 .new-course-approved-wrap-style{display:none;}
+.admin-add-row{display:flex;gap:8px;margin-bottom:12px;}
+.mb12{margin-bottom:12px;}
+.users-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.users-section-title{font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin:0;}
+.users-count-lbl{font-size:12px;color:var(--text-muted);}
+.users-search-input{width:100%;margin-bottom:8px;box-sizing:border-box;}
