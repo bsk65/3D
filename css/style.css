@@ -350,7 +350,7 @@ select option{background:var(--surf);}
 
 /* ── index.src.html: udtrukket fra statisk markup (ikke JS-genereret) ── */
 .select-surface2-w100{background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;width:100%;}
-.custom-count-field{display:none;margin-top:6px;}
+.custom-count-field{margin-top:6px;}
 .mt6{margin-top:6px;}
 .warn-box{font-size:14px;padding:4px 0;}
 .warn-enable-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -378,15 +378,14 @@ select option{background:var(--surf);}
 .analyse-filter-select{flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
 .analyse-antal-wrap{display:flex;align-items:center;gap:6px;flex:1;min-width:120px;}
 .analyse-antal-input{flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
-.analyse-runde-panel{display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);}
-.analyse-runde-lbl-style{display:none;font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;}
+.analyse-runde-panel{padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);}
+.analyse-runde-lbl-style{font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;}
 .analyse-runde2-lbl{font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;}
 .analyse-runde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
 .analyse-content-wrap{padding:12px;}
 .course-detail-title-style{font-size:17px;margin:0;}
 .delete-course-btn{margin-top:8px;}
 .course-visibility-hint{margin-top:-4px;}
-.new-course-approved-wrap-style{display:none;}
 .admin-add-row{display:flex;gap:8px;margin-bottom:12px;}
 .mb12{margin-bottom:12px;}
 .users-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
