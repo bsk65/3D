@@ -19,7 +19,7 @@ export function renderFriendsList(){
   el.innerHTML=''
   state.friends.forEach(f=>{
     const card=document.createElement('div');card.className='fcard'
-    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del" style="color:var(--danger);">🗑</button></div>`
+    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del">🗑</button></div>`
     card.querySelector('.frd-edit').addEventListener('click',()=>openFriendModal(f))
     card.querySelector('.frd-del').addEventListener('click',()=>doDeleteFriend(f.id,f.name))
     el.appendChild(card)

@@ -129,13 +129,13 @@ function renderShooters(){
     const p2avg=p2arr.length?(p2arr.reduce((a,v)=>a+scoreVal(v),0)/p2arr.length).toFixed(2):'—'
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     card.innerHTML=`
-      <div class="sh-head"><span style="font-size:18px;">🎯</span>${warn?'<span class="warn-dot"></span>':''}
+      <div class="sh-head"><span class="sh-target-emoji">🎯</span>${warn?'<span class="warn-dot"></span>':''}
         <span class="sh-name">${s.name}</span>
-        <div style="display:flex;gap:4px;">
+        <div class="sh-mini-group">
           <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val" style="font-size:12px;">${p1avg}</div></div>
-          <div class="sh-mini" style="border:1px solid var(--acc);"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val" style="font-size:12px;color:var(--acc);">${allAvg}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val" style="font-size:12px;">${p2avg}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val sh-mini-val-sm">${p1avg}</div></div>
+          <div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>
+          <div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val sh-mini-val-sm">${p2avg}</div></div>
         </div>
       </div>
       <div class="arrows-row">${[0,1].map(ai=>`

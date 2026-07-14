@@ -96,6 +96,11 @@ select option{background:var(--surf);}
 .sh-mini{background:var(--surf2);border:1px solid var(--bord);border-radius:5px;padding:3px 7px;text-align:center;min-width:44px;}
 .sh-mini-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;}
 .sh-mini-val{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--acc);}
+.sh-mini-val-sm{font-size:12px;}
+.sh-mini-val-acc{font-size:12px;color:var(--acc);}
+.sh-mini-acc{border:1px solid var(--acc);}
+.sh-mini-group{display:flex;gap:4px;}
+.sh-target-emoji{font-size:18px;}
 .warn-dot{width:9px;height:9px;background:var(--danger);border-radius:50%;animation:blink 1s infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 .arrows-row{display:flex;gap:9px;}
@@ -203,4 +208,7 @@ select option{background:var(--surf);}
 .admin-remove-btn{padding:2px 8px;font-size:11px;}
 .bow-chips-wrap{margin-bottom:8px;}
 .bow-chip{display:inline-block;background:var(--card-bg,#222);border:1px solid var(--border,#444);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;white-space:nowrap;}
+
+/* ── friends.js: udtrukket fra inline style="..." (js/friends.js) ── */
+.frd-del{color:var(--danger);}
 .leaflet-container{font-family:var(--fb);}
