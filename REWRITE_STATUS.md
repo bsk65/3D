@@ -115,11 +115,70 @@ udtrækket.
 - Kurser hentes friskt fra Firestore ved login med synligheds-filter
   (skjulte baner kun for `approvedUsers` der matcher brugerens email).
 
-## CSS (inline styles → klasser) — ikke påbegyndt
-Meget UI genererer inline `style="..."` i template-strenge (results,
-analyse, course-edit). Udtræk til klasser i `css/style.css` **efter** at den
-relevante render-funktion er flyttet til sit modul, og verificér visuelt at
-udtrykket er uændret. Lav prioritet ift. modul-opsplitningen.
+## CSS (inline styles → klasser)
+
+### Status: admin.js, friends.js, round.js, courses.js, results.js og analyse.js er færdige
+Rækkefølgen blev valgt efter antal `style="..."`-forekomster (mindst risiko
+først): `admin.js` (7) → `friends.js` (1) → `round.js` (6) → `courses.js`
+(35) → `results.js` (49) → `analyse.js` (119, størst og sidst). Metode for
+hvert modul:
+1. Læs hele filen, notér hvert `style="..."`-attribut og om værdien er
+   **statisk** (samme hver gang) eller **dynamisk** (indeholder `${...}`
+   beregnet fra JS-variable, fx en farve der afhænger af et sammenlignings-
+   resultat).
+2. Statiske blokke: tilføj en beskrivende klasse i `css/style.css` med
+   **nøjagtig** de samme egenskaber/værdier (ingen konsolidering eller
+   "forbedring"). Klassenavne er kontekst-specifikke (fx `.cmp-pil-lbl`,
+   `.stat-val-28-good`) og følger den eksisterende kebab-case-stil i filen.
+   Hvor to steder i *samme* funktion/sektion har et **byte-for-byte
+   identisk** style-attribut, genbruges én klasse (fx `.card-mb16` bruges
+   >15 steder på tværs af results.js/analyse.js — det er ikke
+   "konsolidering af forskellige stilarter", bare navngivning af en allerede
+   identisk gentagelse).
+3. Dynamiske blokke (farve beregnet i JS) **er bevidst efterladt inline** —
+   se liste nedenfor.
+4. Efter hvert modul: `npm test` (57/57 grønt) + `sh check-build.sh`, derefter
+   separat commit.
+
+Der er **ingen visuel diff-verifikation** i dette miljø (ingen browser).
+Alle udtræk er derfor rene mekaniske 1:1-oversættelser af egenskab→værdi;
+intet er omdesignet. Vær opmærksom: under results.js-udtrækket blev en reel
+fejl fanget og rettet undervejs (to "dist-row"-blokke der lignede hinanden,
+men hvor kun den ene havde `font-weight:700` — endte med to klasser
+`.dist-row-total`/`.dist-row-border` i stedet for én). Hvis dette arbejde
+fortsættes, dobbelttjek altid at "identiske"-udseende style-blokke rent
+faktisk er identiske tegn-for-tegn, før de får samme klasse.
+
+### Bevidst efterladt inline (dynamisk værdi, ikke mekanisk udtrækbar)
+- `js/analyse.js:72` og `:80` — `buildCompareHtml`'s `pilRow`/`targetRow`
+  hjælpefunktioner tager en `col`-parameter (farve) som argument; farven er
+  forskellig alt efter hvilken skytte der vises (`var(--acc)` vs `#f0c030`).
+- `js/analyse.js:125` — lagkage-sammenligningens zone-farve `zColors[z]`
+  (opslag i et objekt, varierer pr. zone).
+- `js/analyse.js:396` — "DIFFERENCE"-tallets farve `diffColor`, beregnet ud
+  fra om brugeren er bedre/dårligere end andre skytter (grøn/rød/grå).
+- `js/courses.js:132` — `#edit-capproved-wrap`'s
+  `style="display:${course.hidden?'':'none'}"`. Denne er dobbelt dynamisk:
+  værdien afhænger af `course.hidden` ved render, OG elementet får sin
+  `.style.display` sat direkte igen af en `onchange`-handler på
+  `#edit-cvisibility` (`this.value==='hidden'?'':'none'`) — en
+  klassebaseret omskrivning ville kræve at ændre selve toggle-logikken, ikke
+  bare flytte statisk CSS, og er derfor udenfor "ren udtræk"-scope.
+
+### Ikke påbegyndt / resterende arbejde
+Alle moduler med `style="..."`-forekomster ved sessionens start er nu
+gennemgået. `js/gps.js`, `js/auth.js`, `js/main.js`, `js/app-init.js`,
+`js/state.js`, `js/storage.js`, `js/scoring.js`, `js/stats.js`,
+`js/firebase-init.js` havde 0 inline styles fra start (ingen HTML-rendering
+i disse). Kør `grep -o 'style="' js/*.js | wc -l` pr. fil for at
+genbekræfte status ved en fremtidig session — kun de 5 dynamiske blokke
+listet ovenfor bør give hits.
+
+Ikke undersøgt i denne omgang: inline `style`-attributter direkte i
+`index.src.html` (den statiske markup, ikke JS-genereret HTML) — cirka 77
+forekomster ved seneste optælling (`grep -o 'style="' index.src.html | wc -l`).
+Det var uden for opgavens scope ("UI genereret af render-funktioner i JS"),
+men kan være relevant for en fremtidig CSS-oprydningsrunde.
 
 ## Hurtig-tjek før commit
 ```sh
