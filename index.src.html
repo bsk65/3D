@@ -290,7 +290,7 @@
       <div id="course-detail-view" class="hidden">
         <div class="tab-header">
           <button class="btn-icon" onclick="document.getElementById('courses-list-view').classList.remove('hidden');document.getElementById('course-detail-view').classList.add('hidden');if(state.courseMap){state.courseMap.remove();state.courseMap=null;}">← Tilbage</button>
-          <span id="course-detail-title" class="tab-title" style="font-size:17px;margin:0;"></span>
+          <span id="course-detail-title" class="tab-title course-detail-title-style"></span>
         </div>
         <div class="subtabs">
           <button class="stab active" data-stab="map" onclick="switchSubtab('map')">Kort</button>
@@ -298,8 +298,8 @@
           <button class="stab" data-stab="edit" onclick="switchSubtab('edit')">Rediger</button>
         </div>
         <div id="stab-map" class="stab-c active">
-          <div id="course-map" style="height:300px;"></div>
-          <div class="trow" style="padding:8px 0;">
+          <div id="course-map"></div>
+          <div class="trow">
             <div class="trow-left"><div class="trow-main">📍 Vis min position</div></div>
             <div class="tswitch" id="mypos-sw" onclick="toggleMyPos()"></div>
           </div>
@@ -307,7 +307,7 @@
         <div id="stab-visits" class="stab-c hidden"><div id="visits-list"></div></div>
         <div id="stab-edit" class="stab-c hidden">
           <div id="course-edit-form"></div>
-          <button class="btn btn-red" style="margin-top:8px;" onclick="doDeleteCourse()">🗑 Slet bane</button>
+          <button class="btn btn-red delete-course-btn" onclick="doDeleteCourse()">🗑 Slet bane</button>
         </div>
       </div>
 
@@ -321,22 +321,22 @@
             <option value="30">30 mål</option>
             <option value="custom">Andet...</option>
           </select>
-          <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" style="display:none;margin-top:6px;" />
+          <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" />
           <input type="text" id="new-course-loc" placeholder="Lokation (fx by)" />
           <select id="new-course-visibility" onchange="document.getElementById('new-course-approved-wrap').style.display=this.value==='hidden'?'':'none'">
             <option value="public" selected>Offentlig</option>
             <option value="private">Privat</option>
             <option value="hidden">Skjult (kun godkendte)</option>
           </select>
-          <div class="trow-sub" style="margin-top:-4px;">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
-          <div id="new-course-approved-wrap" style="display:none;">
+          <div class="trow-sub course-visibility-hint">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
+          <div id="new-course-approved-wrap" class="new-course-approved-wrap-style">
             <div class="ac-wrap fg">
               <input type="text" id="new-course-approved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('new',this.value)" />
               <div id="new-course-approved-ac" class="ac-list hidden"></div>
             </div>
-            <div id="new-course-approved-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+            <div id="new-course-approved-chips" class="edit-approved-chips-wrap"></div>
             <input type="text" id="new-course-approved-manual" placeholder="…eller indtast email direkte" />
-            <button type="button" class="btn btn-dark" style="width:100%;margin-top:6px;" onclick="addApprovedEmailManual('new')">Tilføj</button>
+            <button type="button" class="btn btn-dark edit-approved-add-btn" onclick="addApprovedEmailManual('new')">Tilføj</button>
           </div>
           <div class="brow">
             <button class="btn btn-gold" onclick="doCreateCourse()">Opret</button>

@@ -203,7 +203,7 @@ select option{background:var(--surf);}
 .stab.active{border-bottom-color:var(--acc);color:var(--acc);}
 .stab-c{display:none;padding:12px;}
 .stab-c.active{display:block;}
-#course-map{border-radius:var(--r);border:1px solid var(--bord);margin-bottom:8px;overflow:hidden;}
+#course-map{border-radius:var(--r);border:1px solid var(--bord);margin-bottom:8px;overflow:hidden;height:300px;}
 .visit-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;cursor:pointer;}
 .visit-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .visit-card-date{font-weight:700;font-size:13px;}
@@ -383,3 +383,7 @@ select option{background:var(--surf);}
 .analyse-runde2-lbl{font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;}
 .analyse-runde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
 .analyse-content-wrap{padding:12px;}
+.course-detail-title-style{font-size:17px;margin:0;}
+.delete-course-btn{margin-top:8px;}
+.course-visibility-hint{margin-top:-4px;}
+.new-course-approved-wrap-style{display:none;}
