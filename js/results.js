@@ -28,7 +28,7 @@ function buildDistribution(round){
     const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
     const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
     const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
-    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row" style="font-weight:700;border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;"><span>Total</span><span>${total} pt</span></div><div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div><div class="dist-row" style="border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row dist-row-total"><span>Total</span><span>${total} pt</span></div><div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div><div class="dist-row dist-row-border"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
   }).join('')+'</div>'
 }
 
@@ -44,7 +44,7 @@ function buildResultsTable(round){
   let h=`<div class="tbl-wrap"><table class="rtbl"><tr><th>Mål</th>${round.shooters.map(s=>`<th>${s.name}</th>`).join('')}</tr>`
   for(let t=0;t<round.numTargets;t++){
     const isStart=t===startT
-    h+=`<tr><td class="tc">${isStart?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:4px;vertical-align:middle;"></span>`:''}${t+1}</td>`
+    h+=`<tr><td class="tc">${isStart?`<span class="start-target-dot"></span>`:''}${t+1}</td>`
     round.shooters.forEach(s=>{
       const r=s.scores[t]||[null,null]
       const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
@@ -69,34 +69,34 @@ function buildSummaryCards(round){
     const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
     const avgAll=totalArrows?(allArr.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):'—'
     const dist=calcDistribution(s.scores)
-    return `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:10px;">${esc(s.name)}</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;margin-bottom:8px;">
-        <div style="background:var(--card);border-radius:8px;padding:8px;">
-          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${total}</div>
-          <div style="font-size:10px;color:var(--muted);">POINT</div>
+    return `<div class="summary-card">
+      <div class="summary-card-name">${esc(s.name)}</div>
+      <div class="summary-stats-row3">
+        <div class="summary-stat-box">
+          <div class="summary-stat-val">${total}</div>
+          <div class="summary-stat-lbl">POINT</div>
         </div>
-        <div style="background:var(--card);border-radius:8px;padding:8px;">
-          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${totalArrows}</div>
-          <div style="font-size:10px;color:var(--muted);">PILE</div>
+        <div class="summary-stat-box">
+          <div class="summary-stat-val">${totalArrows}</div>
+          <div class="summary-stat-lbl">PILE</div>
         </div>
-        <div style="background:var(--card);border-radius:8px;padding:8px;">
-          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1;">${avgAll}</div>
-          <div style="font-size:10px;color:var(--muted);">SNT/PIL</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:center;margin-bottom:10px;">
-        <div style="background:var(--card);border-radius:8px;padding:6px;">
-          <div style="font-size:18px;font-weight:700;color:var(--acc);">${avg1}</div>
-          <div style="font-size:10px;color:var(--muted);">SNIT PIL 1</div>
-        </div>
-        <div style="background:var(--card);border-radius:8px;padding:6px;">
-          <div style="font-size:18px;font-weight:700;color:var(--acc);">${avg2}</div>
-          <div style="font-size:10px;color:var(--muted);">SNIT PIL 2</div>
+        <div class="summary-stat-box">
+          <div class="summary-stat-val">${avgAll}</div>
+          <div class="summary-stat-lbl">SNT/PIL</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;border-top:1px solid var(--card);padding-top:8px;">
-        ${zones.map(z=>`<div><div style="font-size:20px;font-weight:700;color:var(--text);">${z}</div><div style="font-size:20px;font-weight:700;color:var(--acc);">${dist[z]||0}</div></div>`).join('')}
+      <div class="summary-stats-row2">
+        <div class="summary-stat-box-sm">
+          <div class="summary-stat-val-sm">${avg1}</div>
+          <div class="summary-stat-lbl">SNIT PIL 1</div>
+        </div>
+        <div class="summary-stat-box-sm">
+          <div class="summary-stat-val-sm">${avg2}</div>
+          <div class="summary-stat-lbl">SNIT PIL 2</div>
+        </div>
+      </div>
+      <div class="summary-zones-row">
+        ${zones.map(z=>`<div><div class="summary-zone-key">${z}</div><div class="summary-zone-val">${dist[z]||0}</div></div>`).join('')}
       </div>
     </div>`
   }).join('')
@@ -114,8 +114,8 @@ function buildActualResults(round){
     return {name:s.name,shot:shot.length,total,avgPil,avgMaal}
   }).filter(Boolean)
   if(!data.length)return ''
-  const cards=data.map(d=>`<div style="flex:1;min-width:130px;background:var(--surface2);border-radius:10px;padding:12px 10px;text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:2px;">${d.name}</div><div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${d.shot} af ${round.numTargets} mål</div><div style="font-size:30px;font-weight:700;color:var(--acc);line-height:1.1;">${d.total}</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">POINT</div><div style="display:flex;justify-content:center;gap:12px;"><div><div style="font-size:16px;font-weight:700;color:var(--acc);">${d.avgPil}</div><div style="font-size:11px;color:var(--muted);">SNT/PIL</div></div><div><div style="font-size:16px;font-weight:700;color:var(--acc);">${d.avgMaal}</div><div style="font-size:11px;color:var(--muted);">SNT/MÅL</div></div></div></div>`).join('')
-  return `<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--surface2);"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Kun skudte mål</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${cards}</div></div>`
+  const cards=data.map(d=>`<div class="actual-card"><div class="actual-card-name">${d.name}</div><div class="actual-card-sub">${d.shot} af ${round.numTargets} mål</div><div class="actual-card-total">${d.total}</div><div class="actual-card-total-lbl">POINT</div><div class="actual-card-avgs"><div><div class="actual-avg-val">${d.avgPil}</div><div class="actual-avg-lbl">SNT/PIL</div></div><div><div class="actual-avg-val">${d.avgMaal}</div><div class="actual-avg-lbl">SNT/MÅL</div></div></div></div>`).join('')
+  return `<div class="actual-results-wrap"><div class="actual-results-title">Kun skudte mål</div><div class="actual-results-cards">${cards}</div></div>`
 }
 
 // ─── ROUNDS LIST ──────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ export function renderRoundsList(){
     const winner=shooters.length?findWinner(shooters):null
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||'Runde')}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||r.numTargets+' mål')}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser" style="font-size:16px;">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||'Runde')}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||r.numTargets+' mål')}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
     card.querySelector('.rcard-analyse').onclick=()=>window.analyseRound(r.id)
     card.querySelector('.del-btn').onclick=e=>{
@@ -162,8 +162,8 @@ export function showRoundPopup(round){window._lastRound=round;
   const gpsDistance=round.gpsDistance||round.distance||null
   const durStr=gpsDuration?formatDuration(gpsDuration):null
   const distStr=gpsDistance?formatDistance(gpsDistance):null
-  const gpsHtml=(distStr||durStr)?`<div style="display:flex;gap:8px;margin-bottom:12px;">${distStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${distStr}</div><div style="font-size:11px;color:var(--muted);">DISTANCE</div></div>`:''}${durStr?`<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:8px;"><div style="font-size:20px;font-weight:700;color:var(--acc);">${durStr}</div><div style="font-size:11px;color:var(--muted);">TID</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map" style="height:200px;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>`:''}`:'';
-  document.getElementById('rpop-body').innerHTML=`<h3 style="font-family:var(--fd);color:var(--acc);margin-bottom:12px;">${esc(round.name)}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
+  const gpsHtml=(distStr||durStr)?`<div class="rpop-gps-row">${distStr?`<div class="rpop-gps-box"><div class="rpop-gps-val">${distStr}</div><div class="rpop-gps-lbl">DISTANCE</div></div>`:''}${durStr?`<div class="rpop-gps-box"><div class="rpop-gps-val">${durStr}</div><div class="rpop-gps-lbl">TID</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map"></div>`:''}`:'';
+  document.getElementById('rpop-body').innerHTML=`<h3 class="rpop-title">${esc(round.name)}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold rpop-send-btn" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>`
   if(gpsRoute){const pts=parseRoute(gpsRoute);if(pts.length)setTimeout(()=>{const mapEl=document.getElementById('rpop-map');if(!mapEl)return;state.rpopMap=window.L.map(mapEl);window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.rpopMap);const poly=window.L.polyline(pts.map(p=>[p.lat,p.lng]),{color:'#e8a020',weight:3}).addTo(state.rpopMap);state.rpopMap.fitBounds(poly.getBounds(),{padding:[20,20]})},50)}
 }
 
