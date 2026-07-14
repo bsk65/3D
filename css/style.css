@@ -193,4 +193,14 @@ select option{background:var(--surf);}
 .empty-icon{font-size:48px;margin-bottom:12px;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--bord);border-radius:2px;}
+
+/* ── admin.js: udtrukket fra inline style="..." (js/admin.js) ── */
+.admin-hint{font-size:12px;color:var(--text-muted);}
+.admin-list-label{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-display);}
+.admin-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);}
+.admin-row-email{font-size:13px;}
+.admin-you-tag{font-size:11px;color:var(--text-muted);}
+.admin-remove-btn{padding:2px 8px;font-size:11px;}
+.bow-chips-wrap{margin-bottom:8px;}
+.bow-chip{display:inline-block;background:var(--card-bg,#222);border:1px solid var(--border,#444);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;white-space:nowrap;}
 .leaflet-container{font-family:var(--fb);}

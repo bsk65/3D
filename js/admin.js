@@ -29,20 +29,19 @@ export async function renderAdminSection(){
 
 async function renderAdminsList(){
   const el=document.getElementById('admins-list');if(!el)return
-  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);">Henter admins…</div>'
+  el.innerHTML='<div class="admin-hint">Henter admins…</div>'
   const snap=await getDocs(collection(db,'admins'))
-  if(snap.empty){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);">Ingen admins fundet</div>';return}
-  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-display);">NUVÆRENDE ADMINISTRATORER</div>'
+  if(snap.empty){el.innerHTML='<div class="admin-hint">Ingen admins fundet</div>';return}
+  el.innerHTML='<div class="admin-list-label">NUVÆRENDE ADMINISTRATORER</div>'
   snap.docs.forEach(d=>{
     const row=document.createElement('div')
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);'
+    row.className='admin-row'
     const email=d.data().email||d.id
     const isMe=d.id===state.user?.uid
-    row.innerHTML=`<span style="font-size:13px;">${esc(email)}${isMe?' <span style="font-size:11px;color:var(--text-muted);">(dig)</span>':''}</span>`
+    row.innerHTML=`<span class="admin-row-email">${esc(email)}${isMe?' <span class="admin-you-tag">(dig)</span>':''}</span>`
     if(state.isSuperAdmin&&!isMe){
       const btn=document.createElement('button')
-      btn.className='btn btn-dark btn-sm'
-      btn.style.cssText='padding:2px 8px;font-size:11px;'
+      btn.className='btn btn-dark btn-sm admin-remove-btn'
       btn.textContent='Fjern'
       btn.onclick=()=>doRemoveAdmin(d.id,email)
       row.appendChild(btn)
@@ -60,8 +59,8 @@ function renderUsersList(filter=''){
   const summaryEl=document.getElementById('users-summary')
   const counts={}
   _allUsers.forEach(d=>{const b=d.bueklasse||'Ukendt';counts[b]=(counts[b]||0)+1})
-  const chips=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span style="display:inline-block;background:var(--card-bg,#222);border:1px solid var(--border,#444);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;white-space:nowrap;"><b>${v}</b> ${esc(_bowLabels[k]||k)}</span>`).join('')
-  summaryEl.innerHTML=`<div style="margin-bottom:8px;">${chips}</div>`
+  const chips=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="bow-chip"><b>${v}</b> ${esc(_bowLabels[k]||k)}</span>`).join('')
+  summaryEl.innerHTML=`<div class="bow-chips-wrap">${chips}</div>`
   users.forEach(d=>{
     const row=document.createElement('div');row.className='urow'
     const date=d.created?.toDate?d.created.toDate().toLocaleDateString('da-DK'):'—'
