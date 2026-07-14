@@ -374,3 +374,12 @@ select option{background:var(--surf);}
 .animal-fixed-wrap{padding:8px 12px;text-align:center;background:var(--card);}
 .anim-img-style{max-width:100%;max-height:220px;border-radius:12px;cursor:zoom-in;object-fit:contain;}
 .results-btn-row{display:flex;gap:8px;padding:0 12px 16px;}
+.analyse-filters-row{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--surface2);}
+.analyse-filter-select{flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
+.analyse-antal-wrap{display:flex;align-items:center;gap:6px;flex:1;min-width:120px;}
+.analyse-antal-input{flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
+.analyse-runde-panel{display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);}
+.analyse-runde-lbl-style{display:none;font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;}
+.analyse-runde2-lbl{font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;}
+.analyse-runde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
+.analyse-content-wrap{padding:12px;}

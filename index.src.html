@@ -247,8 +247,8 @@
       <div class="tab-header">
         <span class="tab-title">Analyse</span>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--surface2);">
-        <select id="analyse-filter" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+      <div class="analyse-filters-row">
+        <select id="analyse-filter" onchange="renderAnalyse()" class="analyse-filter-select">
           <option value="all">Alle runder</option>
           <option value="lastround">Seneste runde</option>
           <option value="10">Seneste 10</option>
@@ -256,28 +256,28 @@
           <option value="specific">Specifik runde</option>
           <option value="compare">Sammenlign runder</option>
         </select>
-        <select id="analyse-bane" onchange="renderAnalyse()" style="flex:1;min-width:120px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+        <select id="analyse-bane" onchange="renderAnalyse()" class="analyse-filter-select">
           <option value="all">Alle baner</option>
         </select>
-        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:120px;">
+        <div class="analyse-antal-wrap">
           <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
-            style="flex:1;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;"
+            class="analyse-antal-input"
             oninput="renderAnalyse()" />
         </div>
       </div>
-      <div id="analyse-runde-wrap" style="display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);">
-        <div id="analyse-runde-lbl" style="display:none;font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;">RUNDE 1</div>
-        <select id="analyse-runde" onchange="renderAnalyse()" style="width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+      <div id="analyse-runde-wrap" class="analyse-runde-panel">
+        <div id="analyse-runde-lbl" class="analyse-runde-lbl-style">RUNDE 1</div>
+        <select id="analyse-runde" onchange="renderAnalyse()" class="analyse-runde-select">
           <option value="">Vælg runde...</option>
         </select>
       </div>
-      <div id="analyse-runde-wrap-2" style="display:none;padding:0 12px 8px;background:var(--card);border-bottom:1px solid var(--surface2);">
-        <div style="font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;">RUNDE 2</div>
-        <select id="analyse-runde-2" onchange="renderAnalyse()" style="width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;">
+      <div id="analyse-runde-wrap-2" class="analyse-runde-panel">
+        <div class="analyse-runde2-lbl">RUNDE 2</div>
+        <select id="analyse-runde-2" onchange="renderAnalyse()" class="analyse-runde-select">
           <option value="">Vælg runde 2...</option>
         </select>
       </div>
-      <div id="analyse-content" style="padding:12px;"></div>
+      <div id="analyse-content" class="analyse-content-wrap"></div>
     </div>
 <div id="tab-courses" class="tab">
       <div id="courses-list-view">
