@@ -33,7 +33,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 - Bevar bilingval feltnavngivning ved skrivning til Firestore (name/yam,
   location/beliggenhed, email/e-mail, private/privat, hidden/skjult osv.).
 
-## Færdige moduler (main.js: 1986 → ~616 linjer)
+## Færdige moduler (main.js: 1986 → ~337 linjer)
 
 | Modul | Indhold | Test |
 |-------|---------|------|
@@ -50,6 +50,7 @@ Status for opsplitningen af `js/main.js` til ES-moduler på branchen
 | `js/admin.js` | `renderAdminSection` (kaldes af switchTab('friends')), `renderAdminsList`, `renderUsersList`, `filterUsers`, `doAddAdmin`, `doRemoveAdmin`. Admin-check (`doc.exists()` på `admins/{uid}`) forbliver i main.js' auth-state-lytter. | — |
 | `js/results.js` | Resultatvisning: `buildDistribution`, `renderResults`, `buildResultsTable`, `buildSummaryCards`, `buildActualResults`, `renderRoundsList`, `showRoundPopup`, `sendResults`. `renderResults`/`renderRoundsList`/`showRoundPopup` eksporteres normalt (kaldes af main.js' `finishRound`/`onLogin`/`tryOpenPendingRound`/`showVisitResults`). `renderRoundsList` kalder `window.analyseRound` (bro til analyse.js). | — |
 | `js/analyse.js` | Analyse-fanen: `initGraphPinch`, `analyseRound` (self-registrerer `window.analyseRound`), `buildCompareHtml`, `window.renderAnalyse`. Importeret som ren side-effekt (`import './analyse.js'`) i main.js — intet herfra kaldes direkte af main.js (kun via `window.renderAnalyse`/`window.switchTab`). | — |
+| `js/round.js` | Aktiv runde — kernen: `startRound`, `updateTopBar`, `renderShooters`, `setScore`, nav (`prevTarget`/`nextTarget`/`skipToTarget`/`doSkip`), `finishRound`, `abortRound`, `saveActiveRound`, `tryResumeRound`, `tryOpenPendingRound`, panelskift, `curTargetIdx`, `getParticipants`, `addParticipant`, `updateGpsBar`, `resetScroll`, wake lock (`acquireWakeLock`/`releaseWakeLock`), samt `showVisitResults`/`showRouteOnMap` og target-redigering under aktiv runde (`openEditTarget`/`saveEditTarget`/`editGps`). `tryOpenPendingRound`/`tryResumeRound`/`curTargetIdx`/`updateTopBar`/`releaseWakeLock` eksporteres normalt (kaldes af main.js' DOMContentLoaded/onLogin/onLogout). Importerer fra courses.js (`updateTargetInFirestore`) og results.js (`renderRoundsList`/`renderResults`/`showRoundPopup`) — ingen cirkulær import (round.js er "top" af afhængighedsgrafen sammen med main.js). | — |
 
 Ingen adfærd er ændret; hvert skridt er committet separat med grønne tests+build.
 
@@ -69,36 +70,35 @@ afhængighed mellem de to ansvarsområder. Fremfor at indføre cirkulære ES-imp
 `friends.js` kalder `window.addParticipant`) — undgår cirkulær import mellem
 main.js og courses.js.
 
-## Mangler (rest i main.js, ~616 linjer) — foreslået rækkefølge
+## Mangler (rest i main.js, ~337 linjer)
 
-Alt herunder er DOM/Firebase-tungt UI-lim **uden testdækning** → udtræk
-forsigtigt, ét skridt ad gangen, byg+test imellem.
+`js/round.js` er nu også udtrukket (var oprindeligt sidste/riskiest punkt,
+men gik problemfrit — se note nedenfor). `window.showVisitResults`/
+`window.showRouteOnMap` flyttede med til round.js (afhænger af
+`showRoundPopup`/`state.courseMap`, ikke reelt "aktiv runde"-logik, men uden
+et bedre naturligt hjem — se kommentar i round.js).
 
-1. **`js/round.js`** (aktiv runde) — `startRound`, `updateTopBar`,
-   `renderShooters`, `setScore`, nav (`prevTarget`/`nextTarget`/`skipToTarget`/
-   `doSkip`), `finishRound`, `abortRound`, `saveActiveRound`, `tryResumeRound`,
-   `tryOpenPendingRound`, panel-skift (`showSetupPanel`/`showActivePanel`/
-   `showResultsPanel`), `curTargetIdx`, `getParticipants`, `addParticipant`,
-   `updateGpsBar`, `resetScroll`, samt `openEditTarget`/`saveEditTarget`/
-   `editGps` (target-redigering under aktiv runde — bruger
-   `updateTargetInFirestore` fra courses.js, allerede importeret normalt).
-   Bruger `showRoundPopup`/`renderResults`/`renderRoundsList` fra results.js
-   (allerede importeret normalt i main.js — flyt importen med). Kernen —
-   flest afhængigheder; tag til sidst.
-2. **`js/app-init.js`** — `DOMContentLoaded`-blokken: auth-state-lytter (kalder
-   `onLogin`/`onLogout`), PWA-install-prompt, event-bindinger, wakeLock-hjælpere,
-   samt `onLogin`/`onLogout` selv, `autoSelectNearestCourse`,
-   `populateCourseDropdown` (husk at opdatere courses.js' `window.populateCourseDropdown`-bro
-   hvis denne flyttes), `updateStartTargetDropdown`. Overvej om dette reelt skal
-   blive i main.js som "entrypoint-lim" i stedet for eget modul — vurdér ved
-   udtræk hvor lidt der er tilbage.
+Det eneste tilbageværende punkt er reelt et spørgsmål om main.js skal have
+et sidste, lille `app-init.js`-modul, eller om resten bare SKAL blive som
+main.js' egen "entrypoint-lim". Indholdet der er tilbage i main.js
+(~337 linjer) er:
 
-Tilbageværende diverse i main.js der endnu ikke er kategoriseret et modul:
-`window.showVisitResults`/`window.showRouteOnMap` (tæt koblet til
-`showRoundPopup`/`state.courseMap` — kan flytte med round.js eller blive),
-`window.saveProfilModal`, `window.toggleLang`, `window.switchTab`,
-`window.showQR`, `window.openGuestModal`/`window.addGuest`. Disse er små nok
-til at blive i main.js eller samles i app-init.js ved sidste oprydning.
+- `DOMContentLoaded`-blokken: warn-slider-init, auth-state-lytter (kalder
+  `onLogin`/`onLogout`), PWA-install-prompt, target-count/photo-input
+  event-bindinger, modal-baggrunds-klik.
+- `onLogin`/`onLogout`, `autoSelectNearestCourse`, `populateCourseDropdown`
+  (husk `window.populateCourseDropdown`-broen til courses.js hvis denne
+  flyttes), `updateStartTargetDropdown`.
+- Små window-handlere: `saveProfilModal`, `toggleLang`, `switchTab`, `showQR`,
+  `openGuestModal`/`addGuest`.
+- Re-eksporterne til `tests/logic.test.js` (scoring/gps/stats — bevar altid).
+
+**Vurdering:** Dette er nu så lidt og så tæt koblet til selve
+opstarts-/auth-flowet at det nok giver bedst mening som main.js' egen
+"entrypoint-lim" fremfor endnu et modul — men et `js/app-init.js` for
+`DOMContentLoaded`+`onLogin`/`onLogout` er stadig en mulighed hvis man vil
+have main.js ned på ren import/re-export-facade. Lav denne vurdering ved
+næste session; det er ikke risikofyldt længere (ingen store blokke tilbage).
 
 ### Ikke-oplagte ting der SKAL bevares
 - Aktiv runde auto-genoptages ved reload (`users/{uid}/aktiv/runde`, max 24t) —
