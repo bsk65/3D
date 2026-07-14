@@ -96,8 +96,8 @@ select option{background:var(--surf);}
 .sh-mini{background:var(--surf2);border:1px solid var(--bord);border-radius:5px;padding:3px 7px;text-align:center;min-width:44px;}
 .sh-mini-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;}
 .sh-mini-val{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--acc);}
-.sh-mini-val-sm{font-size:12px;}
-.sh-mini-val-acc{font-size:12px;color:var(--acc);}
+.sh-mini-val-sm{font-size:18px;}
+.sh-mini-val-acc{font-size:18px;color:var(--acc);}
 .sh-mini-acc{border:1px solid var(--acc);}
 .sh-mini-group{display:flex;gap:4px;}
 .sh-target-emoji{font-size:18px;}
