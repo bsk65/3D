@@ -361,3 +361,16 @@ select option{background:var(--surf);}
 .start-round-wrap{padding:0 12px 16px;}
 .btn-start-round{padding:17px;font-size:18px;letter-spacing:2px;}
 .flex-1{flex:1;}
+.active-panel-flex{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.pbar-track{height:4px;background:var(--surface2);border-radius:2px;margin-bottom:8px;overflow:hidden;}
+.pbar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;width:0%;}
+.target-avg-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 0;}
+.target-avg-lbl{font-size:13px;color:var(--text-muted);}
+.mb8{margin-bottom:8px;}
+.edit-panel-btn-row{display:flex;gap:8px;margin-bottom:8px;}
+.gps-time-txt{font-family:var(--font-display);color:var(--accent);font-size:14px;}
+.gps-dist-txt{font-weight:600;}
+.gps-coord-txt{flex:1;font-size:11px;}
+.animal-fixed-wrap{padding:8px 12px;text-align:center;background:var(--card);}
+.anim-img-style{max-width:100%;max-height:220px;border-radius:12px;cursor:zoom-in;object-fit:contain;}
+.results-btn-row{display:flex;gap:8px;padding:0 12px 16px;}

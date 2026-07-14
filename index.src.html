@@ -152,7 +152,7 @@
       </div>
 
       <!-- ACTIVE -->
-      <div id="active-panel" class="hidden" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+      <div id="active-panel" class="hidden active-panel-flex">
         <div class="shoot-top">
           <div class="target-line">
             <div class="tnum">
@@ -163,8 +163,8 @@
             <span class="tanim" id="anim-name">Dyr</span>
             <span class="rbadge" id="round-badge">Min Skydning</span>
           </div>
-          <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:8px;overflow:hidden;">
-            <div id="pbar" style="height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;width:0%;"></div>
+          <div class="pbar-track">
+            <div id="pbar" class="pbar-fill"></div>
           </div>
           <div class="stats-row">
             <div class="sbox"><div class="sbox-lbl">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
@@ -174,8 +174,8 @@
         </div>
 
         <div id="scroll-area">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 0;">
-            <div id="target-avg" style="font-size:13px;color:var(--text-muted);"></div>
+          <div class="target-avg-row">
+            <div id="target-avg" class="target-avg-lbl"></div>
             <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()">✏️ RET</button>
           </div>
           <div id="shooters-list"></div>
@@ -184,22 +184,22 @@
 
         <div id="edit-panel" class="edit-panel hidden">
           <h3>Rediger mål</h3>
-          <input type="text" id="edit-tname" placeholder="Navn på dyr" style="margin-bottom:8px;" />
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <button class="btn btn-dark" style="flex:1;" onclick="document.getElementById('photo-input').click()">📷 Tag billede</button>
-            <button class="btn btn-dark" style="flex:1;" onclick="editGps()">📍 Gem GPS</button>
+          <input type="text" id="edit-tname" placeholder="Navn på dyr" class="mb8" />
+          <div class="edit-panel-btn-row">
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('photo-input').click()">📷 Tag billede</button>
+            <button class="btn btn-dark flex-1" onclick="editGps()">📍 Gem GPS</button>
           </div>
           <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden" />
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-gold" style="flex:1;" onclick="saveEditTarget()">Gem</button>
-            <button class="btn btn-dark" style="flex:1;" onclick="document.getElementById('edit-panel').classList.add('hidden')">Annuller</button>
+          <div class="brow">
+            <button class="btn btn-gold flex-1" onclick="saveEditTarget()">Gem</button>
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('edit-panel').classList.add('hidden')">Annuller</button>
           </div>
         </div>
 
         <div id="gps-bar" class="gps-bar hidden">
-          <span id="gps-time" style="font-family:var(--font-display);color:var(--accent);font-size:14px;">00:00</span>
-          <span id="gps-dist" style="font-weight:600;">0 m</span>
-          <span id="gps-coord" style="flex:1;font-size:11px;"></span>
+          <span id="gps-time" class="gps-time-txt">00:00</span>
+          <span id="gps-dist" class="gps-dist-txt">0 m</span>
+          <span id="gps-coord" class="gps-coord-txt"></span>
           <button class="btn-icon" onclick="this.textContent=toggleGpsPause()?'▶':'⏸'">⏸</button>
         </div>
 
@@ -214,9 +214,8 @@
             <button class="btn-act red" id="abort-btn" onclick="abortRound()">🗑 AFBRYD</button>
           </div>
         </div>
-        <div id="animal-fixed" style="padding:8px 12px;text-align:center;background:var(--card);">
-          <img id="anim-img" src="" alt="" class="hidden"
-            style="max-width:100%;max-height:220px;border-radius:12px;cursor:zoom-in;object-fit:contain;"
+        <div id="animal-fixed" class="animal-fixed-wrap">
+          <img id="anim-img" src="" alt="" class="hidden anim-img-style"
             onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
         </div>
       </div>
@@ -226,9 +225,9 @@
         <div id="win-wrap" class="win-wrap"></div>
         <div id="res-dist"></div>
         <div id="res-table"></div>
-        <div style="display:flex;gap:8px;padding:0 12px 16px;">
-          <button class="btn btn-dark" style="flex:1;" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>
-          <button class="btn btn-gold" style="flex:1;" onclick="showSetupPanel()">Afslut</button>
+        <div class="results-btn-row">
+          <button class="btn btn-dark flex-1" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>
+          <button class="btn btn-gold flex-1" onclick="showSetupPanel()">Afslut</button>
         </div>
       </div>
     </div>
