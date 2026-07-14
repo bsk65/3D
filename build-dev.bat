@@ -49,7 +49,7 @@ if errorlevel 1 (
   git push origin main
   echo.
   echo === Faerdig! Test-appen er live om 1-2 min ===
-  echo === URL: https://bsk65.github.io/3D-dev/   ===
+  echo === URL: https://bsk65.github.io/3D/3D-dev/   ===
   echo.
 ) else (
   echo === Ingen aendringer at pushe ===
