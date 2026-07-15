@@ -13,12 +13,12 @@ npm run dev       # Start Vite dev server (localhost:5173/3D/)
 npm run build     # Build to /dist
 npm run preview   # Preview production build
 build.bat         # Full Windows build → git push to produktion (/3D/)
-build-dev.bat     # Test-build → git push til dev-branch (/3D-dev/)
+build-dev.bat     # Test-build → git push til dev-branch (/3D/3D-dev/)
 ```
 
 The `build.bat` script is the production deployment path — it copies `index.src.html` to `index.html` before building. Edit `index.src.html`, not `index.html`.
 
-**Workflow:** Lav ændringer på `dev`-branchen og test via `build-dev.bat` på `https://bsk65.github.io/3D-dev/`. Når alt virker, merge til `main` og kør `build.bat`.
+**Workflow:** Lav ændringer på `dev`-branchen og test via `build-dev.bat` på `https://bsk65.github.io/3D/3D-dev/` (bemærk: `/3D/` foran `3D-dev/` — `vite.config.dev.js` sætter `base:'/3D/3D-dev/'`, så `https://bsk65.github.io/3D-dev/` uden det indledende `/3D/` giver 404). Når alt virker, merge til `main` og kør `build.bat`.
 
 ## Architecture
 
