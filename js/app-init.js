@@ -159,12 +159,12 @@ function onLogin(){
   const local=lsLoad()
   state.friends=local.friends||[]
   state.rounds=local.rounds||[]
+  // Firestore er facit for vennelisten — erstatter (ikke kun supplerer) den
+  // lokale cache, så sletninger/tilføjelser foretaget på andre enheder også
+  // slår igennem her. Fejler hentningen (fx offline), beholdes lokal cache.
   getDocs(collection(db,'users',state.user.uid,'friends')).then(snap=>{
-    if(!snap.docs.length)return
-    const fsF=snap.docs.map(d=>({...d.data(),id:d.id}))
-    const localIds=new Set(state.friends.map(f=>f.id))
-    const newF=fsF.filter(f=>!localIds.has(f.id))
-    if(newF.length){state.friends=[...state.friends,...newF];lsSave();renderFriendsList();renderQuickFriends()}
+    state.friends=snap.docs.map(d=>({...d.data(),id:d.id}))
+    lsSave();renderFriendsList();renderQuickFriends()
   }).catch(e=>console.warn('Hent venner:',e))
   renderFriendsList()
   renderQuickFriends()

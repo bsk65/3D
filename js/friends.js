@@ -58,9 +58,13 @@ window.searchFriends=async function(val){
   list.classList.remove('hidden')
 }
 
-// Vælger en ven fra søgning: gemmer lokalt (hvis ny) og tilføjer som deltager.
+// Vælger en ven fra søgning: gemmer lokalt + Firestore-backup (hvis ny) og tilføjer som deltager.
 window.selectFriend=function(id,name,email){
-  if(!state.friends.find(f=>f.id===id)){state.friends.push({id,name,email});lsSave();renderFriendsList();renderQuickFriends()}
+  if(!state.friends.find(f=>f.id===id)){
+    const f={id,name,email}
+    state.friends.push(f);lsSave();renderFriendsList();renderQuickFriends()
+    if(state.user)setDoc(doc(db,'users',state.user.uid,'friends',id),f).catch(e=>console.warn(e))
+  }
   window.addParticipant(id,name)
 }
 
