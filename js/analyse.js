@@ -145,6 +145,12 @@ window.renderAnalyse=function(){
       }
     })
   }
+  if(state.pendingAnalyseRound&&baneEl){
+    const pendingRound=state.rounds.find(r=>r.id===state.pendingAnalyseRound)
+    if(pendingRound?.courseId&&Array.from(baneEl.options).some(o=>o.value===pendingRound.courseId)){
+      baneEl.value=pendingRound.courseId
+    }
+  }
   const filterVal=document.getElementById('analyse-filter')?.value||'all'
   const filter=filterVal==='all'?0:filterVal==='lastround'?1:filterVal==='specific'?0:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
@@ -159,14 +165,19 @@ window.renderAnalyse=function(){
   if(rundeWrap2)rundeWrap2.style.display=isCompare?'':'none'
   if(rundeLbl)rundeLbl.style.display=isCompare?'':'none'
   const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
+  const populateRundeSelect=(selectEl,placeholder)=>{
+    const relevant=bane==='all'?state.rounds:state.rounds.filter(r=>r.courseId===bane)
+    const prevSel=selectEl.value
+    selectEl.innerHTML=`<option value="">${placeholder}</option>`
+    relevant.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;selectEl.appendChild(o)})
+    if(relevant.some(r=>r.id===prevSel))selectEl.value=prevSel
+  }
   if((filterVal==='specific'||isCompare)&&rundeEl){
-    const currentIds=new Set(Array.from(rundeEl.options).map(o=>o.value).filter(Boolean))
-    state.rounds.forEach(r=>{if(!currentIds.has(r.id)){const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;rundeEl.appendChild(o)}})
+    populateRundeSelect(rundeEl,'Vælg runde...')
     if(state.pendingAnalyseRound){rundeEl.value=state.pendingAnalyseRound;state.pendingAnalyseRound=null}
   }
   if(isCompare&&rundeEl2){
-    const currentIds2=new Set(Array.from(rundeEl2.options).map(o=>o.value).filter(Boolean))
-    state.rounds.forEach(r=>{if(!currentIds2.has(r.id)){const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;rundeEl2.appendChild(o)}})
+    populateRundeSelect(rundeEl2,'Vælg runde 2...')
   }
   if(isCompare){
     const sel1=rundeEl?.value,sel2=rundeEl2?.value
