@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-CRwLinZE.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-7SbV4nw0.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-q6g-5YQR.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-D_OhQCRS.css">
   </head>
 <body>
 
@@ -490,12 +490,23 @@
   </div>
 </div>
 
-<!-- PWA INSTALL BANNER -->
-<div id="pwa-banner" class="pwa-banner-style">
-  <img src="/3D/3D-dev/assets/logo-DfL2e2mb.png" class="pwa-banner-logo" />
-  <span class="pwa-banner-text">Installer 3D Bueskydning</span>
-  <button id="pwa-install-btn" class="pwa-install-btn-style">INSTALLER</button>
-  <button id="pwa-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
+<!-- PWA INSTALL BANNER (Android/Chrome m.fl. — udløst af beforeinstallprompt) -->
+<div id="pwa-banner" class="pwa-banner-overlay hidden">
+  <div class="pwa-banner-card">
+    <button id="pwa-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
+    <img src="/3D/3D-dev/assets/logo-DfL2e2mb.png" class="pwa-banner-logo" />
+    <div class="pwa-banner-text">Installer 3D Bueskydning på din hjemmeskærm for hurtig adgang</div>
+    <button id="pwa-install-btn" class="pwa-install-btn-style">INSTALLER APP</button>
+  </div>
+</div>
+
+<!-- iOS INSTALL-VEJLEDNING (Safari har ingen automatisk installer-prompt, kun manuel "Del"-genvej) -->
+<div id="ios-install-banner" class="pwa-banner-overlay hidden">
+  <div class="pwa-banner-card">
+    <button id="ios-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
+    <img src="/3D/3D-dev/assets/logo-DfL2e2mb.png" class="pwa-banner-logo" />
+    <div class="pwa-banner-text">Installer 3D Bueskydning på din hjemmeskærm:<br>Tryk på <span class="ios-share-icon">⬆️</span> Del-ikonet nederst i Safari, og vælg "Føj til hjemmeskærm".</div>
+  </div>
 </div>
 
 <!-- Leaflet og QR som globale scripts -->
