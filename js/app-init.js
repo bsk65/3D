@@ -68,19 +68,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   })
 
-  // PWA
+  // PWA install (Android/Chrome m.fl. — udløses af beforeinstallprompt)
+  const PWA_DISMISS_KEY='archery_pwa_dismissed'
+  const pwaDismissed=localStorage.getItem(PWA_DISMISS_KEY)==='1'
   let deferredPrompt=null
   window.addEventListener('beforeinstallprompt',e=>{
     e.preventDefault();deferredPrompt=e
-    document.getElementById('pwa-banner').style.display='flex'
+    if(!pwaDismissed)document.getElementById('pwa-banner').classList.remove('hidden')
   })
   document.getElementById('pwa-install-btn')?.addEventListener('click',async()=>{
     if(!deferredPrompt)return
     deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null
-    document.getElementById('pwa-banner').style.display='none'
+    document.getElementById('pwa-banner').classList.add('hidden')
   })
   document.getElementById('pwa-dismiss-btn')?.addEventListener('click',()=>{
-    document.getElementById('pwa-banner').style.display='none'
+    document.getElementById('pwa-banner').classList.add('hidden')
+    localStorage.setItem(PWA_DISMISS_KEY,'1')
+  })
+
+  // iOS Safari sender aldrig beforeinstallprompt — vis manuel vejledning i stedet
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream
+  const isStandalone=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches
+  if(isIOS&&!isStandalone&&!pwaDismissed){
+    document.getElementById('ios-install-banner')?.classList.remove('hidden')
+  }
+  document.getElementById('ios-dismiss-btn')?.addEventListener('click',()=>{
+    document.getElementById('ios-install-banner').classList.add('hidden')
+    localStorage.setItem(PWA_DISMISS_KEY,'1')
   })
 
   updateStartTargetDropdown(24)
