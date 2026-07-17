@@ -349,6 +349,16 @@
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
       </div>
       <div id="friends-list"></div>
+
+      <!-- MEETUPS SECTION -->
+      <div id="meetups-section" class="meetups-sec">
+        <div class="tab-header">
+          <span class="tab-title">Skal vi skyde sammen?</span>
+          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()">+ Foreslå</button>
+        </div>
+        <div id="meetups-list"></div>
+      </div>
+
       <div id="admin-section" class="admin-sec admin-only hidden">
         <h3>Administrator</h3>
         <div class="admin-add-row">
@@ -365,15 +375,6 @@
           <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" class="users-search-input" />
           <div id="users-list"></div>
         </div>
-      </div>
-
-      <!-- MEETUPS SECTION -->
-      <div id="meetups-section" class="meetups-sec">
-        <div class="tab-header">
-          <span class="tab-title">Skal vi skyde sammen?</span>
-          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()">+ Foreslå</button>
-        </div>
-        <div id="meetups-list"></div>
       </div>
 
       <!-- Meetup opret-modal -->
