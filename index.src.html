@@ -348,6 +348,16 @@
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
       </div>
       <div id="friends-list"></div>
+
+      <!-- MEETUPS SECTION -->
+      <div id="meetups-section" class="meetups-sec">
+        <div class="tab-header">
+          <span class="tab-title">Skal vi skyde sammen?</span>
+          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()">+ Foreslå</button>
+        </div>
+        <div id="meetups-list"></div>
+      </div>
+
       <div id="admin-section" class="admin-sec admin-only hidden">
         <h3>Administrator</h3>
         <div class="admin-add-row">
@@ -363,6 +373,43 @@
           <div id="users-summary"></div>
           <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" class="users-search-input" />
           <div id="users-list"></div>
+        </div>
+      </div>
+
+      <!-- Meetup opret-modal -->
+      <div id="meetup-modal" class="modal hidden">
+        <div class="modal-box">
+          <h3>Foreslå fælles skydning</h3>
+          <div class="ac-wrap">
+            <input type="text" id="mu-course-display" placeholder="-- Vælg bane --" readonly onclick="toggleMeetupCourseList()" />
+            <div id="mu-course-list" class="ac-list hidden"></div>
+          </div>
+          <input type="date" id="mu-date" />
+          <input type="time" id="mu-time" />
+          <div class="mu-pool-tabs">
+            <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')">Mine venner</button>
+            <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')">Alle registrerede</button>
+          </div>
+          <button type="button" class="btn btn-dark btn-sm" onclick="toggleSelectAllMeetup()">Vælg alle</button>
+          <div id="mu-invitee-list" class="mu-invitee-list"></div>
+          <div id="mu-selected-chips" class="mu-chips-wrap"></div>
+          <div class="brow">
+            <button class="btn btn-gold" onclick="saveMeetup()">Send forslag</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-modal').classList.add('hidden')">Annuller</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meetup foreslå-andet-tidspunkt-modal -->
+      <div id="meetup-propose-modal" class="modal hidden">
+        <div class="modal-box">
+          <h3>Foreslå andet tidspunkt</h3>
+          <input type="date" id="mu-propose-date" />
+          <input type="time" id="mu-propose-time" />
+          <div class="brow">
+            <button class="btn btn-gold" onclick="saveProposeTime()">Send forslag</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-propose-modal').classList.add('hidden')">Annuller</button>
+          </div>
         </div>
       </div>
 
@@ -404,7 +451,7 @@
       <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="courses">BANER</span>
     </button>
     <button class="nav-btn" data-tab="friends" onclick="switchTab('friends')">
-      <span class="nav-icon">👥</span><span class="nav-lbl" data-i18n="friends">VENNER</span>
+      <span class="nav-icon">👥<span id="meetup-badge" class="nav-count-badge hidden">0</span></span><span class="nav-lbl" data-i18n="friends">VENNER</span>
     </button>
   </nav>
 </div>
