@@ -47,7 +47,8 @@ select option{background:var(--surf);}
 #bottom-nav{height:var(--nav-h);background:var(--surf);border-top:1px solid var(--bord);display:flex;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;z-index:200;}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);cursor:pointer;}
 .nav-btn.active{color:var(--acc);border-bottom-color:var(--acc);}
-.nav-icon{font-size:19px;}
+.nav-icon{font-size:19px;position:relative;display:inline-block;}
+.nav-count-badge{position:absolute;top:-4px;right:-9px;background:var(--danger);color:#fff;font-family:var(--fb);font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;}
 .nav-lbl{font-family:var(--fd);font-size:9px;letter-spacing:0.5px;}
 #app-main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;max-width:480px;margin:0 auto;width:100%;padding-bottom:var(--nav-h);}
 .tab{display:none;}
@@ -77,6 +78,38 @@ select option{background:var(--surf);}
 .ac-item:hover{background:var(--surf2);}
 .qfriends{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
 .qfbtn{padding:6px 11px;background:var(--surf2);border:1px solid var(--bord);border-radius:20px;color:var(--txt);font-size:12px;cursor:pointer;}
+
+/* ─── SKAL VI SKYDE SAMMEN ─────────────────────────────────────────────── */
+.meetups-sec{margin-top:6px;}
+.mu-pool-tabs{display:flex;border:1px solid var(--bord);border-radius:var(--r);overflow:hidden;}
+.mu-pool-tab{flex:1;padding:10px;background:var(--surf);border:none;color:var(--muted);font-family:var(--fd);font-size:13px;cursor:pointer;}
+.mu-pool-tab.active{background:var(--acc);color:#000;font-weight:600;}
+.mu-invitee-list{max-height:180px;overflow-y:auto;border:1px solid var(--bord);border-radius:var(--rs);padding:4px 10px;}
+.mu-invitee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bord);font-size:14px;cursor:pointer;}
+.mu-invitee-row:last-child{border-bottom:none;}
+.mu-invitee-row input{width:auto;padding:0;flex-shrink:0;}
+.mu-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+.mu-chips-empty{color:var(--muted);font-size:12px;padding:4px 0;}
+.meetup-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:14px;margin:0 12px 10px;}
+.meetup-card.meetup-cancelled{opacity:.55;}
+.meetup-head{margin-bottom:8px;}
+.meetup-title{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--acc);}
+.meetup-when{font-size:13px;color:var(--txt);margin-top:2px;}
+.meetup-creator{font-size:11px;color:var(--muted);margin-top:2px;}
+.meetup-participants{margin-bottom:8px;}
+.meetup-partrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--bord);}
+.meetup-partrow:last-child{border-bottom:none;}
+.meetup-status{color:var(--muted);white-space:nowrap;}
+.meetup-status-tilmeldt{color:#6abf6a;}
+.meetup-status-afvist{color:var(--danger);}
+.meetup-status-foreslået{color:var(--acc);}
+.meetup-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+.meetup-actions .btn{width:auto;}
+.meetup-comments{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.meetup-comment{font-size:12px;color:var(--txt);}
+.meetup-comment-add{display:flex;gap:6px;}
+.meetup-comment-add input{flex:1;}
+.meetup-comment-add button{width:auto;}
 .shoot-top{background:var(--surf);border-bottom:1px solid var(--bord);padding:10px 14px;position:sticky;top:0;z-index:10;}
 .target-line{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .tnum{font-family:var(--fd);}

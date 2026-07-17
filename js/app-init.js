@@ -11,6 +11,7 @@ import { renderFriendsList, renderQuickFriends } from './friends.js'
 import { fetchCourses, renderCoursesList, updateTargetInFirestore, compressImage } from './courses.js'
 import { renderAdminSection } from './admin.js'
 import { renderRoundsList } from './results.js'
+import { fetchMeetups, renderMeetupsList, updateMeetupBadge, markMeetupsSeen } from './meetups.js'
 import './analyse.js'
 import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
          releaseWakeLock } from './round.js'
@@ -199,6 +200,9 @@ function onLogin(){
   // Hent baner fra Firestore
   fetchCourses()
 
+  // Hent "Skal vi skyde sammen"-aftaler
+  fetchMeetups().then(()=>{renderMeetupsList();updateMeetupBadge()}).catch(e=>console.warn('Hent meetups:',e))
+
   tryResumeRound()
 }
 
@@ -221,7 +225,7 @@ window.switchTab=function(tab){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
   const _t=document.getElementById(`tab-${tab}`);if(_t){_t.classList.add('active');_t.classList.remove('hidden')}
   document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active')
-  if(tab==='friends')renderAdminSection()
+  if(tab==='friends'){renderAdminSection();renderMeetupsList();markMeetupsSeen()}
   if(tab==='analyse')window.renderAnalyse()
   if(tab==='courses'&&state.courseMap)setTimeout(()=>state.courseMap.invalidateSize(),100)
 }

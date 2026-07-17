@@ -1,7 +1,9 @@
 // Modul-tests: verificerer at logikken opfører sig ens når den importeres
 // DIREKTE fra de nye ES-moduler (ikke via main.js). Fastfryser modul-API'et
 // under omprogrammeringen og udvider det oprindelige sikkerhedsnet.
-// Disse moduler er rene (ingen DOM/Firebase), så ingen firebase-mock er nødvendig.
+// scoring.js/gps.js/stats.js er rene (ingen DOM/Firebase). meetups.js
+// importerer firebase-init.js ved import, så firebase-mock skal loades først.
+import './firebase-mock.js'
 import { describe, it, expect } from 'vitest'
 import {
   SCORE_VALUES, scoreVal, parseScores, serializeScores, calcTotal, calcAverage,
@@ -13,6 +15,7 @@ import {
   toggleGpsPause, stopTracking
 } from '../js/gps.js'
 import { calcAnalyseStats } from '../js/stats.js'
+import { getUnseenMeetupCount } from '../js/meetups.js'
 
 describe('scoring.js modul', () => {
   it('SCORE_VALUES er de gyldige scorezoner i fast rækkefølge', () => {
@@ -126,5 +129,27 @@ describe('stats.js modul', () => {
     // Mål 0 har snit (11+10+10+8)/4 = 9.75; mål 1 har (5+0+8+5)/4 = 4.5
     expect(r.bestTarget.i).toBe(0)
     expect(r.worstTarget.i).toBe(1)
+  })
+})
+
+describe('meetups.js modul', () => {
+  it('getUnseenMeetupCount er 0 for tom liste', () => {
+    expect(getUnseenMeetupCount([], 0)).toBe(0)
+  })
+
+  it('tæller kun aftaler nyere end sidst-set-tidspunktet', () => {
+    const lastSeen = 1000
+    const meetups = [
+      { id: 'a', updatedAt: 500 },
+      { id: 'b', updatedAt: 1500 },
+      { id: 'c', updatedAt: 2000 }
+    ]
+    expect(getUnseenMeetupCount(meetups, lastSeen)).toBe(2)
+  })
+
+  it('håndterer Firestore Timestamp-objekter via toMillis()', () => {
+    const meetups = [{ id: 'a', updatedAt: { toMillis: () => 5000 } }]
+    expect(getUnseenMeetupCount(meetups, 1000)).toBe(1)
+    expect(getUnseenMeetupCount(meetups, 6000)).toBe(0)
   })
 })

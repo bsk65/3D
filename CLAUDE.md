@@ -24,21 +24,41 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 
 **Stack:** Vanilla JS + Vite + Firebase 10 (modular SDK) + Leaflet maps. No framework.
 
-**State** lives entirely in a single `state` object in `js/main.js` (~1440 lines). This file is the monolithic core: auth listeners, UI rendering, Firebase subscriptions, and business logic all coexist here.
+**Omprogrammeret 2026-07-14** fra én monolitisk `main.js` (~1440 linjer) til 15 ES-moduler. `js/main.js` er nu kun en tynd facade (42 linjer): side-effekt-import af `app-init.js` + re-eksport af udvalgte pure-logic-funktioner til testsuiten.
+
+**State** lever i ét delt singleton-objekt i `js/state.js`, importeret og muteret direkte af alle moduler (reference-identitet er bevidst delt).
 
 **Key modules:**
 
 | File | Responsibility |
 |------|---------------|
-| `js/main.js` | **Eneste live fil.** Al app-logik: state, auth, UI, Firebase, GPS. Alt eksponeres via `window.*` til HTML onclick-handlers. |
-| `js/firebase-instance.js` | Firebase singleton — importeres IKKE af main.js (dead code, bevaret til reference) |
-| `js/legacy/` | Gamle moduler (app.js, auth.js, courses.js, gps.js, friends.js, scoring.js) — bruges ikke, flyttet hertil for at undgå forvirring |
+| `js/main.js` | Tynd facade — importerer `app-init.js`, re-eksporterer pure-logic til tests. Ny logik hører IKKE hjemme her. |
+| `js/app-init.js` | Opstart/auth-flow-lim: `DOMContentLoaded`, login/logout, nav (`switchTab`), bane-dropdown-opsætning |
+| `js/state.js` | Central delt state-singleton |
+| `js/firebase-init.js` | Firebase-singleton + centraliserede SDK re-exports — alle moduler importerer Firebase herfra |
+| `js/auth.js` | Login/opret/nulstil/logud window-handlere |
+| `js/friends.js` | Venneliste (lokal-primær, Firestore-backup) |
+| `js/courses.js` | Baneadministration, kort, target-billeder |
+| `js/round.js` | Aktiv runde: opsætning, scoring-flow, GPS-integration |
+| `js/scoring.js` | Ren scoring-logik (ingen DOM/Firebase) |
+| `js/gps.js` | Ren GPS-logik (ruteparsing, afstand, varighed) |
+| `js/stats.js` | Ren analyse-statistik-beregning |
+| `js/analyse.js` | Analyse-fanens rendering |
+| `js/results.js` | Runde-liste/resultater |
+| `js/admin.js` | Admin-panel: adminliste, brugerliste, tilføj/fjern admin |
+| `js/meetups.js` | "Skal vi skyde sammen": foreslå/tilmeld/afvis fælles skydninger |
+| `js/storage.js` | localStorage-persistens (`archery_v5`) |
+| `js/utils.js` | `esc`/`showToast`/`showConfirm` |
+| `js/firebase-instance.js` | Gammel Firebase-singleton — importeres IKKE af noget aktivt modul (dead code, bevaret til reference) |
+| `js/legacy/` | Gamle moduler (app.js, auth.js, courses.js, gps.js, friends.js, scoring.js) fra før omprogrammeringen — bruges ikke, flyttet hertil for at undgå forvirring |
 
-**Vigtig note:** Vite bundler kun `js/main.js`. Alle andre js/-filer er ikke en del af produktionsbuildet.
+**Vigtig note:** Vite bundler `js/main.js` og alt det transitivt importerer — dvs. alle moduler i tabellen ovenfor undtagen `firebase-instance.js` og `js/legacy/`, som intet aktivt modul importerer.
+
+**Stående regel:** al ny logik skal i det relevante eksisterende modul (eller et nyt modul, hvis ingen passer) — aldrig tilbage i `main.js`. Al ny styling skal være en navngivet klasse i `css/style.css`, aldrig inline `style="..."` (undtagen elementer hvor JS sætter `.style.display=''` for at vise dem igen — de skal beholde `display:none` inline).
 
 ## Data Storage
 
-- **Firestore** (`courses`, `users`, `admins`): courses, user profiles, admin list
+- **Firestore** (`courses`, `users`, `admins`, `meetups`): courses, user profiles, admin list, "skal vi skyde sammen"-aftaler
 - **Firebase Storage**: course target images (`courses/{courseId}/target_{idx}.jpg`)
 - **localStorage** (`archery_v5`): friends, rounds og courses — lokalt cache
 
@@ -58,7 +78,7 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 - **Service worker has no fetch handler** — intentionally no offline caching to avoid stale data.
 - **Wake Lock** is requested during GPS tracking to keep screen on.
 - **Admin check** is `doc.exists()` on `admins/{uid}` — no role claims in Auth token.
-- Firebase config is hardcoded in `main.js` — no `.env` file.
+- Firebase config is hardcoded in `js/firebase-init.js` — no `.env` file.
 - Firestore uses persistent local cache with multi-tab sync manager.
 - Courses are cached in localStorage and fetched fresh from Firestore on login.
 - Friends and rounds are primary-local (localStorage), with Firestore as backup/sync.
@@ -73,6 +93,7 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 | `users/{uid}/rounds` | Runde-backup i Firestore (primary er localStorage) |
 | `users/{uid}/friends` | Venne-backup i Firestore (primary er localStorage) |
 | `users/{uid}/aktiv/runde` | Igangværende runde — slettes ved finish/abort |
+| `meetups` | "Skal vi skyde sammen"-aftaler — læsbar/skrivbar af opretter + `invitedUids`. TTL-policy på `expireAt`-feltet sat op manuelt i Firebase Console (ikke i denne repo) |
 
 ## fix_*.mjs Scripts
 
