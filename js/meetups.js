@@ -58,11 +58,15 @@ export function markMeetupsSeen(){
 }
 
 // ─── LISTEVISNING ───────────────────────────────────────────────────────────
+// Alle aftaler (aflyste og gennemførte) forsvinder fra listen, når den planlagte
+// dato er passeret (permanent sletning i Firestore sker separat via TTL-policy).
 export function renderMeetupsList(){
   const el=document.getElementById('meetups-list');if(!el)return
-  if(!state.meetups.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏹</div>Ingen planlagte skydninger endnu</div>';return}
+  const today=new Date().toISOString().slice(0,10)
+  const visible=state.meetups.filter(m=>m.date>=today)
+  if(!visible.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏹</div>Ingen planlagte skydninger endnu</div>';return}
   el.innerHTML=''
-  state.meetups.forEach(m=>el.appendChild(renderMeetupCard(m)))
+  visible.forEach(m=>el.appendChild(renderMeetupCard(m)))
 }
 
 function renderMeetupCard(m){
@@ -94,9 +98,10 @@ function renderMeetupCard(m){
   }
 
   card.innerHTML=`
+    ${m.status==='aflyst'?'<div class="meetup-cancelled-banner">❌ Aflyst</div>':''}
     <div class="meetup-head">
       <div class="meetup-title">${esc(m.courseName)}</div>
-      <div class="meetup-when">${esc(m.date)} kl. ${esc(m.time)}${m.status==='aflyst'?' — AFLYST':''}</div>
+      <div class="meetup-when">${esc(m.date)} kl. ${esc(m.time)}</div>
       <div class="meetup-creator">Oprettet af ${esc(m.creatorName)}</div>
     </div>
     <div class="meetup-participants">${partRows}</div>

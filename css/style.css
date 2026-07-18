@@ -24,6 +24,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg) !important;color:var(
 .err{background:rgba(192,57,43,0.15);border:1px solid var(--danger);border-radius:var(--rs);padding:10px;color:#ff6b6b;font-size:14px;}
 input,select{width:100%;padding:12px 14px;background:var(--surf);border:1px solid var(--bord);border-radius:var(--rs);color:var(--txt);font-family:var(--fb);font-size:15px;outline:none;}
 input:focus,select:focus{border-color:var(--acc);}
+input::placeholder{color:var(--muted);opacity:1;}
+input[type="date"],input[type="time"]{color-scheme:dark;}
 select option{background:var(--surf);}
 .btn{padding:13px 16px;border:none;border-radius:var(--rs);font-family:var(--fd);font-size:16px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;width:100%;}
 .btn-gold{background:var(--acc);color:#000;}
@@ -91,7 +93,9 @@ select option{background:var(--surf);}
 .mu-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;}
 .mu-chips-empty{color:var(--muted);font-size:12px;padding:4px 0;}
 .meetup-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:14px;margin:0 12px 10px;}
-.meetup-card.meetup-cancelled{opacity:.55;}
+.meetup-card.meetup-cancelled{border-color:var(--danger);}
+.meetup-card.meetup-cancelled .meetup-title,.meetup-card.meetup-cancelled .meetup-when,.meetup-card.meetup-cancelled .meetup-participants{opacity:.6;}
+.meetup-cancelled-banner{background:var(--danger);color:#fff;font-family:var(--fd);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:7px;margin:-14px -14px 10px;border-radius:var(--rl) var(--rl) 0 0;}
 .meetup-head{margin-bottom:8px;}
 .meetup-title{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--acc);}
 .meetup-when{font-size:13px;color:var(--txt);margin-top:2px;}
