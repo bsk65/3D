@@ -380,12 +380,16 @@
       <div id="meetup-modal" class="modal hidden">
         <div class="modal-box">
           <h3>Foreslå fælles skydning</h3>
-          <div class="ac-wrap">
-            <input type="text" id="mu-course-display" placeholder="-- Vælg bane --" readonly onclick="toggleMeetupCourseList()" />
-            <div id="mu-course-list" class="ac-list hidden"></div>
+          <div class="fg"><label class="lbl">Bane</label>
+            <div class="ac-wrap">
+              <input type="text" id="mu-course-display" placeholder="-- Vælg bane --" readonly onclick="toggleMeetupCourseList()" />
+              <div id="mu-course-list" class="ac-list hidden"></div>
+            </div>
           </div>
-          <input type="date" id="mu-date" />
-          <input type="time" id="mu-time" />
+          <div class="fg"><label class="lbl">Dato</label>
+            <input type="date" id="mu-date" /></div>
+          <div class="fg"><label class="lbl">Tidspunkt</label>
+            <input type="time" id="mu-time" /></div>
           <div class="mu-pool-tabs">
             <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')">Mine venner</button>
             <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')">Alle registrerede</button>
@@ -404,8 +408,10 @@
       <div id="meetup-propose-modal" class="modal hidden">
         <div class="modal-box">
           <h3>Foreslå andet tidspunkt</h3>
-          <input type="date" id="mu-propose-date" />
-          <input type="time" id="mu-propose-time" />
+          <div class="fg"><label class="lbl">Dato</label>
+            <input type="date" id="mu-propose-date" /></div>
+          <div class="fg"><label class="lbl">Tidspunkt</label>
+            <input type="time" id="mu-propose-time" /></div>
           <div class="brow">
             <button class="btn btn-gold" onclick="saveProposeTime()">Send forslag</button>
             <button class="btn btn-dark" onclick="document.getElementById('meetup-propose-modal').classList.add('hidden')">Annuller</button>
