@@ -187,14 +187,17 @@ export async function tryResumeRound(){
 
 // ─── NAV BUTTONS ──────────────────────────────────────────────────────────────
 function resetScroll(){const el=document.getElementById('app-main');if(!el)return;el.scrollTop=0;requestAnimationFrame(()=>{el.scrollTop=0;setTimeout(()=>{el.scrollTop=0},100)})}
+function closeEditPanel(){document.getElementById('edit-panel').classList.add('hidden')}
 
 window.prevTarget=function(){
   if(!state.round||state.round.traversalPos<=0)return
+  closeEditPanel()
   state.round.traversalPos--;saveActiveRound();renderShooters();updateTopBar();resetScroll()
 }
 
 window.nextTarget=function(){
   if(!state.round)return
+  closeEditPanel()
   if(state.round.traversalPos<state.round.numTargets-1){
     state.round.traversalPos++;saveActiveRound();renderShooters();updateTopBar();resetScroll()
   }else window.finishRound()
@@ -209,6 +212,7 @@ window.skipToTarget=function(){
 window.doSkip=function(){
   const n=Number(document.getElementById('skip-input').value)
   if(!state.round||n<1||n>state.round.numTargets)return
+  closeEditPanel()
   const pos=state.round.traversalOrder.indexOf(n-1)
   if(pos!==-1)state.round.traversalPos=pos
   document.getElementById('skip-modal').classList.add('hidden')
