@@ -14,6 +14,13 @@ import { db, collection, doc, addDoc, updateDoc, getDocs, query, where, serverTi
 const SEEN_KEY = 'archery_meetups_seen'
 const STATUS_LABELS = { afventer:'Afventer', tilmeldt:'Tilmeldt ✅', 'foreslået':'Foreslår andet tidspunkt 🕓', afvist:'Afbud ❌' }
 
+// Datoer gemmes/sammenlignes som ISO (yyyy-mm-dd, fra <input type="date">) — kun til visning omskrives til dansk format (dd-mm-yyyy).
+function formatDate(iso){
+  if(!iso)return ''
+  const [y,m,d]=iso.split('-')
+  return y&&m&&d?`${d}-${m}-${y}`:iso
+}
+
 let _selectedInvitees = new Map() // uid -> {uid,name} — fladt sæt, fælles for begge pools
 let _pool = 'venner'
 let _allUsersCache = null
@@ -76,7 +83,7 @@ function renderMeetupCard(m){
   const me=(m.participants||[]).find(p=>p.uid===state.user?.uid)
 
   const partRows=(m.participants||[]).map(p=>{
-    const proposed=p.status==='foreslået'&&p.proposedDate?` → ${esc(p.proposedDate)} ${esc(p.proposedTime||'')}`:''
+    const proposed=p.status==='foreslået'&&p.proposedDate?` → ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')}`:''
     return `<div class="meetup-partrow"><span>${esc(p.name)}</span><span class="meetup-status meetup-status-${esc(p.status)}">${esc(STATUS_LABELS[p.status]||p.status)}${proposed}</span></div>`
   }).join('')
 
@@ -91,7 +98,7 @@ function renderMeetupCard(m){
     }
     if(isCreator){
       ;(m.participants||[]).filter(p=>p.status==='foreslået'&&p.proposedDate).forEach(p=>{
-        actions+=`<button class="btn btn-gold btn-sm" onclick="acceptProposedTime('${m.id}','${p.uid}')">Accepter ${esc(p.proposedDate)} ${esc(p.proposedTime||'')} (${esc(p.name)})</button>`
+        actions+=`<button class="btn btn-gold btn-sm" onclick="acceptProposedTime('${m.id}','${p.uid}')">Accepter ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')} (${esc(p.name)})</button>`
       })
       actions+=`<button class="btn btn-dark btn-sm" onclick="cancelMeetup('${m.id}')">Aflys</button>`
     }
@@ -101,7 +108,7 @@ function renderMeetupCard(m){
     ${m.status==='aflyst'?'<div class="meetup-cancelled-banner">❌ Aflyst</div>':''}
     <div class="meetup-head">
       <div class="meetup-title">${esc(m.courseName)}</div>
-      <div class="meetup-when">${esc(m.date)} kl. ${esc(m.time)}</div>
+      <div class="meetup-when">${esc(formatDate(m.date))} kl. ${esc(m.time)}</div>
       <div class="meetup-creator">Oprettet af ${esc(m.creatorName)}</div>
     </div>
     <div class="meetup-participants">${partRows}</div>
