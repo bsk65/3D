@@ -72,6 +72,7 @@ function renderUsersList(filter=''){
 window.filterUsers=function(v){renderUsersList(v)}
 
 window.doAddAdmin=async function(){
+  if(!state.isSuperAdmin)return
   const email=document.getElementById('admin-email').value.trim();if(!email)return
   try{
     const snap=await getDocs(collection(db,'users'))
