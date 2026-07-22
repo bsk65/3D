@@ -71,5 +71,14 @@ service cloud.firestore {
       allow delete: if request.auth != null &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)/rounds/$(roundId));
     }
+    // Collection-group-forespørgsel på tværs af ALLE baners 'runder' (bruges af
+    // "Brug af appen"-statistikken i admin-panelet, js/admin.js loadUsageStats).
+    // Firestore anvender kun ovenstående regel ved læsning af én banes egen
+    // runder-samling — en collection group-forespørgsel kræver {path=**}, derfor
+    // dette separate, admin-only rule-block.
+    match /{path=**}/runder/{roundId} {
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
   }
 }
