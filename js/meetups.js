@@ -32,13 +32,16 @@ let _selectedCourseId = null
 export async function fetchMeetups(){
   if(!state.user)return
   try{
-    const [asCreator,asInvited]=await Promise.all([
+    const queries=[
       getDocs(query(collection(db,'meetups'),where('creatorUid','==',state.user.uid))),
       getDocs(query(collection(db,'meetups'),where('invitedUids','array-contains',state.user.uid)))
-    ])
+    ]
+    // Super-admin ser alle aftaler (jf. firestore.rules) — også dem hun/han hverken
+    // har oprettet eller er inviteret til, markeret separat i renderMeetupCard.
+    if(state.isSuperAdmin)queries.push(getDocs(collection(db,'meetups')))
+    const results=await Promise.all(queries)
     const map=new Map()
-    asCreator.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()}))
-    asInvited.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()}))
+    results.forEach(snap=>snap.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()})))
     state.meetups=[...map.values()].sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
   }catch(e){console.warn('Hent meetups:',e)}
 }
@@ -81,6 +84,7 @@ function renderMeetupCard(m){
   card.className='meetup-card'+(m.status==='aflyst'?' meetup-cancelled':'')
   const isCreator=m.creatorUid===state.user?.uid
   const me=(m.participants||[]).find(p=>p.uid===state.user?.uid)
+  const notMine=state.isSuperAdmin&&!isCreator&&!me
 
   const partRows=(m.participants||[]).map(p=>{
     const proposed=p.status==='foreslået'&&p.proposedDate?` → ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')}`:''
@@ -106,6 +110,7 @@ function renderMeetupCard(m){
 
   card.innerHTML=`
     ${m.status==='aflyst'?'<div class="meetup-cancelled-banner">❌ Aflyst</div>':''}
+    ${notMine?'<div class="meetup-notinvited-banner">👁 Du er ikke inviteret — vises kun for superadmin</div>':''}
     <div class="meetup-head">
       <div class="meetup-title">${esc(m.courseName)}</div>
       <div class="meetup-when">${esc(formatDate(m.date))} kl. ${esc(m.time)}</div>

@@ -96,6 +96,7 @@ select option{background:var(--surf);}
 .meetup-card.meetup-cancelled{border-color:var(--danger);}
 .meetup-card.meetup-cancelled .meetup-title,.meetup-card.meetup-cancelled .meetup-when,.meetup-card.meetup-cancelled .meetup-participants{opacity:.6;}
 .meetup-cancelled-banner{background:var(--danger);color:#fff;font-family:var(--fd);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:7px;margin:-14px -14px 10px;border-radius:var(--rl) var(--rl) 0 0;}
+.meetup-notinvited-banner{background:var(--acc2);color:#fff;font-family:var(--fd);font-weight:600;font-size:12px;text-align:center;padding:6px;margin:-14px -14px 10px;border-radius:var(--rl) var(--rl) 0 0;}
 .meetup-head{margin-bottom:8px;}
 .meetup-title{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--acc);}
 .meetup-when{font-size:13px;color:var(--txt);margin-top:2px;}
