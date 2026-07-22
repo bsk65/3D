@@ -497,6 +497,10 @@
     <h3>Bjarne Klausen</h3>
     <p class="qr-phone-txt">+45 91 89 17 00</p>
     <div id="qr-canvas" class="qr-canvas-wrap"></div>
+    <div class="qr-url-row">
+      <input type="text" id="qr-url" class="qr-url-input" readonly onclick="this.select()" />
+      <button class="btn-icon" onclick="copyQrUrl()">📋</button>
+    </div>
     <button class="btn btn-dark" onclick="document.getElementById('qr-modal').classList.add('hidden')">Luk</button>
   </div>
 </div>

@@ -284,6 +284,15 @@ window.showQR=function(){
   document.getElementById('qr-modal').classList.remove('hidden')
   const el=document.getElementById('qr-canvas');el.innerHTML=''
   if(typeof window.QRCode!=='undefined')new window.QRCode(el,{text:window.location.href,width:200,height:200,colorDark:'#1a3a1a',colorLight:'#fff'})
+  document.getElementById('qr-url').value=window.location.href
+}
+
+window.copyQrUrl=function(){
+  const input=document.getElementById('qr-url')
+  navigator.clipboard?.writeText(input.value).then(
+    ()=>showToast('Link kopieret','success'),
+    ()=>{input.select();document.execCommand('copy');showToast('Link kopieret','success')}
+  )
 }
 
 // ─── GÆST ─────────────────────────────────────────────────────────────────────
