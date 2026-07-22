@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-1qXNGjpB.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/assets/index-DW0lemEB.css">
+    <script type="module" crossorigin src="/3D/assets/index-C_kEkAYk.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-BtkTviH1.css">
   </head>
 <body>
 
@@ -366,6 +366,13 @@
           <button class="btn btn-dark btn-sm" onclick="doAddAdmin()">Tilføj</button>
         </div>
         <div id="admins-list" class="mb12"></div>
+        <div id="usage-stats-section" class="mb12">
+          <div class="users-section-head">
+            <h4 class="users-section-title">BRUG AF APPEN</h4>
+            <button class="btn btn-dark btn-sm" onclick="loadUsageStats()">Opdater</button>
+          </div>
+          <div id="usage-stats-result" class="admin-hint">Klik "Opdater" for at hente statistik</div>
+        </div>
         <div id="users-section" class="hidden">
           <div class="users-section-head">
             <h4 class="users-section-title">ALLE BRUGERE</h4>
