@@ -17,9 +17,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM Brug git worktree saa vi ikke behover at skifte branch
-for %%i in ("%PROJ%\..") do set PARENT=%%~fi
-set TMPWT=%PARENT%\3D-prod-worktree
+REM Brug git worktree saa vi ikke behover at skifte branch.
+REM Placeres i %TEMP% (IKKE ved siden af projektet) fordi projektmappen
+REM ligger under OneDrive-synkronisering: naar "git worktree add" skriver
+REM tusindvis af filer paa en gang, kan OneDrive naa at gribe ind i den
+REM efterfoelgende index.html-kopiering og stille og roligt revertere den
+REM til en gammel version foer "git commit" naar at se den - det gav en
+REM produktions-bug hvor index.html pegede paa en slettet JS-fil.
+set TMPWT=%TEMP%\3D-prod-worktree
 if exist "%TMPWT%" (
   git worktree remove "%TMPWT%" --force >nul 2>&1
 )
@@ -41,6 +46,16 @@ xcopy "%PROJ%\dist\assets\*" "%TMPWT%\assets\" /E /Y /Q
 copy "%PROJ%\dist\index.html" "%TMPWT%\index.html" /Y
 if errorlevel 1 (
   echo FEJL: Kunne ikke kopiere index.html!
+  pause
+  exit /b 1
+)
+
+REM Sikkerhedstjek: bekraeft at index.html rent faktisk peger paa en
+REM JS-fil der findes i assets/, foer vi committer noget som helst.
+REM Fanger den "gammel hash overlevede kopiering"-fejl fra en gang for alle.
+powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\index.html" -AssetsDir "%TMPWT%\assets"
+if errorlevel 1 (
+  echo FEJL: index.html og assets/ er ikke i sync - build.bat afbrudt for at undgaa en 404-produktion.
   pause
   exit /b 1
 )
