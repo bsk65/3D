@@ -7,7 +7,7 @@ import { getAuth, onAuthStateChanged,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+         collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
@@ -34,6 +34,6 @@ export { app, auth, db, storage }
 // afhænger af dette modul (ikke af 'firebase/*' direkte).
 export { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut }
-export { collection, doc, setDoc, getDoc, getDocs, deleteDoc,
+export { collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp, query, where }
 export { ref, uploadString, getDownloadURL, deleteObject }

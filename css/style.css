@@ -313,6 +313,8 @@ select option{background:var(--surf);}
 .admin-remove-btn{padding:2px 8px;font-size:11px;}
 .bow-chips-wrap{margin-bottom:8px;}
 .bow-chip{display:inline-block;background:var(--card-bg,#222);border:1px solid var(--border,#444);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;white-space:nowrap;}
+.usage-stat-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border,#333);}
+.usage-stat-total{border-bottom:none;margin-top:4px;padding-top:8px;border-top:1px solid var(--border,#444);}
 
 /* ── friends.js: udtrukket fra inline style="..." (js/friends.js) ── */
 .frd-del{color:var(--danger);}

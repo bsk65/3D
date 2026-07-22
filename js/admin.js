@@ -8,7 +8,7 @@
 
 import { state } from './state.js'
 import { esc, showToast } from './utils.js'
-import { db, collection, doc, getDocs, setDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
+import { db, collection, collectionGroup, doc, getDocs, setDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
 
 let _allUsers=[]
 
@@ -48,6 +48,30 @@ async function renderAdminsList(){
     }
     el.appendChild(row)
   })
+}
+
+// bane_stats/*/runder er den anonyme, tværgående runde-log (skrives i round.js
+// ved runde-afslutning, slettes i results.js ved sletning) — bruges her som proxy
+// for "hvor mange runder er registreret", uden at røre users/{uid}/rounds pr. bruger.
+const _usagePeriods=[{label:'Sidste 7 dage',ms:7*86400000},{label:'Sidste 30 dage',ms:30*86400000},{label:'Sidste 365 dage',ms:365*86400000}]
+window.loadUsageStats=async function(){
+  const el=document.getElementById('usage-stats-result');if(!el)return
+  el.textContent='Henter…'
+  try{
+    const snap=await getDocs(collectionGroup(db,'runder'))
+    const now=Date.now()
+    const counts=_usagePeriods.map(()=>0)
+    let total=0
+    snap.forEach(d=>{
+      total++
+      const dato=d.data().dato?.toDate?.()
+      if(!dato)return
+      const age=now-dato.getTime()
+      _usagePeriods.forEach((p,i)=>{if(age<=p.ms)counts[i]++})
+    })
+    const rows=_usagePeriods.map((p,i)=>`<div class="usage-stat-row"><span>${esc(p.label)}</span><b>${counts[i]}</b></div>`).join('')
+    el.innerHTML=`${rows}<div class="usage-stat-row usage-stat-total"><span>I alt registreret</span><b>${total}</b></div>`
+  }catch(e){el.textContent='Fejl: '+e.message}
 }
 
 const _bowLabels={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}
