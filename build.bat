@@ -43,6 +43,7 @@ del "%TMPWT%\assets\manifest-*.json" >nul 2>&1
 
 REM Kopier byggede filer til worktree
 xcopy "%PROJ%\dist\assets\*" "%TMPWT%\assets\" /E /Y /Q
+if exist "%PROJ%\dist\icons" xcopy "%PROJ%\dist\icons\*" "%TMPWT%\icons\" /E /Y /Q
 copy "%PROJ%\dist\index.html" "%TMPWT%\index.html" /Y
 if errorlevel 1 (
   echo FEJL: Kunne ikke kopiere index.html!
@@ -62,7 +63,7 @@ if errorlevel 1 (
 
 REM Commit og push fra main worktree
 cd /d "%TMPWT%"
-git add index.html assets/ css/style.css
+git add index.html assets/ css/style.css icons/
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Prod-build opdatering"
