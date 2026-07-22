@@ -130,7 +130,7 @@ function renderShooters(){
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     card.innerHTML=`
       <div class="sh-head"><span class="sh-target-emoji">🎯</span>${warn?'<span class="warn-dot"></span>':''}
-        <span class="sh-name">${s.name}</span>
+        <span class="sh-name">${esc(s.name)}</span>
         <div class="sh-mini-group">
           <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
           <div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val sh-mini-val-sm">${p1avg}</div></div>
