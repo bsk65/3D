@@ -23,9 +23,10 @@ if not exist "%PROJ%\3D-dev" mkdir "%PROJ%\3D-dev"
 if exist "%PROJ%\3D-dev\assets" rmdir /S /Q "%PROJ%\3D-dev\assets"
 xcopy "%PROJ%\dist-dev\*" "%PROJ%\3D-dev\" /E /Y /Q
 
-REM Brug git worktree saa vi ikke behover at skifte branch og miste dette script
-for %%i in ("%PROJ%\..") do set PARENT=%%~fi
-set TMPWT=%PARENT%\3D-main-worktree
+REM Brug git worktree saa vi ikke behover at skifte branch og miste dette script.
+REM Placeres i %TEMP% (IKKE ved siden af projektet) fordi projektmappen
+REM ligger under OneDrive-synkronisering - se build.bat for forklaring.
+set TMPWT=%TEMP%\3D-main-worktree
 if exist "%TMPWT%" (
   git worktree remove "%TMPWT%" --force >nul 2>&1
 )
@@ -40,6 +41,15 @@ if errorlevel 1 (
 REM Kopier 3D-dev ind i worktree og push til main
 if not exist "%TMPWT%\3D-dev" mkdir "%TMPWT%\3D-dev"
 xcopy "%PROJ%\3D-dev\*" "%TMPWT%\3D-dev\" /E /Y /Q
+
+REM Sikkerhedstjek: bekraeft at 3D-dev/index.html rent faktisk peger paa en
+REM JS-fil der findes i 3D-dev/assets/, foer vi committer noget som helst.
+powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\3D-dev\index.html" -AssetsDir "%TMPWT%\3D-dev\assets"
+if errorlevel 1 (
+  echo FEJL: 3D-dev/index.html og assets/ er ikke i sync - build-dev.bat afbrudt.
+  pause
+  exit /b 1
+)
 
 cd /d "%TMPWT%"
 git add 3D-dev/
