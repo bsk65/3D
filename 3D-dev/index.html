@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-gLCGCO1Z.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-C6L--Bip.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-B6hcT3la.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-DaiYMXH1.css">
   </head>
 <body>
 
@@ -263,8 +263,12 @@
       </div>
       <div class="analyse-checkbox-row">
         <label class="analyse-checkbox-label">
-          <input type="checkbox" id="analyse-fullstart-only" onchange="renderAnalyse()" />
-          Kun runder startet ved mål 1 og gennemført til ende
+          <input type="checkbox" id="analyse-completed-only" onchange="renderAnalyse()" />
+          Kun gennemførte runder (alle mål skudt)
+        </label>
+        <label class="analyse-checkbox-label">
+          <input type="checkbox" id="analyse-startat1-only" onchange="renderAnalyse()" />
+          Kun runder startet ved mål 1
         </label>
       </div>
       <div id="analyse-runde-wrap" class="analyse-runde-panel" style="display:none;">
