@@ -260,6 +260,16 @@
             oninput="renderAnalyse()" />
         </div>
       </div>
+      <div class="analyse-checkbox-row">
+        <label class="analyse-checkbox-label">
+          <input type="checkbox" id="analyse-completed-only" onchange="renderAnalyse()" />
+          Kun gennemførte runder (alle mål skudt)
+        </label>
+        <label class="analyse-checkbox-label">
+          <input type="checkbox" id="analyse-startat1-only" onchange="renderAnalyse()" />
+          Kun runder startet ved mål 1
+        </label>
+      </div>
       <div id="analyse-runde-wrap" class="analyse-runde-panel" style="display:none;">
         <div id="analyse-runde-lbl" class="analyse-runde-lbl-style" style="display:none;">RUNDE 1</div>
         <select id="analyse-runde" onchange="renderAnalyse()" class="analyse-runde-select">

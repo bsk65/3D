@@ -40,7 +40,27 @@ if errorlevel 1 (
 
 REM Kopier 3D-dev ind i worktree og push til main
 if not exist "%TMPWT%\3D-dev" mkdir "%TMPWT%\3D-dev"
-xcopy "%PROJ%\3D-dev\*" "%TMPWT%\3D-dev\" /E /Y /Q
+
+REM Ryd gamle assets i worktree FOERST (samme fix som build.bat fik efter
+REM produktions-bugget) - ellers kan verify-build.ps1-tjekket herunder
+REM fejlagtigt "bestaa" ved at matche en gammel, efterladt fil, selvom
+REM index.html-kopieringen fejlede/blev revertet af OneDrive.
+del "%TMPWT%\3D-dev\assets\index-*.js" >nul 2>&1
+del "%TMPWT%\3D-dev\assets\index-*.css" >nul 2>&1
+del "%TMPWT%\3D-dev\assets\manifest-*.json" >nul 2>&1
+
+xcopy "%PROJ%\3D-dev\assets\*" "%TMPWT%\3D-dev\assets\" /E /Y /Q
+if exist "%PROJ%\3D-dev\icons" xcopy "%PROJ%\3D-dev\icons\*" "%TMPWT%\3D-dev\icons\" /E /Y /Q
+
+REM index.html kopieres for sig med "copy" (ikke xcopy) og et eksplicit
+REM fejltjek lige efter - samme moenster som build.bat, da det er praecis
+REM denne ene, gentagne fil OneDrive-synkroniseringen kan naa at forstyrre.
+copy "%PROJ%\3D-dev\index.html" "%TMPWT%\3D-dev\index.html" /Y
+if errorlevel 1 (
+  echo FEJL: Kunne ikke kopiere 3D-dev/index.html!
+  pause
+  exit /b 1
+)
 
 REM Sikkerhedstjek: bekraeft at 3D-dev/index.html rent faktisk peger paa en
 REM JS-fil der findes i 3D-dev/assets/, foer vi committer noget som helst.

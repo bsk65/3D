@@ -30,3 +30,42 @@ export function calcAnalyseStats(rounds,userId){
   const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
   return {myScores,p1avg,p2avg,pilAvg,distP1,distP2,bestTarget,worstTarget}
 }
+
+// Standardafvigelse (population) — bruges som mål for hvor ensartet skytten
+// har skudt (fx pr. skudposition gennem en runde, eller pr. runde over tid).
+export function stdDev(values){
+  if(!values.length)return 0
+  const m=values.reduce((a,b)=>a+b,0)/values.length
+  return Math.sqrt(values.reduce((a,b)=>a+(b-m)**2,0)/values.length)
+}
+
+// Simpel lineær regression (mindste kvadraters metode) — bruges til
+// trendlinjen i udviklingsgraferne.
+export function linReg(points){
+  const n=points.length
+  if(n<2)return {slope:0,intercept:points[0]?.y||0}
+  const sx=points.reduce((a,p)=>a+p.x,0),sy=points.reduce((a,p)=>a+p.y,0)
+  const sxy=points.reduce((a,p)=>a+p.x*p.y,0),sxx=points.reduce((a,p)=>a+p.x*p.x,0)
+  const denom=n*sxx-sx*sx
+  const slope=denom?(n*sxy-sx*sy)/denom:0
+  return {slope,intercept:(sy-slope*sx)/n}
+}
+
+// Pr.-position gennemsnit (P1+P2 kombineret) for ÉN runde — samme opbygning
+// som targetAvgs ovenfor, men skaleret til brug pr. runde (fx til at
+// sammenligne konsistens på tværs af runder over tid på samme bane).
+export function calcRoundPositionAvgs(round,userId){
+  const s=round.shooters?.find(x=>x.id===userId)||round.shooters?.[0]
+  if(!s)return []
+  const nt=round.numTargets||24
+  const order=round.traversalOrder||Array.from({length:nt},(_,i)=>i)
+  const out=[]
+  for(let pos=0;pos<nt;pos++){
+    const tIdx=order[pos];if(tIdx===undefined)continue
+    const row=s.scores[tIdx]||[null,null]
+    let tot=0,cnt=0
+    row.forEach(v=>{if(v!=null){tot+=scoreVal(v);cnt++}})
+    if(cnt)out.push(tot/cnt)
+  }
+  return out
+}
