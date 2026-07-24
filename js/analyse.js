@@ -12,21 +12,28 @@
 import { state } from './state.js'
 import { esc } from './utils.js'
 import { scoreVal, calcTotal, parseScores } from './scoring.js'
-import { calcAnalyseStats } from './stats.js'
+import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
 
-function initGraphPinch(svgEl){
+// Pinch-to-zoom/pan af fullscreen-grafen. `viewportEl` er det faste,
+// touch-lyttende "vindue" (overflow:hidden) — `contentEl` er selve SVG'en
+// der bliver transformeret. At adskille dem sikrer at HELE grafen zoomer
+// uniformt: rører man ved en linje/prik direkte, ville browseren ellers
+// (på nogle mobiler) forsøge sin egen native zoom af netop det element,
+// hvilket så ud som om "kun linjen" blev større. Derfor har alle grafiske
+// SVG-børn pointer-events:none — kun viewportEl må modtage touch-events.
+function initGraphPinch(viewportEl,contentEl){
   let scale=1,ox=0,oy=0
   let initDist=0,initScale=1,initOx=0,initOy=0,pinchCx=0,pinchCy=0
   let panStartX=0,panStartY=0,panStartOx=0,panStartOy=0
   const apply=()=>{
-    svgEl.style.transformOrigin='0 0'
-    svgEl.style.transform=scale>1?`translate(${ox}px,${oy}px) scale(${scale})`:''
+    contentEl.style.transformOrigin='0 0'
+    contentEl.style.transform=scale>1?`translate(${ox}px,${oy}px) scale(${scale})`:''
   }
-  svgEl.addEventListener('touchstart',e=>{
+  viewportEl.addEventListener('touchstart',e=>{
     e.preventDefault()
     if(e.touches.length===2){
-      const t=e.touches,rect=svgEl.getBoundingClientRect()
+      const t=e.touches,rect=viewportEl.getBoundingClientRect()
       initDist=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)
       initScale=scale;initOx=ox;initOy=oy
       pinchCx=(t[0].clientX+t[1].clientX)/2-rect.left
@@ -36,7 +43,7 @@ function initGraphPinch(svgEl){
       panStartOx=ox;panStartOy=oy
     }
   },{passive:false})
-  svgEl.addEventListener('touchmove',e=>{
+  viewportEl.addEventListener('touchmove',e=>{
     e.preventDefault()
     if(e.touches.length===2){
       const t=e.touches,dist=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)
@@ -48,12 +55,25 @@ function initGraphPinch(svgEl){
       oy=panStartOy+e.touches[0].clientY-panStartY;apply()
     }
   },{passive:false})
-  svgEl.addEventListener('touchend',()=>{if(scale<1.05){scale=1;ox=0;oy=0;apply()}},{passive:true})
+  viewportEl.addEventListener('touchend',()=>{if(scale<1.05){scale=1;ox=0;oy=0;apply()}},{passive:true})
   let lastTap=0
-  svgEl.addEventListener('touchend',()=>{
+  viewportEl.addEventListener('touchend',()=>{
     const now=Date.now();if(now-lastTap<300){scale=1;ox=0;oy=0;apply()};lastTap=now
   },{passive:true})
 }
+
+// Holder styr på resize/orientationchange- og gesturestart-lyttere så de kan
+// fjernes igen ved luk — ellers ville hver åbning af fullscreen-grafen lægge
+// endnu et sæt lyttere oveni (memory-leak over tid).
+let _fsResizeHandler=null
+let _fsGestureHandler=null
+function closeGraphFs(){
+  const ov=document.getElementById('graph-fs')
+  if(ov)ov.classList.add('hidden')
+  if(_fsResizeHandler){window.removeEventListener('resize',_fsResizeHandler);window.removeEventListener('orientationchange',_fsResizeHandler);_fsResizeHandler=null}
+  if(_fsGestureHandler){document.removeEventListener('gesturestart',_fsGestureHandler);_fsGestureHandler=null}
+}
+window.closeGraphFs=closeGraphFs
 
 function analyseRound(id){
   state.pendingAnalyseRound=id
@@ -190,7 +210,33 @@ window.renderAnalyse=function(){
     return
   }
   const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+  // To uafhængige filtre: "gennemført" (alle mål skudt, uanset startpunkt) og
+  // "startet ved mål 1" (gør skud-nr.-X sammenligneligt med det fysiske mål,
+  // uanset om runden blev gennemført til ende). Kan bruges hver for sig eller
+  // sammen.
+  const completedOnly=document.getElementById('analyse-completed-only')?.checked||false
+  const startAt1Only=document.getElementById('analyse-startat1-only')?.checked||false
+  // "Gennemført" = alle mål runden selv var sat op med, har en registreret
+  // score. Tjekkes direkte pr. fysisk målindeks i scores-arrayet — IKKE via
+  // traversalOrder/skudrækkefølge (calcRoundPositionAvgs), da et hul eller en
+  // afvigelse i den rækkefølge-mapping ellers kan give falsk "ikke
+  // gennemført" for en runde der reelt er fuldt udskudt. Sammenlignes bevidst
+  // heller ikke med banens nuværende antal mål — en bane kan have fået
+  // tilføjet/fjernet mål siden runden blev skudt.
+  const isCompletedRound=r=>{
+    const s=r.shooters?.find(x=>x.id===state.user?.uid)||r.shooters?.[0]
+    if(!s)return false
+    const nt=r.numTargets||24
+    for(let ti=0;ti<nt;ti++){
+      const row=s.scores[ti]||[null,null]
+      if(row[0]==null&&row[1]==null)return false
+    }
+    return true
+  }
+  const isStartAt1Round=r=>r.startTarget===1
   let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
+  if(completedOnly)filtered=filtered.filter(isCompletedRound)
+  if(startAt1Only)filtered=filtered.filter(isStartAt1Round)
   if(filterVal==='specific'){const sel=rundeEl?.value;filtered=sel?filtered.filter(r=>r.id===sel):[]}
   const antal=antalInput||filter
   const rounds=antal&&filterVal!=='specific'?filtered.slice(0,antal):filtered
@@ -233,6 +279,15 @@ window.renderAnalyse=function(){
     <div class="card stat-card"><div class="stat-lbl">BEDSTE</div><div class="stat-val-28-good">${best}</div></div>
     <div class="card stat-card"><div class="stat-lbl">LAVESTE</div><div class="stat-val-28-bad">${worst}</div></div>
   </div>`
+
+  // Liste over hvilke runder (med dato) der reelt indgår i analysen — så man
+  // kan se præcis hvad et filter/afkrydsningsfelt inkluderer/udelukker.
+  html+=`<details class="card card-mb16 rounds-included-card">
+    <summary class="section-title-mb8 rounds-included-summary">RUNDER I DENNE ANALYSE (${rounds.length})</summary>
+    <div class="rounds-included-list">
+      ${rounds.map(r=>`<div class="rounds-included-row"><span class="rounds-included-date">${fmtRD(r)}</span><span class="rounds-included-name">${esc(r.name||'Runde')}${bane==='all'?` · ${esc(r.courseName||'')}`:''}</span></div>`).join('')}
+    </div>
+  </details>`
 
   // Pil statistik
   html+=`<div class="card card-mb16">
@@ -320,64 +375,145 @@ window.renderAnalyse=function(){
     </div>`
   }
 
-  // Per-mål graf - kun ved specifik bane eller seneste runde
-  const showTargetGraph=bane!=='all'||filterVal==='lastround'||filterVal==='specific'
+  // Per-mål graf — vises altid når der er nok data, uanset om der er valgt
+  // en specifik bane eller "alle runder".
   const validTA=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
-  if(validTA.length>1&&showTargetGraph){
+  if(validTA.length>1){
     const w=340,h=160,padL=42,padB=25,padT=15,padR=15
     const mn=Math.floor(Math.min(...validTA.map(x=>x.v)))
     const mx=Math.ceil(Math.max(...validTA.map(x=>x.v)))
     const range=mx-mn||1
-    const toX=idx2=>padL+(numTargets>1?(idx2/(numTargets-1))*(w-padL-padR):0)
-    const toY=val=>padT+(h-padT-padB)*(1-(val-mn)/range)
-    const pts=validTA.map(({v,i})=>toX(i)+','+toY(v)).join(' ')
     const ticks=[]
     for(let t=mn;t<=mx;t++){if((mx-mn)<=6||t%Math.ceil((mx-mn)/5)===0)ticks.push(t)}
-    const ticksSvg=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${w-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
-    const dotsSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="3" fill="var(--acc)"/>`).join('')
-    const dotsLargeSvg=validTA.map(({v,i})=>`<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="var(--acc)"/><text x="${toX(i)}" y="${toY(v)-8}" text-anchor="middle" font-size="9" fill="#fff">${v.toFixed(1)}</text>`).join('')
-    // Bredere fullscreen-version: min 30px pr. mål
+    const {slope,intercept}=linReg(validTA.map(({v,i})=>({x:i,y:v})))
+    const stdDevVal=stdDev(validTA.map(x=>x.v))
+
+    // Bygger SVG-indholdet for en given pixel-bredde/-højde — bruges både til
+    // kort-versionen og fullscreen (hvor bredde/højde genberegnes ud fra den
+    // faktiske skærmstørrelse ved åbning og ved rotation, se openGraphFs).
+    // pointer-events:none på alle grafik-elementer sikrer at touch altid
+    // rammer viewport-elementet (se initGraphPinch) i stedet for fx en enkelt
+    // prik eller linje.
+    const mkGraphSvg=(width,height,{dotR=3,valFont=9,showVals=false}={})=>{
+      const toXw=idx2=>padL+(numTargets>1?(idx2/(numTargets-1))*(width-padL-padR):0)
+      const toYh=val=>padT+(height-padT-padB)*(1-(val-mn)/range)
+      const pts=validTA.map(({v,i})=>toXw(i)+','+toYh(v)).join(' ')
+      const ticksSvg=ticks.map(t=>`<line x1="${padL-4}" y1="${toYh(t)}" x2="${padL}" y2="${toYh(t)}" stroke="var(--muted)" stroke-width="1" pointer-events="none"/><text x="${padL-6}" y="${toYh(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)" pointer-events="none">${t}</text><line x1="${padL}" y1="${toYh(t)}" x2="${width-padR}" y2="${toYh(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3" pointer-events="none"/>`).join('')
+      const dotsSvg=validTA.map(({v,i})=>showVals
+        ?`<circle cx="${toXw(i)}" cy="${toYh(v)}" r="${dotR}" fill="var(--acc)" pointer-events="none"/><text x="${toXw(i)}" y="${toYh(v)-dotR-5}" text-anchor="middle" font-size="${valFont}" fill="#fff" pointer-events="none">${v.toFixed(1)}</text>`
+        :`<circle cx="${toXw(i)}" cy="${toYh(v)}" r="${dotR}" fill="var(--acc)" pointer-events="none"/>`
+      ).join('')
+      const trendSvg=`<line x1="${toXw(0)}" y1="${toYh(intercept)}" x2="${toXw(numTargets-1)}" y2="${toYh(intercept+slope*(numTargets-1))}" stroke="#f0c030" stroke-width="1.5" stroke-dasharray="6,4" pointer-events="none"/>`
+      return `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height-padB}" stroke="var(--surface2)" stroke-width="1" pointer-events="none"/>
+        <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="var(--surface2)" stroke-width="1" pointer-events="none"/>
+        ${ticksSvg}
+        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
+        ${trendSvg}
+        ${dotsSvg}
+        <text x="${padL}" y="${height-5}" font-size="9" fill="var(--muted)" pointer-events="none">1</text>
+        <text x="${toXw(numTargets-1)}" y="${height-5}" text-anchor="end" font-size="9" fill="var(--muted)" pointer-events="none">${numTargets}</text>`
+    }
+    // Bredere fullscreen-startværdi (min 30px pr. mål) — openGraphFs
+    // genberegner den faktiske bredde/højde ud fra skærmen ved åbning.
     const wFS=Math.max(w,numTargets*30)
-    const toXFS=idx2=>padL+(numTargets>1?(idx2/(numTargets-1))*(wFS-padL-padR):0)
-    const ptsFS=validTA.map(({v,i})=>toXFS(i)+','+toY(v)).join(' ')
-    const ticksSvgFS=ticks.map(t=>`<line x1="${padL-4}" y1="${toY(t)}" x2="${padL}" y2="${toY(t)}" stroke="var(--muted)" stroke-width="1"/><text x="${padL-6}" y="${toY(t)+4}" text-anchor="end" font-size="9" fill="var(--muted)">${t}</text><line x1="${padL}" y1="${toY(t)}" x2="${wFS-padR}" y2="${toY(t)}" stroke="var(--surface2)" stroke-width="0.5" stroke-dasharray="3,3"/>`).join('')
-    const dotsLargeSvgFS=validTA.map(({v,i})=>`<circle cx="${toXFS(i)}" cy="${toY(v)}" r="5" fill="var(--acc)"/><text x="${toXFS(i)}" y="${toY(v)-10}" text-anchor="middle" font-size="10" fill="#fff">${v.toFixed(1)}</text>`).join('')
+
     html+=`<div class="card card-mb16">
       <div class="graph-header-row">
         <span>GENNEMSNIT PR. SKUDRÆKKEFØLGE</span>
-        <button class="btn-icon graph-fs-btn" onclick="document.getElementById('graph-fs').classList.remove('hidden')">⤢</button>
+        <button class="btn-icon graph-fs-btn" onclick="window.openGraphFs()">⤢</button>
       </div>
-      <svg viewBox="0 0 ${w} ${h}" class="graph-svg">
-        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-        <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-        ${ticksSvg}
-        <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round"/>
-        ${dotsSvg}
-        <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
-        <text x="${w-padR}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
-      </svg>
-      <div class="graph-caption">Skudrækkefølge — 1 = første mål skudt</div>
+      <svg viewBox="0 0 ${w} ${h}" class="graph-svg">${mkGraphSvg(w,h,{dotR:3})}</svg>
+      <div class="graph-caption">Skudrækkefølge — 1 = første mål skudt · stiplet linje = trend</div>
     </div>
-    <div id="graph-fs" class="fs-ov hidden graph-fs-overlay" onclick="this.classList.add('hidden')">
-      <div class="graph-fs-box" onclick="event.stopPropagation()">
+    <div class="card card-mb16">
+      <div class="section-title-mb8">KONSISTENS (SPREDNING)</div>
+      <div class="spredning-row">
+        <div class="stat-val-28">${stdDevVal.toFixed(2)}</div>
+        <div class="spredning-note">Lavere tal = mere ensartet skydning gennem runden.</div>
+      </div>
+    </div>
+    <div id="graph-fs" class="fs-ov hidden graph-fs-overlay" onclick="window.closeGraphFs()">
+      <div class="graph-fs-box" id="graph-fs-box" onclick="event.stopPropagation()">
         <div class="graph-fs-title">GENNEMSNIT PR. SKUDRÆKKEFØLGE · knib for zoom · dobbelttryk for reset</div>
-        <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" class="graph-fs-svg">
-          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-          <line x1="${padL}" y1="${h-padB}" x2="${wFS-padR}" y2="${h-padB}" stroke="var(--surface2)" stroke-width="1"/>
-          ${ticksSvgFS}
-          <polyline points="${ptsFS}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
-          ${dotsLargeSvgFS}
-          <text x="${padL}" y="${h-5}" font-size="9" fill="var(--muted)">1</text>
-          <text x="${toXFS(numTargets-1)}" y="${h-5}" text-anchor="end" font-size="9" fill="var(--muted)">${numTargets}</text>
-        </svg>
-        <button class="btn btn-dark graph-fs-close-btn" onclick="document.getElementById('graph-fs').classList.add('hidden')">Luk</button>
+        <div id="graph-fs-viewport" class="graph-fs-viewport">
+          <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" class="graph-fs-svg">${mkGraphSvg(wFS,h,{dotR:5,valFont:10,showVals:true})}</svg>
+        </div>
+        <button class="btn btn-dark graph-fs-close-btn" onclick="window.closeGraphFs()">Luk</button>
       </div>
     </div>`
+
+    // Genberegner fullscreen-grafens pixel-mål ud fra den faktiske skærm ved
+    // åbning og ved rotation/resize — retter at grafen før ikke blev større
+    // ved at vende skærmen (den brugte en fast viewBox-højde uafhængigt af
+    // skærmens faktiske størrelse).
+    window.openGraphFs=function(){
+      const ov=document.getElementById('graph-fs')
+      if(!ov)return
+      ov.classList.remove('hidden')
+      const svg=document.getElementById('graph-fs-svg')
+      const box=document.getElementById('graph-fs-box')
+      const viewport=document.getElementById('graph-fs-viewport')
+      const redraw=()=>{
+        const boxW=Math.min(window.innerWidth*0.96,900)
+        const boxH=Math.min(window.innerHeight*0.9,700)
+        const availW=Math.max(200,boxW-32)
+        const availH=Math.max(140,boxH-90)
+        const wFS2=Math.max(availW,numTargets*30)
+        svg.setAttribute('viewBox',`0 0 ${wFS2} ${availH}`)
+        svg.innerHTML=mkGraphSvg(wFS2,availH,{dotR:5,valFont:10,showVals:true})
+        if(box)box.style.width=boxW+'px'
+        if(viewport){viewport.style.width=availW+'px';viewport.style.height=availH+'px'}
+      }
+      redraw()
+      if(_fsResizeHandler){window.removeEventListener('resize',_fsResizeHandler);window.removeEventListener('orientationchange',_fsResizeHandler)}
+      _fsResizeHandler=redraw
+      window.addEventListener('resize',_fsResizeHandler)
+      window.addEventListener('orientationchange',_fsResizeHandler)
+      if(_fsGestureHandler)document.removeEventListener('gesturestart',_fsGestureHandler)
+      _fsGestureHandler=e=>e.preventDefault()
+      document.addEventListener('gesturestart',_fsGestureHandler,{passive:false})
+      // viewport-elementet lever så længe analyse-fanen ikke gen-renderes —
+      // initGraphPinch må derfor kun bindes én gang, ellers stables der flere
+      // touch-lyttere oveni hinanden ved gentagne åbn/luk af fullscreen.
+      if(viewport&&!viewport.dataset.pinchInit){
+        initGraphPinch(viewport,svg)
+        viewport.dataset.pinchInit='1'
+      }
+    }
+  }
+
+  // Konsistens over tid på denne bane — så man kan se om spredningen
+  // (ensartetheden i skydningen) forbedres fra runde til runde.
+  if(bane!=='all'){
+    const toTime=r=>{const c=r.created;return c?.toDate?c.toDate().getTime():c?.seconds?c.seconds*1000:typeof c==='number'?c:0}
+    const consistencyPts=allRounds
+      .filter(r=>r.courseId===bane)
+      .filter(r=>!completedOnly||isCompletedRound(r))
+      .filter(r=>!startAt1Only||isStartAt1Round(r))
+      .map(r=>{const posAvgs=calcRoundPositionAvgs(r,state.user?.uid);return posAvgs.length>1?{t:toTime(r),cv:stdDev(posAvgs)}:null})
+      .filter(Boolean)
+      .sort((a,b)=>a.t-b.t)
+    if(consistencyPts.length>1){
+      const w2=340,h2=120,pad2=30
+      const cvVals=consistencyPts.map(p=>p.cv)
+      const mn2=Math.min(...cvVals),mx2=Math.max(...cvVals),range2=(mx2-mn2)||1
+      const xy=(p,i)=>({x:pad2+(i/(consistencyPts.length-1))*(w2-2*pad2),y:h2-pad2-((p.cv-mn2)/range2)*(h2-2*pad2)})
+      const pts2=consistencyPts.map((p,i)=>{const{x,y}=xy(p,i);return `${x},${y}`}).join(' ')
+      const dots2=consistencyPts.map((p,i)=>{const{x,y}=xy(p,i);return `<circle cx="${x}" cy="${y}" r="4" fill="#f0c030"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${p.cv.toFixed(2)}</text>`}).join('')
+      html+=`<div class="card card-mb16">
+        <div class="section-title-mb8">KONSISTENS OVER TID · denne bane</div>
+        <svg viewBox="0 0 ${w2} ${h2}" class="graph-svg">
+          <polyline points="${pts2}" fill="none" stroke="#f0c030" stroke-width="2.5" stroke-linejoin="round"/>
+          ${dots2}
+          <text x="${pad2}" y="${h2-5}" font-size="10" fill="var(--muted)">ældst</text>
+          <text x="${w2-pad2}" y="${h2-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+        </svg>
+        <div class="graph-caption">Spredning pr. runde — faldende kurve = mere ensartet skydning over tid</div>
+      </div>`
+    }
   }
 
   el.innerHTML=html
-  const gfsSvg=document.getElementById('graph-fs-svg')
-  if(gfsSvg)initGraphPinch(gfsSvg)
 
   // Sammenligning med andre skytter på samme bane
   if(bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
