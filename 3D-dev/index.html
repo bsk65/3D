@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-BahQ8jCu.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-tbI7bsZY.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-CPDoHAOY.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-Dd4UpWWU.css">
   </head>
 <body>
 
@@ -408,11 +408,13 @@
             <input type="date" id="mu-date" /></div>
           <div class="fg"><label class="lbl">Tidspunkt</label>
             <input type="time" id="mu-time" /></div>
-          <div class="mu-pool-tabs">
-            <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')">Mine venner</button>
-            <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')">Alle registrerede</button>
+          <div class="mu-pool-section">
+            <div class="mu-pool-tabs">
+              <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')">Mine venner</button>
+              <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')">Alle registrerede</button>
+            </div>
+            <button type="button" class="btn btn-dark btn-sm mu-select-all" onclick="toggleSelectAllMeetup()">Vælg alle</button>
           </div>
-          <button type="button" class="btn btn-dark btn-sm" onclick="toggleSelectAllMeetup()">Vælg alle</button>
           <div id="mu-invitee-list" class="mu-invitee-list"></div>
           <div id="mu-selected-chips" class="mu-chips-wrap"></div>
           <div class="brow">
