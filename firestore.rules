@@ -51,9 +51,11 @@ service cloud.firestore {
          request.auth.uid in resource.data.invitedUids) &&
         request.resource.data.creatorUid == resource.data.creatorUid &&
         request.resource.data.invitedUids == resource.data.invitedUids;
-      // Aftaler slettes aldrig af klienten — de forsvinder automatisk via
-      // Firestore TTL-policy på expireAt-feltet (sættes op separat i Firebase Console).
-      allow delete: if false;
+      // Kun opretteren kan slette en aftale permanent (fx en fejloprettet eller
+      // aflyst aftale man ikke vil have liggende). Ellers forsvinder aftaler
+      // automatisk via Firestore TTL-policy på expireAt-feltet (sættes op
+      // separat i Firebase Console) når den planlagte dato er passeret.
+      allow delete: if request.auth != null && resource.data.creatorUid == request.auth.uid;
     }
     match /bane_stats/{courseId}/runder/{roundId} {
       allow read: if request.auth != null &&
