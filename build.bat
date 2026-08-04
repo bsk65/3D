@@ -24,7 +24,11 @@ REM tusindvis af filer paa en gang, kan OneDrive naa at gribe ind i den
 REM efterfoelgende index.html-kopiering og stille og roligt revertere den
 REM til en gammel version foer "git commit" naar at se den - det gav en
 REM produktions-bug hvor index.html pegede paa en slettet JS-fil.
-set TMPWT=%TEMP%\3D-prod-worktree
+REM Unikt mappenavn (%RANDOM%) hver koersel - se build-dev.bat for forklaring
+REM (en genbrugt fast sti ramte gentagne gange en fejl hvor efterladt
+REM .git/worktrees-metadata fik det committede indhold til at afvige
+REM fra det verificerede, stille og uden fejl fra pre-commit-tjekket).
+set TMPWT=%TEMP%\3D-prod-worktree-%RANDOM%%RANDOM%
 if exist "%TMPWT%" (
   git worktree remove "%TMPWT%" --force >nul 2>&1
 )
@@ -67,6 +71,24 @@ git add index.html assets/ css/style.css icons/
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Prod-build opdatering"
+
+  REM Efter-commit sikkerhedstjek: bekraeft at det FAKTISK COMMITTEDE
+  REM indhold (ikke bare arbejdstraeets filer foer commit) er i sync.
+  REM Har fanget en gentagen fejl hvor pre-commit-tjekket herover bestod,
+  REM men det committede indhold alligevel pegede paa en gammel JS-fil.
+  git show HEAD:index.html > "%TMPWT%\_verify_index.html" 2>nul
+  powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\_verify_index.html" -AssetsDir "%TMPWT%\assets"
+  if errorlevel 1 (
+    echo.
+    echo FEJL: Det COMMITTEDE indhold er ikke i sync - push afbrudt!
+    echo Commit'en er lokal i %TMPWT% og er IKKE pushet til GitHub.
+    echo Ret manuelt eller kontakt Claude med denne besked.
+    echo.
+    pause
+    exit /b 1
+  )
+  del "%TMPWT%\_verify_index.html" >nul 2>&1
+
   git push origin main
   echo.
   echo === Faerdig! Appen er live om 1-2 min ===

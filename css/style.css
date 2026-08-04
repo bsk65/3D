@@ -92,6 +92,8 @@ select option{background:var(--surf);}
 .mu-invitee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bord);font-size:14px;cursor:pointer;}
 .mu-invitee-row:last-child{border-bottom:none;}
 .mu-invitee-row input{width:auto;padding:0;flex-shrink:0;}
+.mu-invitee-row.mu-invitee-unregistered{opacity:.5;cursor:default;}
+.mu-invitee-note{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap;}
 .mu-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;}
 .mu-chips-empty{color:var(--muted);font-size:12px;padding:4px 0;}
 .meetup-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:14px;margin:0 12px 10px;}

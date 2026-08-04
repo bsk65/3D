@@ -26,7 +26,11 @@ xcopy "%PROJ%\dist-dev\*" "%PROJ%\3D-dev\" /E /Y /Q
 REM Brug git worktree saa vi ikke behover at skifte branch og miste dette script.
 REM Placeres i %TEMP% (IKKE ved siden af projektet) fordi projektmappen
 REM ligger under OneDrive-synkronisering - se build.bat for forklaring.
-set TMPWT=%TEMP%\3D-main-worktree
+REM Unikt mappenavn (%RANDOM%) hver koersel - en genbrugt fast sti ramte
+REM gentagne gange en fejl hvor den efterladte .git/worktrees-metadata fra
+REM forrige koersel (kan ikke altid ryddes, se bund af scriptet) fik det
+REM committede indhold til stille at afvige fra det verificerede.
+set TMPWT=%TEMP%\3D-main-worktree-%RANDOM%%RANDOM%
 if exist "%TMPWT%" (
   git worktree remove "%TMPWT%" --force >nul 2>&1
 )
@@ -76,6 +80,24 @@ git add 3D-dev/
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Test-build opdatering [3D-dev]"
+
+  REM Efter-commit sikkerhedstjek: bekraeft at det FAKTISK COMMITTEDE
+  REM indhold (ikke bare arbejdstraeets filer foer commit) er i sync.
+  REM Har fanget en gentagen fejl hvor pre-commit-tjekket herover bestod,
+  REM men det committede indhold alligevel pegede paa en gammel JS-fil.
+  git show HEAD:3D-dev/index.html > "%TMPWT%\_verify_index.html" 2>nul
+  powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\_verify_index.html" -AssetsDir "%TMPWT%\3D-dev\assets"
+  if errorlevel 1 (
+    echo.
+    echo FEJL: Det COMMITTEDE indhold er ikke i sync - push afbrudt!
+    echo Commit'en er lokal i %TMPWT% og er IKKE pushet til GitHub.
+    echo Ret manuelt eller kontakt Claude med denne besked.
+    echo.
+    pause
+    exit /b 1
+  )
+  del "%TMPWT%\_verify_index.html" >nul 2>&1
+
   git push origin main
   echo.
   echo === Faerdig! Test-appen er live om 1-2 min ===

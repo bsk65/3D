@@ -25,18 +25,26 @@ export function shouldShowPushBanner(){
 }
 
 export async function enablePushNotifications(){
+  // Notification.requestPermission() SKAL kaldes så tæt på klikket som muligt —
+  // især Android Chrome kan stille-fejle (permission forbliver 'default') hvis
+  // der ligger en await (fx messagingReady) før kaldet, da "user activation"
+  // kan nå at udløbe. Derfor kaldes den allerførst, før noget andet async.
+  let perm
+  try{
+    perm=await Notification.requestPermission()
+  }catch(e){console.warn('Notification.requestPermission fejlede',e);showToast('Kunne ikke bede om tilladelse: '+e.message,'error');return false}
+  if(perm==='denied'){showToast('Notifikationer blokeret i browseren — skal ændres i browserens side-indstillinger','error');return false}
+  if(perm!=='granted')return false
   try{
     const supported=await messagingReady
     if(!supported||!messaging){showToast('Push-notifikationer understøttes ikke i denne browser','error');return false}
-    const perm=await Notification.requestPermission()
-    if(perm!=='granted')return false
     const reg=await registerServiceWorker()
-    if(!reg)return false
+    if(!reg){showToast('Kunne ikke registrere service worker','error');return false}
     const token=await getToken(messaging,{vapidKey:VAPID_KEY,serviceWorkerRegistration:reg})
-    if(!token)return false
+    if(!token){showToast('Kunne ikke hente push-token','error');return false}
     await updateDoc(doc(db,'users',state.user.uid),{fcmToken:token})
     return true
-  }catch(e){console.warn('Push-opsætning fejlede',e);return false}
+  }catch(e){console.warn('Push-opsætning fejlede',e);showToast('Push-fejl: '+e.message,'error');return false}
 }
 
 // Kaldes ved hver login — fornyer/gemmer token stille hvis tilladelse allerede er givet

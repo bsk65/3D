@@ -178,16 +178,28 @@ window.toggleMeetupPool=function(pool){
   renderInviteePool()
 }
 
-// Henter listen for den aktuelt viste pool ('venner' eller 'alle registrerede').
-async function getPoolPeople(){
-  if(_pool==='venner')return state.friends.map(f=>({uid:f.id,name:f.name})).sort((a,b)=>a.name.localeCompare(b.name,'da'))
+async function ensureAllUsersCache(){
   if(!_allUsersCache){
     try{
       const snap=await getDocs(collection(db,'users'))
       _allUsersCache=snap.docs.map(d=>({uid:d.id,name:d.data().name||d.data().yam||d.data().email||'—'}))
     }catch(e){console.warn(e);_allUsersCache=[]}
   }
-  return _allUsersCache.filter(u=>u.uid!==state.user?.uid).sort((a,b)=>a.name.localeCompare(b.name,'da'))
+  return _allUsersCache
+}
+
+// Henter listen for den aktuelt viste pool ('venner' eller 'alle registrerede').
+// Venner tilføjet ved manuel indtastning (fremfor søgning) har et lokalt
+// genereret id (ikke en rigtig Firebase-konto) — de kan ikke modtage en
+// meetup-invitation (hverken se den eller få en push-notifikation), så de
+// markeres 'registered:false' og vises nedtonet/ikke-vælgbare i renderInviteePool.
+async function getPoolPeople(){
+  if(_pool==='venner'){
+    const registeredIds=new Set((await ensureAllUsersCache()).map(u=>u.uid))
+    return state.friends.map(f=>({uid:f.id,name:f.name,registered:registeredIds.has(f.id)})).sort((a,b)=>a.name.localeCompare(b.name,'da'))
+  }
+  const all=await ensureAllUsersCache()
+  return all.filter(u=>u.uid!==state.user?.uid).map(u=>({...u,registered:true})).sort((a,b)=>a.name.localeCompare(b.name,'da'))
 }
 
 async function renderInviteePool(){
@@ -199,11 +211,17 @@ async function renderInviteePool(){
     return
   }
   people.forEach(p=>{
-    const row=document.createElement('label');row.className='mu-invitee-row'
+    const row=document.createElement('label');row.className='mu-invitee-row'+(p.registered===false?' mu-invitee-unregistered':'')
     const cb=document.createElement('input');cb.type='checkbox';cb.checked=_selectedInvitees.has(p.uid)
-    cb.addEventListener('change',()=>toggleInviteeMeetup(p.uid,p.name))
     const span=document.createElement('span');span.textContent=p.name
     row.appendChild(cb);row.appendChild(span)
+    if(p.registered===false){
+      cb.disabled=true
+      const note=document.createElement('span');note.className='mu-invitee-note';note.textContent='ikke registreret i appen'
+      row.appendChild(note)
+    }else{
+      cb.addEventListener('change',()=>toggleInviteeMeetup(p.uid,p.name))
+    }
     el.appendChild(row)
   })
 }
@@ -218,7 +236,7 @@ function toggleInviteeMeetup(uid,name){
 // "Vælg alle" virker kun på den aktuelt viste pool — trykkes igen når alle er
 // valgt, fravælges kun den poolens folk (de andre pools valg røres ikke).
 window.toggleSelectAllMeetup=async function(){
-  const people=await getPoolPeople()
+  const people=(await getPoolPeople()).filter(p=>p.registered!==false)
   if(!people.length)return
   const allSelected=people.every(p=>_selectedInvitees.has(p.uid))
   if(allSelected)people.forEach(p=>_selectedInvitees.delete(p.uid))
@@ -248,6 +266,18 @@ window.saveMeetup=async function(){
   if(!course){showToast('Vælg en bane','error');return}
   if(!date||!time){showToast('Vælg dato og tid','error');return}
   if(!_selectedInvitees.size){showToast('Vælg mindst én modtager','error');return}
+  // Sikkerhedstjek: filtrér uregistrerede (fejlagtigt valgte) fra, selvom
+  // renderInviteePool allerede forhindrer at vælge dem — undgår "usynlige"
+  // invitationer der aldrig når frem, hvis _selectedInvitees skulle indeholde
+  // en gammel/stale værdi.
+  const registeredIds=new Set((await ensureAllUsersCache()).map(u=>u.uid))
+  const invalidNames=[..._selectedInvitees.values()].filter(p=>!registeredIds.has(p.uid)).map(p=>p.name)
+  if(invalidNames.length){
+    invalidNames.forEach(name=>{const entry=[..._selectedInvitees.entries()].find(([,p])=>p.name===name);if(entry)_selectedInvitees.delete(entry[0])})
+    showToast(`${invalidNames.join(', ')} er ikke registreret i appen og blev ikke inviteret`,'error')
+    renderSelectedChips();renderInviteePool()
+    if(!_selectedInvitees.size)return
+  }
   const commentText=document.getElementById('mu-comment').value.trim().slice(0,300)
   const invitedUids=[..._selectedInvitees.keys()]
   const participants=[..._selectedInvitees.values()].map(p=>({uid:p.uid,name:p.name,status:'afventer',proposedDate:null,proposedTime:null}))
