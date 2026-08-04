@@ -59,7 +59,7 @@ select option{background:var(--surf);}
 .card-title{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--acc);display:flex;align-items:center;gap:6px;margin-bottom:12px;text-transform:uppercase;}
 .tab-header{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 6px;}
 .tab-title{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--acc);text-transform:uppercase;}
-.lbl{display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.lbl{display:block;font-size:12px;font-weight:700;color:var(--txt);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
 .fg{margin-bottom:11px;}
 .trow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bord);}
 .trow:last-child{border-bottom:none;}
@@ -83,14 +83,16 @@ select option{background:var(--surf);}
 
 /* ─── SKAL VI SKYDE SAMMEN ─────────────────────────────────────────────── */
 .meetups-sec{margin-top:6px;}
+.mu-pool-section{display:flex;flex-direction:column;gap:6px;}
 .mu-pool-tabs{display:flex;border:1px solid var(--bord);border-radius:var(--r);overflow:hidden;}
-.mu-pool-tab{flex:1;padding:10px;background:var(--surf);border:none;color:var(--muted);font-family:var(--fd);font-size:13px;cursor:pointer;}
+.mu-pool-tab{flex:1;padding:10px;background:var(--surf);border:none;color:var(--txt);font-family:var(--fd);font-size:13px;cursor:pointer;}
 .mu-pool-tab.active{background:var(--acc);color:#000;font-weight:600;}
-.mu-invitee-list{max-height:180px;overflow-y:auto;border:1px solid var(--bord);border-radius:var(--rs);padding:4px 10px;}
+.mu-select-all{align-self:flex-start;max-width:100%;}
+.mu-invitee-list{max-height:180px;min-height:180px;flex-shrink:0;overflow-y:auto;border:1px solid var(--bord);border-radius:var(--rs);padding:4px 10px;}
 .mu-invitee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bord);font-size:14px;cursor:pointer;}
 .mu-invitee-row:last-child{border-bottom:none;}
 .mu-invitee-row input{width:auto;padding:0;flex-shrink:0;}
-.mu-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+.mu-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;}
 .mu-chips-empty{color:var(--muted);font-size:12px;padding:4px 0;}
 .meetup-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:14px;margin:0 12px 10px;}
 .meetup-card.meetup-cancelled{border-color:var(--danger);}
