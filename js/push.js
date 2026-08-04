@@ -10,7 +10,7 @@ import { fetchMeetups, renderMeetupsList, updateMeetupBadge } from './meetups.js
 
 // Offentlig VAPID-nøgle fra Firebase Console → Project Settings → Cloud
 // Messaging → Web configuration → Generate key pair. Ikke hemmelig.
-const VAPID_KEY = '<INDSÆT_VAPID_NØGLE>'
+const VAPID_KEY = 'BOJHqC2HeXd9Ru6EjuL7HEuAZuZ2MM86LPqPfVbeQsm8M8-wgT_u3QPWYFs0XN0vfMz_FS3rDgjXgCXXm0GkmZs'
 const SW_URL = '/3D/sw.js'
 
 export async function registerServiceWorker(){
