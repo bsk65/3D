@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-D3s4_Xzo.js"></script>
+    <script type="module" crossorigin src="/3D/assets/index-Bmy3hgRw.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/assets/index-BlbKGCFj.css">
   </head>
 <body>
@@ -437,6 +437,21 @@
           <div class="brow">
             <button class="btn btn-gold" onclick="saveProposeTime()">Send forslag</button>
             <button class="btn btn-dark" onclick="document.getElementById('meetup-propose-modal').classList.add('hidden')">Annuller</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meetup rediger-tidspunkt-modal (kun opretter) -->
+      <div id="meetup-edit-modal" class="modal hidden">
+        <div class="modal-box">
+          <h3>Rediger tidspunkt</h3>
+          <div class="fg"><label class="lbl">Dato</label>
+            <input type="date" id="mu-edit-date" /></div>
+          <div class="fg"><label class="lbl">Tidspunkt</label>
+            <input type="time" id="mu-edit-time" /></div>
+          <div class="brow">
+            <button class="btn btn-gold" onclick="saveEditMeetup()">Gem</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-edit-modal').classList.add('hidden')">Annuller</button>
           </div>
         </div>
       </div>
