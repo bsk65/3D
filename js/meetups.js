@@ -144,6 +144,7 @@ window.openMeetupModal=function(){
   renderCourseList()
   document.getElementById('mu-date').value=''
   document.getElementById('mu-time').value=''
+  document.getElementById('mu-comment').value=''
   document.querySelectorAll('.mu-pool-tab').forEach(b=>b.classList.toggle('active',b.dataset.pool==='venner'))
   renderInviteePool()
   renderSelectedChips()
@@ -247,15 +248,17 @@ window.saveMeetup=async function(){
   if(!course){showToast('Vælg en bane','error');return}
   if(!date||!time){showToast('Vælg dato og tid','error');return}
   if(!_selectedInvitees.size){showToast('Vælg mindst én modtager','error');return}
+  const commentText=document.getElementById('mu-comment').value.trim().slice(0,300)
   const invitedUids=[..._selectedInvitees.keys()]
   const participants=[..._selectedInvitees.values()].map(p=>({uid:p.uid,name:p.name,status:'afventer',proposedDate:null,proposedTime:null}))
+  const comments=commentText?[{uid:state.user.uid,name:state.profile?.name||'—',text:commentText,createdAt:new Date()}]:[]
   const expireAt=new Date(`${date}T${time}`)
   expireAt.setDate(expireAt.getDate()+1)
   const data={
     courseId:course.id, courseName:course.name||course.yam||'',
     date, time,
     creatorUid:state.user.uid, creatorName:state.profile?.name||'—',
-    pool:_pool, invitedUids, participants, comments:[],
+    pool:_pool, invitedUids, participants, comments,
     status:'åben', createdAt:serverTimestamp(), updatedAt:serverTimestamp(), expireAt
   }
   try{
