@@ -440,6 +440,21 @@
         </div>
       </div>
 
+      <!-- Meetup rediger-tidspunkt-modal (kun opretter) -->
+      <div id="meetup-edit-modal" class="modal hidden">
+        <div class="modal-box">
+          <h3>Rediger tidspunkt</h3>
+          <div class="fg"><label class="lbl">Dato</label>
+            <input type="date" id="mu-edit-date" /></div>
+          <div class="fg"><label class="lbl">Tidspunkt</label>
+            <input type="time" id="mu-edit-time" /></div>
+          <div class="brow">
+            <button class="btn btn-gold" onclick="saveEditMeetup()">Gem</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-edit-modal').classList.add('hidden')">Annuller</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Friend modal -->
       <div id="friend-modal" class="modal hidden">
         <div class="modal-box">
