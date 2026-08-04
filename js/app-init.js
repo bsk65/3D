@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('push-enable-btn')?.addEventListener('click',async()=>{
     document.getElementById('push-banner').classList.add('hidden')
     const ok=await enablePushNotifications()
-    showToast(ok?'Notifikationer aktiveret':'Kunne ikke aktivere notifikationer',ok?'success':'error')
+    if(ok)showToast('Notifikationer aktiveret','success')
   })
   document.getElementById('push-dismiss-btn')?.addEventListener('click',()=>{
     document.getElementById('push-banner').classList.add('hidden')
