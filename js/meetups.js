@@ -180,14 +180,14 @@ window.toggleMeetupPool=function(pool){
 
 // Henter listen for den aktuelt viste pool ('venner' eller 'alle registrerede').
 async function getPoolPeople(){
-  if(_pool==='venner')return state.friends.map(f=>({uid:f.id,name:f.name}))
+  if(_pool==='venner')return state.friends.map(f=>({uid:f.id,name:f.name})).sort((a,b)=>a.name.localeCompare(b.name,'da'))
   if(!_allUsersCache){
     try{
       const snap=await getDocs(collection(db,'users'))
       _allUsersCache=snap.docs.map(d=>({uid:d.id,name:d.data().name||d.data().yam||d.data().email||'—'}))
     }catch(e){console.warn(e);_allUsersCache=[]}
   }
-  return _allUsersCache.filter(u=>u.uid!==state.user?.uid)
+  return _allUsersCache.filter(u=>u.uid!==state.user?.uid).sort((a,b)=>a.name.localeCompare(b.name,'da'))
 }
 
 async function renderInviteePool(){
