@@ -12,6 +12,8 @@ import { fetchCourses, renderCoursesList, updateTargetInFirestore, compressImage
 import { renderAdminSection } from './admin.js'
 import { renderRoundsList } from './results.js'
 import { fetchMeetups, renderMeetupsList, updateMeetupBadge, markMeetupsSeen } from './meetups.js'
+import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGranted,
+         shouldShowPushBanner, listenForegroundPush } from './push.js'
 import './analyse.js'
 import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
          releaseWakeLock } from './round.js'
@@ -24,6 +26,10 @@ import './auth.js'
 
 window.toggleGpsPause = toggleGpsPause
 window.parseRoute = parseRoute
+
+// Modul-niveau (ikke inde i DOMContentLoaded) da både klik-handleren og
+// onLogin() skal kunne læse/skrive den.
+const PUSH_DISMISS_KEY = 'archery_push_dismissed'
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -85,6 +91,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('pwa-dismiss-btn')?.addEventListener('click',()=>{
     document.getElementById('pwa-banner').classList.add('hidden')
     localStorage.setItem(PWA_DISMISS_KEY,'1')
+  })
+
+  // Push-notifikationer (meetup-invitationer)
+  document.getElementById('push-enable-btn')?.addEventListener('click',async()=>{
+    document.getElementById('push-banner').classList.add('hidden')
+    const ok=await enablePushNotifications()
+    showToast(ok?'Notifikationer aktiveret':'Kunne ikke aktivere notifikationer',ok?'success':'error')
+  })
+  document.getElementById('push-dismiss-btn')?.addEventListener('click',()=>{
+    document.getElementById('push-banner').classList.add('hidden')
+    localStorage.setItem(PUSH_DISMISS_KEY,'1')
   })
 
   // iOS Safari sender aldrig beforeinstallprompt — vis manuel vejledning i stedet
@@ -202,6 +219,17 @@ function onLogin(){
 
   // Hent "Skal vi skyde sammen"-aftaler
   fetchMeetups().then(()=>{renderMeetupsList();updateMeetupBadge()}).catch(e=>console.warn('Hent meetups:',e))
+
+  // Push-notifikationer: registrér SW + lyt efter push mens appen er åben.
+  // Har brugeren allerede givet tilladelse fornyes token stille; ellers vises
+  // banneret — men kun hvis hverken PWA- eller iOS-installationsbanneret vises.
+  registerServiceWorker().then(reg=>{if(reg)listenForegroundPush()})
+  refreshPushTokenIfGranted()
+  if(shouldShowPushBanner()&&localStorage.getItem(PUSH_DISMISS_KEY)!=='1'
+     &&document.getElementById('pwa-banner').classList.contains('hidden')
+     &&document.getElementById('ios-install-banner').classList.contains('hidden')){
+    setTimeout(()=>document.getElementById('push-banner')?.classList.remove('hidden'),1000)
+  }
 
   tryResumeRound()
 }

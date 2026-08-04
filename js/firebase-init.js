@@ -10,6 +10,7 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
          collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
+import { getMessaging, isSupported as isMessagingSupported, getToken, onMessage } from 'firebase/messaging'
 
 // ─── FIREBASE SETUP ───────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -28,7 +29,15 @@ const db = initializeFirestore(app, {
 })
 const storage = getStorage(app)
 
-export { app, auth, db, storage }
+// Messaging er ikke understøttet i alle browsere/kontekster — messagingReady
+// afgør asynkront om `messaging` kan bruges, før nogen kalder getToken/onMessage.
+let messaging = null
+const messagingReady = isMessagingSupported().then(supported=>{
+  if(supported) messaging = getMessaging(app)
+  return supported
+})
+
+export { app, auth, db, storage, messaging, messagingReady }
 
 // Re-eksporter de SDK-funktioner appen bruger, så resten af koden kun
 // afhænger af dette modul (ikke af 'firebase/*' direkte).
@@ -37,3 +46,4 @@ export { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndP
 export { collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
          updateDoc, addDoc, serverTimestamp, query, where }
 export { ref, uploadString, getDownloadURL, deleteObject }
+export { getToken, onMessage }
