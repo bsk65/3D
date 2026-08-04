@@ -26,6 +26,7 @@ let _pool = 'venner'
 let _allUsersCache = null
 let _proposeMeetupId = null
 let _selectedCourseId = null
+let _editMeetupId = null
 
 // ─── HENT ───────────────────────────────────────────────────────────────────
 // Firestore har ikke OR — to simple queries merges client-side (creator ELLER inviteret).
@@ -104,6 +105,7 @@ function renderMeetupCard(m){
       ;(m.participants||[]).filter(p=>p.status==='foreslået'&&p.proposedDate).forEach(p=>{
         actions+=`<button class="btn btn-gold btn-sm" onclick="acceptProposedTime('${m.id}','${p.uid}')">Accepter ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')} (${esc(p.name)})</button>`
       })
+      actions+=`<button class="btn btn-dark btn-sm" onclick="openEditMeetupModal('${m.id}')">Rediger tidspunkt</button>`
       actions+=`<button class="btn btn-dark btn-sm" onclick="cancelMeetup('${m.id}')">Aflys</button>`
     }
   }
@@ -350,6 +352,34 @@ window.acceptProposedTime=async function(meetupId,uid){
     m.date=newDate;m.time=newTime;m.participants=participants;m.updatedAt=Date.now()
     renderMeetupsList()
     showToast('Nyt tidspunkt accepteret','success')
+  }catch(e){showToast('Fejl: '+e.message,'error')}
+}
+
+// Kun opretter: rediger tidspunkt direkte (fx efter en uformel besked i
+// kommentarfeltet) — uden at skulle vente på en formel "foreslå
+// andet tidspunkt"-anmodning fra en deltager. Nulstiller ligesom
+// acceptProposedTime alle deltageres status til 'afventer', da det gamle
+// tilsagn/afbud ikke nødvendigvis gælder for det nye tidspunkt.
+window.openEditMeetupModal=function(meetupId){
+  const m=state.meetups.find(x=>x.id===meetupId);if(!m||m.creatorUid!==state.user?.uid)return
+  _editMeetupId=meetupId
+  document.getElementById('mu-edit-date').value=m.date
+  document.getElementById('mu-edit-time').value=m.time
+  document.getElementById('meetup-edit-modal').classList.remove('hidden')
+}
+
+window.saveEditMeetup=async function(){
+  const date=document.getElementById('mu-edit-date').value
+  const time=document.getElementById('mu-edit-time').value
+  if(!date||!time){showToast('Vælg dato og tid','error');return}
+  const m=state.meetups.find(x=>x.id===_editMeetupId);if(!m||m.creatorUid!==state.user?.uid)return
+  const participants=(m.participants||[]).map(p=>({...p,status:'afventer',proposedDate:null,proposedTime:null}))
+  try{
+    await updateDoc(doc(db,'meetups',m.id),{date,time,participants,updatedAt:serverTimestamp()})
+    m.date=date;m.time=time;m.participants=participants;m.updatedAt=Date.now()
+    document.getElementById('meetup-edit-modal').classList.add('hidden')
+    renderMeetupsList()
+    showToast('Tidspunkt opdateret','success')
   }catch(e){showToast('Fejl: '+e.message,'error')}
 }
 
