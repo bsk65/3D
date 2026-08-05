@@ -11,7 +11,7 @@
 
 import { state } from './state.js'
 import { esc } from './utils.js'
-import { scoreVal, calcTotal, parseScores } from './scoring.js'
+import { scoreVal, calcTotal, parseScores, arrowsPerTarget } from './scoring.js'
 import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
 
@@ -90,13 +90,13 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
   const sc1=st1.myScores[0]||0,sc2=st2.myScores[0]||0,diff=Math.abs(sc1-sc2)
   const sep='<div class="cmp-sep"></div>'
   const pilRow=(st,lbl,col)=>`<div style="font-size:11px;color:${col};margin-bottom:4px;">${esc(lbl)}</div>
-    <div class="cmp-pil-grid">
+    ${st.waRoundCount?`<div class="cmp-pil-grid">
       <div><div class="cmp-pil-lbl">PIL 1</div><div class="cmp-pil-val">${st.p1avg}</div></div>
       <div class="cmp-pil-mid">
         <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
       </div>
       <div><div class="cmp-pil-lbl">PIL 2</div><div class="cmp-pil-val">${st.p2avg}</div></div>
-    </div>`
+    </div>`:`<div class="pil-best-note">Ikke relevant (ikke en WA-runde)</div>`}`
   const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
     <div class="cmp-target-grid">
       <div class="cmp-target-best">
@@ -144,9 +144,9 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
       <div></div>
       ${zones.map(z=>`<div style="text-align:center;font-weight:700;color:${zColors[z]};">${z}</div>`).join('')}
       <div class="cmp-dist-lbl-a">${esc(lbl1)}</div>
-      ${zones.map(z=>`<div class="cmp-dist-val">${(st1.distP1[z]||0)+(st1.distP2[z]||0)}</div>`).join('')}
+      ${zones.map(z=>`<div class="cmp-dist-val">${st1.distAll[z]||0}</div>`).join('')}
       <div class="cmp-dist-lbl-b">${esc(lbl2)}</div>
-      ${zones.map(z=>`<div class="cmp-dist-val">${(st2.distP1[z]||0)+(st2.distP2[z]||0)}</div>`).join('')}
+      ${zones.map(z=>`<div class="cmp-dist-val">${st2.distAll[z]||0}</div>`).join('')}
     </div>
   </div>`
   return h
@@ -234,7 +234,9 @@ window.renderAnalyse=function(){
     return true
   }
   const isStartAt1Round=r=>r.startTarget===1
+  const rulesetFilter=document.getElementById('analyse-ruleset')?.value||'all'
   let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
+  if(rulesetFilter!=='all')filtered=filtered.filter(r=>(r.ruleset||'WA')===rulesetFilter)
   if(completedOnly)filtered=filtered.filter(isCompletedRound)
   if(startAt1Only)filtered=filtered.filter(isStartAt1Round)
   if(filterVal==='specific'){const sel=rundeEl?.value;filtered=sel?filtered.filter(r=>r.id===sel):[]}
@@ -246,11 +248,16 @@ window.renderAnalyse=function(){
   const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
   const best=myScores.length?Math.max(...myScores):0
   const worst=myScores.length?Math.min(...myScores):0
-  let p1t=0,p1n=0,p2t=0,p2n=0
+  let p1t=0,p1n=0,p2t=0,p2n=0,waRoundCount=0
   const distP1={11:0,10:0,8:0,5:0,M:0}
   const distP2={11:0,10:0,8:0,5:0,M:0}
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
+    // Samme udelukkelse som stats.js' calcAnalyseStats (bruges kun i
+    // sammenlign-tilstand) — hovedvisningens PIL 1/PIL 2-opgørelse har sin
+    // egen kopi af logikken her, så begge steder skal holdes i sync.
+    if(arrowsPerTarget(r.ruleset)<2)return
+    waRoundCount++
     s.scores.forEach(t=>{
       if(t[0]!=null){if(t[0]==='M'){distP1.M++;p1n++}else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
       if(t[1]!=null){if(t[1]==='M'){distP2.M++;p2n++}else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
@@ -285,14 +292,16 @@ window.renderAnalyse=function(){
   html+=`<details class="card card-mb16 rounds-included-card">
     <summary class="section-title-mb8 rounds-included-summary">RUNDER I DENNE ANALYSE (${rounds.length})</summary>
     <div class="rounds-included-list">
-      ${rounds.map(r=>`<div class="rounds-included-row"><span class="rounds-included-date">${fmtRD(r)}</span><span class="rounds-included-name">${esc(r.name||'Runde')}${bane==='all'?` · ${esc(r.courseName||'')}`:''}</span></div>`).join('')}
+      ${rounds.map(r=>`<div class="rounds-included-row"><span class="rounds-included-date">${fmtRD(r)}</span><span class="rounds-included-name">${esc(r.name||'Runde')}${bane==='all'?` · ${esc(r.courseName||'')}`:''}${r.ruleset&&r.ruleset!=='WA'?` · <span class="rcard-ruleset-tag">${esc(r.ruleset)}</span>`:''}</span></div>`).join('')}
     </div>
   </details>`
 
-  // Pil statistik
+  // Pil statistik — PIL 1 vs PIL 2 giver kun mening for regelsæt med ≥2 pile
+  // pr. mål; vis en forklarende note i stedet, hvis udvalget ikke indeholder
+  // nogen WA-runder (p1n/p2n er da altid 0, jf. udelukkelsen ovenfor).
   html+=`<div class="card card-mb16">
     <div class="section-title-mb8">PIL STATISTIK</div>
-    <div class="cmp-pil-grid">
+    ${waRoundCount?`<div class="cmp-pil-grid">
       <div><div class="stat-lbl">PIL 1</div><div class="stat-val-22">${p1avg}</div></div>
       <div class="cmp-pil-mid">
         <div class="stat-lbl">SNT/PIL</div>
@@ -302,7 +311,7 @@ window.renderAnalyse=function(){
     </div>
     <div class="pil-best-note">
       ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
-    </div>
+    </div>`:`<div class="pil-best-note">Ikke relevant — ingen WA-runder i dette udvalg</div>`}
   </div>`
 
   // Bedste/dårligste mål
@@ -324,38 +333,44 @@ window.renderAnalyse=function(){
     </div>`
   }
 
-  // Lagkagediagrammer
+  // Lagkagediagrammer — splitter pr. pil-position (PIL 1/PIL 2), samme
+  // begrænsning som PIL STATISTIK-kortet ovenfor: kun meningsfuldt for
+  // WA-runder, vis en note i stedet hvis udvalget ikke indeholder nogen.
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>
-    <div class="pie-grid">`
-  zones.forEach(z=>{
-    const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
-    const r=30
-    let pie=''
-    if(tot===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="var(--surface2)"/>`}
-    else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#ffd700"/>`}
-    else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#00cc44"/>`}
-    else{
-      const pct=v1/tot,angle=pct*2*Math.PI
-      const x1=r,y1=0
-      const x2=r-r*Math.sin(angle),y2=r-r*Math.cos(angle)
-      const large=angle>Math.PI?1:0
-      pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},0 ${x2},${y2} Z" fill="#ffd700"/>
-           <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},0 ${x1},${y1} Z" fill="#00cc44"/>`
-    }
-    html+=`<div class="pie-cell">
-      <div class="pie-zone-label">${z}</div>
-      <svg viewBox="0 0 ${r*2} ${r*2}" class="pie-svg">${pie}</svg>
-      <div class="pie-count">${v1}/${v2}</div>
-      <div class="pie-total">${tot}</div>
-    </div>`
-  })
-  html+=`</div>
-    <div class="pie-legend">
-      <span><span class="pie-legend-dot-1"></span>PIL 1</span>
-      <span><span class="pie-legend-dot-2"></span>PIL 2</span>
-    </div>
-  </div>`
+    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>`
+  if(waRoundCount){
+    html+=`<div class="pie-grid">`
+    zones.forEach(z=>{
+      const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
+      const r=30
+      let pie=''
+      if(tot===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="var(--surface2)"/>`}
+      else if(v2===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#ffd700"/>`}
+      else if(v1===0){pie=`<circle cx="${r}" cy="${r}" r="${r}" fill="#00cc44"/>`}
+      else{
+        const pct=v1/tot,angle=pct*2*Math.PI
+        const x1=r,y1=0
+        const x2=r-r*Math.sin(angle),y2=r-r*Math.cos(angle)
+        const large=angle>Math.PI?1:0
+        pie=`<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${large},0 ${x2},${y2} Z" fill="#ffd700"/>
+             <path d="M${r},${r} L${x2},${y2} A${r},${r} 0 ${1-large},0 ${x1},${y1} Z" fill="#00cc44"/>`
+      }
+      html+=`<div class="pie-cell">
+        <div class="pie-zone-label">${z}</div>
+        <svg viewBox="0 0 ${r*2} ${r*2}" class="pie-svg">${pie}</svg>
+        <div class="pie-count">${v1}/${v2}</div>
+        <div class="pie-total">${tot}</div>
+      </div>`
+    })
+    html+=`</div>
+      <div class="pie-legend">
+        <span><span class="pie-legend-dot-1"></span>PIL 1</span>
+        <span><span class="pie-legend-dot-2"></span>PIL 2</span>
+      </div>`
+  }else{
+    html+=`<div class="pil-best-note">Ikke relevant — ingen WA-runder i dette udvalg</div>`
+  }
+  html+=`</div>`
 
   // Udviklingsgraf
   if(myScores.length>1){
