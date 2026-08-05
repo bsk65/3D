@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-BEp-yUHd.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-BlbKGCFj.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-RSA0NUEI.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-DJHqawxW.css">
   </head>
 <body>
 
@@ -95,6 +95,11 @@
               <option value="custom">Andet...</option>
             </select>
             <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" style="display:none;" /></div>
+          <div class="fg"><label class="lbl">Forbund</label>
+            <select id="ruleset-sel">
+              <option value="WA" selected>WA</option>
+              <option value="HDD-IAA">HDD-IAA</option>
+            </select></div>
         </div>
 
         <div class="card">
@@ -254,6 +259,11 @@
         </select>
         <select id="analyse-bane" onchange="renderAnalyse()" class="analyse-filter-select">
           <option value="all">Alle baner</option>
+        </select>
+        <select id="analyse-ruleset" onchange="renderAnalyse()" class="analyse-filter-select">
+          <option value="all" selected>Alle forbund</option>
+          <option value="WA">WA</option>
+          <option value="HDD-IAA">HDD-IAA</option>
         </select>
         <div class="analyse-antal-wrap">
           <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
