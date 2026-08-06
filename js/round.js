@@ -157,8 +157,8 @@ function renderShooters(){
       </div>
       <div class="arrows-row">${Array.from({length:apt},(_,ai)=>`
         <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">🎯 PIL ${ai+1}</div>`:''}
-          <div class="score-btns">${zoneValues.map(v=>`
-            <button class="sbtn ${row[ai]===v?`sel-${v}`:''}" data-v="${v}"
+          <div class="score-btns">${zoneValues.map((v,zi)=>`
+            <button class="sbtn ${v==='M'?'rank-M':`rank-${zi}`} ${row[ai]===v?`sel-${v}`:''}" data-v="${v}"
               onclick="setScore(${si},${tIdx},${ai},'${v}')">${v}</button>`).join('')}
           </div></div>`).join('')}
       </div>`

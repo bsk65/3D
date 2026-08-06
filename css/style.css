@@ -151,11 +151,15 @@ select option{background:var(--surf);}
 .score-btns{display:flex;flex-direction:column;gap:4px;}
 .sbtn{width:100%;padding:14px 6px;border:none;border-radius:var(--rs);font-family:var(--fd);font-size:21px;font-weight:700;cursor:pointer;color:#fff;}
 .sbtn:active{transform:scale(0.97);}
-.sbtn[data-v="11"]{background:#b87a10;}
-.sbtn[data-v="10"]{background:#c89020;}
-.sbtn[data-v="8"]{background:#a06810;}
-.sbtn[data-v="5"]{background:#7a4a1a;}
-.sbtn[data-v="M"]{background:#3a3a3a;color:#999;}
+/* Standardfarve (ikke valgt) efter RANG i rundens regelsæt (0=bedste zone),
+   ikke efter selve tallet — en bane-uafhængig gradient fra lys til mørk guld/
+   brun, så fx DGS' bedste zone "5" ikke arver WA's farve for "5" (som er
+   WA's DÅRLIGSTE numeriske zone). M er altid grå uanset regelsæt. */
+.sbtn.rank-0{background:#b87a10;}
+.sbtn.rank-1{background:#c89020;}
+.sbtn.rank-2{background:#a06810;}
+.sbtn.rank-3{background:#7a4a1a;}
+.sbtn.rank-M{background:#3a3a3a;color:#999;}
 .sbtn.sel-11{background:#1a7a3a !important;box-shadow:0 0 0 3px #2aaa5a;color:#fff;}
 .sbtn.sel-10{background:#1a5aaa !important;box-shadow:0 0 0 3px #2a7acc;color:#fff;}
 .sbtn.sel-8{background:#d4700a !important;box-shadow:0 0 0 3px #ff9933;color:#fff;}
