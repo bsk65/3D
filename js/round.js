@@ -12,7 +12,8 @@ import { esc, showToast, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
 import { scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
-         deserializeRound, buildOrder, parseScores, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
+         deserializeRound, buildOrder, parseScores, arrowsPerTarget, scoreValuesFor,
+         warnThresholdFor, DEFAULT_RULESET } from './scoring.js'
 import { findNearestTarget, getCurrentPosition, startTracking, stopTracking,
          formatDuration, formatDistance } from './gps.js'
 import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
@@ -48,6 +49,15 @@ window.addParticipant=function(id,name){
   div.innerHTML=`<span class="pchip-name">🎯 ${esc(name)}</span><button class="pchip-rm" onclick="this.closest('.pchip').remove()">✕</button>`
   document.getElementById('p-list').appendChild(div)
 }
+
+// Skift af forbund ved rundeoprettelse sætter advarselsgrænsens standardværdi
+// til det nye regelsæts egen skala (fx WA:8 → DGS:4) — ellers arver DGS/andre
+// fremtidige regelsæt en urealistisk WA-standard, som konstant ville udløse
+// advarsel for alle skytter.
+document.getElementById('ruleset-sel')?.addEventListener('change',e=>{
+  const el=document.getElementById('warn-thresh')
+  if(el)el.value=warnThresholdFor(e.target.value)
+})
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
 window.startRound=async function(){

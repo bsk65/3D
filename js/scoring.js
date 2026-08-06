@@ -12,14 +12,18 @@ export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 // egne scorezoner (værdier faldende, 'M' for miss). Et nyt forbund tilføjes
 // ved at lægge én linje til her — resten af koden er skrevet mod
 // arrowsPerTarget()/scoreValuesFor(), ikke mod hardkodede tal/zoner.
+// warnThreshold: fornuftig standard-advarselsgrænse ("Aktiver advarsel")
+// for regelsættets skala — forhindrer at fx DGS' 5-3-(-1)-skala arver WA's
+// urealistiske standard på 8 (som DGS aldrig kan nå).
 export const RULESETS = {
-  WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'] },
-  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'] },
-  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'] }
+  WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
+  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
+  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
 }
 export const DEFAULT_RULESET = 'WA'
 export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
 export function scoreValuesFor(ruleset) { return RULESETS[ruleset]?.scoreValues ?? SCORE_VALUES }
+export function warnThresholdFor(ruleset) { return RULESETS[ruleset]?.warnThreshold ?? 8 }
 
 // Numerisk værdi af et enkelt skud. 'M' (miss) og null/undefined tæller som 0.
 export function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }
