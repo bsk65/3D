@@ -12,7 +12,7 @@
 import { state } from './state.js'
 import { esc, showToast } from './utils.js'
 import { lsSave } from './storage.js'
-import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores, arrowsPerTarget } from './scoring.js'
+import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores, arrowsPerTarget, scoreValuesFor } from './scoring.js'
 import { parseRoute, formatDuration, formatDistance } from './gps.js'
 import { db, doc, deleteDoc } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
@@ -21,7 +21,7 @@ import { removeVisitFromCourse } from './courses.js'
 function buildDistribution(round){
   const apt=arrowsPerTarget(round.ruleset)
   return '<div class="dist-grid">'+round.shooters.map(s=>{
-    const d=calcDistribution(s.scores)
+    const d=calcDistribution(s.scores,round.ruleset)
     const total=calcTotal(s.scores)
     const allArr=s.scores.flat().filter(v=>v!=null)
     const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
@@ -63,15 +63,14 @@ function buildResultsTable(round){
 }
 
 function buildSummaryCards(round){
-  const zones=['11','10','8','5','M']
-  const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+  const zones=scoreValuesFor(round.ruleset)
   const apt=arrowsPerTarget(round.ruleset)
   return round.shooters.map(s=>{
     const total=calcTotal(s.scores)
     const allArr=s.scores.flat().filter(v=>v!=null)
     const totalArrows=allArr.length
     const avgAll=totalArrows?(allArr.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):'—'
-    const dist=calcDistribution(s.scores)
+    const dist=calcDistribution(s.scores,round.ruleset)
     let pilRow=''
     if(apt>=2){
       const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
@@ -200,7 +199,7 @@ window.sendResults=async function(round){
     }
     const allArr=s.scores.flat().filter(v=>v!=null)
     const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
-    const dist=calcDistribution(s.scores)
+    const dist=calcDistribution(s.scores,round.ruleset)
     body+='  Total: '+calcTotal(s.scores)+' point\n'
     if(apt>=2){
       const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)

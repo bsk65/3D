@@ -11,7 +11,7 @@
 
 import { state } from './state.js'
 import { esc } from './utils.js'
-import { scoreVal, calcTotal, parseScores, arrowsPerTarget } from './scoring.js'
+import { scoreVal, calcTotal, parseScores, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
 import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
 
@@ -84,19 +84,22 @@ function analyseRound(id){
 // undgår cirkulær import — samme som window.populateCourseDropdown).
 window.analyseRound = analyseRound
 
+// Farve pr. scorezone i sammenlign-tilstandens fordelingstabel — dækker alle
+// tre regelsæts værdier (WA/HDD-IAA: 11/10/8/5/M, DGS: 5/3/-1/M); ukendte
+// fremtidige zoner falder tilbage til --muted.
+const CMP_ZONE_COLORS={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333','3':'#0a8a8a','-1':'#5a5a6a'}
+
 function buildCompareHtml(st1,lbl1,st2,lbl2){
-  const zones=['11','10','8','5','M']
-  const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
   const sc1=st1.myScores[0]||0,sc2=st2.myScores[0]||0,diff=Math.abs(sc1-sc2)
   const sep='<div class="cmp-sep"></div>'
   const pilRow=(st,lbl,col)=>`<div style="font-size:11px;color:${col};margin-bottom:4px;">${esc(lbl)}</div>
-    ${st.waRoundCount?`<div class="cmp-pil-grid">
+    ${st.pilEligible?`<div class="cmp-pil-grid">
       <div><div class="cmp-pil-lbl">PIL 1</div><div class="cmp-pil-val">${st.p1avg}</div></div>
       <div class="cmp-pil-mid">
         <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
       </div>
       <div><div class="cmp-pil-lbl">PIL 2</div><div class="cmp-pil-val">${st.p2avg}</div></div>
-    </div>`:`<div class="pil-best-note">Ikke relevant (ikke en WA-runde)</div>`}`
+    </div>`:`<div class="pil-best-note">Ikke relevant${st.pilRuleset?` (${st.pilRuleset} skydes med 1 pil pr. mål)`:''}</div>`}`
   const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
     <div class="cmp-target-grid">
       <div class="cmp-target-best">
@@ -138,15 +141,21 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
       ${targetRow(st1,lbl1,'var(--acc)')}${sep}${targetRow(st2,lbl2,'#f0c030')}
     </div>`
   }
+  // Zoner = foreningen af begge runders faktiske regelsæt-værdier — dækker
+  // korrekt både to runder med samme regelsæt og (sjældnere) to forskellige.
+  const cmpZones=[...new Set([
+    ...(st1.pilRuleset?scoreValuesFor(st1.pilRuleset):Object.keys(st1.distAll)),
+    ...(st2.pilRuleset?scoreValuesFor(st2.pilRuleset):Object.keys(st2.distAll))
+  ])]
   h+=`<div class="card card-mb16">
     <div class="cmp-section-title">FORDELING PR. SCOREZONE</div>
     <div class="cmp-dist-grid">
       <div></div>
-      ${zones.map(z=>`<div style="text-align:center;font-weight:700;color:${zColors[z]};">${z}</div>`).join('')}
+      ${cmpZones.map(z=>`<div style="text-align:center;font-weight:700;color:${CMP_ZONE_COLORS[z]||'var(--muted)'};">${z}</div>`).join('')}
       <div class="cmp-dist-lbl-a">${esc(lbl1)}</div>
-      ${zones.map(z=>`<div class="cmp-dist-val">${st1.distAll[z]||0}</div>`).join('')}
+      ${cmpZones.map(z=>`<div class="cmp-dist-val">${st1.distAll[z]||0}</div>`).join('')}
       <div class="cmp-dist-lbl-b">${esc(lbl2)}</div>
-      ${zones.map(z=>`<div class="cmp-dist-val">${st2.distAll[z]||0}</div>`).join('')}
+      ${cmpZones.map(z=>`<div class="cmp-dist-val">${st2.distAll[z]||0}</div>`).join('')}
     </div>
   </div>`
   return h
@@ -250,19 +259,32 @@ window.renderAnalyse=function(){
   const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
   const best=myScores.length?Math.max(...myScores):0
   const worst=myScores.length?Math.min(...myScores):0
-  let p1t=0,p1n=0,p2t=0,p2n=0,waRoundCount=0
-  const distP1={11:0,10:0,8:0,5:0,M:0}
-  const distP2={11:0,10:0,8:0,5:0,M:0}
+  // Samlet snit/pil på tværs af ALLE runder i udvalget, uanset regelsæt eller
+  // pilEligible — bruges til "sammenlign med andre skytter" nedenfor, som
+  // altid skal kunne vise et tal (i modsætning til PIL1-vs-PIL2-kortet, der
+  // kræver ét fælles regelsæt).
+  const allArrowsFlat=rounds.flatMap(r=>{const s=getMe(r);return s?s.scores.flat().filter(v=>v!=null):[]})
+  const overallPilAvg=allArrowsFlat.length?(allArrowsFlat.reduce((a,v)=>a+scoreVal(v),0)/allArrowsFlat.length).toFixed(2):0
+  // PIL 1 vs PIL 2-sammenligning og fordeling pr. scorezone kræver ÉN fælles
+  // pointskala — kun meningsfuldt hvis ALLE runder i udvalget deler samme
+  // regelsæt (uanset hvilket) OG det regelsæt har mindst 2 pile pr. mål. Ved
+  // en blanding af regelsæt (fx WA+DGS, forskellige scorezoner) er der ingen
+  // fælles skala, så sektionen vises ikke (se pilEligible-brug nedenfor).
+  // Samme logik som stats.js' calcAnalyseStats (bruges kun i sammenlign-
+  // tilstand) — hovedvisningen har sin egen kopi her, hold dem i sync.
+  const rulesetsInPlay=new Set(rounds.map(r=>r.ruleset||DEFAULT_RULESET))
+  const pilRuleset=rulesetsInPlay.size===1?[...rulesetsInPlay][0]:null
+  const pilEligible=!!pilRuleset&&arrowsPerTarget(pilRuleset)>=2
+  let p1t=0,p1n=0,p2t=0,p2n=0
+  const zoneValues=pilEligible?scoreValuesFor(pilRuleset):[]
+  const distP1={},distP2={}
+  zoneValues.forEach(z=>{distP1[z]=0;distP2[z]=0})
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
-    // Samme udelukkelse som stats.js' calcAnalyseStats (bruges kun i
-    // sammenlign-tilstand) — hovedvisningens PIL 1/PIL 2-opgørelse har sin
-    // egen kopi af logikken her, så begge steder skal holdes i sync.
-    if(arrowsPerTarget(r.ruleset)<2)return
-    waRoundCount++
+    if(!pilEligible)return
     s.scores.forEach(t=>{
-      if(t[0]!=null){if(t[0]==='M'){distP1.M++;p1n++}else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
-      if(t[1]!=null){if(t[1]==='M'){distP2.M++;p2n++}else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
+      if(t[0]!=null){if(distP1[t[0]]!==undefined)distP1[t[0]]++;p1t+=scoreVal(t[0]);p1n++}
+      if(t[1]!=null){if(distP2[t[1]]!==undefined)distP2[t[1]]++;p2t+=scoreVal(t[1]);p2n++}
     })
   })
   const p1avg=p1n?(p1t/p1n).toFixed(2):0
@@ -277,8 +299,6 @@ window.renderAnalyse=function(){
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
   const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
   const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
-  const colors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
-  const zones=['11','10','8','5','M']
   let html=''
 
   // Nøgletal
@@ -298,15 +318,16 @@ window.renderAnalyse=function(){
     </div>
   </details>`
 
-  // Pil statistik — PIL 1 vs PIL 2 giver kun mening for regelsæt med ≥2 pile
-  // pr. mål; vis en forklarende note i stedet, hvis udvalget ikke indeholder
-  // nogen WA-runder (p1n/p2n er da altid 0, jf. udelukkelsen ovenfor). Ved en
-  // BLANDING af WA- og andre runder skal overskriften gøre det tydeligt at
-  // kun WA-runderne indgår, så tallet ikke fejlagtigt læses som "alle runder".
-  const waScopeNote=(waRoundCount>0&&waRoundCount<rounds.length)?` <span class="pil-scope-note">(kun WA-runder: ${waRoundCount} af ${rounds.length})</span>`:''
+  // Pil statistik — PIL 1 vs PIL 2 kræver ét fælles regelsæt med ≥2 pile pr.
+  // mål (se pilEligible ovenfor). Note forklarer HVORFOR hvis skjult: enten
+  // fordi udvalget blander flere regelsæt, eller fordi det ene regelsæt der
+  // er valgt kun har 1 pil pr. mål.
+  const pilNote=pilRuleset
+    ?`Ikke relevant — ${pilRuleset} skydes med 1 pil pr. mål`
+    :`Vælg et specifikt forbund i filteret ovenfor for at se pil-fordeling (runderne i dette udvalg bruger forskellige regelsæt)`
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb8">PIL STATISTIK${waScopeNote}</div>
-    ${waRoundCount?`<div class="cmp-pil-grid">
+    <div class="section-title-mb8">PIL STATISTIK</div>
+    ${pilEligible?`<div class="cmp-pil-grid">
       <div><div class="stat-lbl">PIL 1</div><div class="stat-val-22">${p1avg}</div></div>
       <div class="cmp-pil-mid">
         <div class="stat-lbl">SNT/PIL</div>
@@ -316,7 +337,7 @@ window.renderAnalyse=function(){
     </div>
     <div class="pil-best-note">
       ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
-    </div>`:`<div class="pil-best-note">Ikke relevant — ingen WA-runder i dette udvalg</div>`}
+    </div>`:`<div class="pil-best-note">${pilNote}</div>`}
   </div>`
 
   // Bedste/dårligste mål
@@ -339,13 +360,12 @@ window.renderAnalyse=function(){
   }
 
   // Lagkagediagrammer — splitter pr. pil-position (PIL 1/PIL 2), samme
-  // begrænsning som PIL STATISTIK-kortet ovenfor: kun meningsfuldt for
-  // WA-runder, vis en note i stedet hvis udvalget ikke indeholder nogen.
+  // begrænsning som PIL STATISTIK-kortet ovenfor.
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb12">FORDELING PR. SCOREZONE${waScopeNote}</div>`
-  if(waRoundCount){
+    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>`
+  if(pilEligible){
     html+=`<div class="pie-grid">`
-    zones.forEach(z=>{
+    zoneValues.forEach(z=>{
       const v1=distP1[z]||0,v2=distP2[z]||0,tot=v1+v2
       const r=30
       let pie=''
@@ -373,7 +393,7 @@ window.renderAnalyse=function(){
         <span><span class="pie-legend-dot-2"></span>PIL 2</span>
       </div>`
   }else{
-    html+=`<div class="pil-best-note">Ikke relevant — ingen WA-runder i dette udvalg</div>`
+    html+=`<div class="pil-best-note">${pilNote}</div>`
   }
   html+=`</div>`
 
@@ -548,20 +568,26 @@ window.renderAnalyse=function(){
     el.appendChild(compEl)
     getDocs(collection(db,'bane_stats',bane,'runder')).then(snap=>{
       const alle=snap.docs.map(d=>d.data())
-      const sammeKlasse=alle.filter(d=>d.kon===state.profile.kon&&d.bueklasse===state.profile.bueklasse)
+      // Kun sammenligne inden for samme forbund når et specifikt er valgt —
+      // forskellige regelsæts snit/pil er ikke sammenlignelige på tværs (fx
+      // WA's 0-11-skala vs. DGS' -1-5-skala). Ved "Alle forbund" bevares
+      // den oprindelige, regelsæt-blinde opførsel (ældre bane_stats-data har
+      // ikke et ruleset-felt og antages WA, jf. DEFAULT_RULESET-fallback).
+      let sammeKlasse=alle.filter(d=>d.kon===state.profile.kon&&d.bueklasse===state.profile.bueklasse)
+      if(rulesetFilter!=='all')sammeKlasse=sammeKlasse.filter(d=>(d.ruleset||DEFAULT_RULESET)===rulesetFilter)
       if(!sammeKlasse.length){
         compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div class="comp-loading-msg">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
         return
       }
       const validEntries=sammeKlasse.filter(d=>(d.arrowsShot||d.numTargets*2)>0)
       const andresSnit=validEntries.length?(validEntries.reduce((s,d)=>s+d.score/(d.arrowsShot||d.numTargets*2),0)/validEntries.length).toFixed(2):'—'
-      const diff=andresSnit!=='—'?Number(pilAvg)-Number(andresSnit):null
+      const diff=andresSnit!=='—'?Number(overallPilAvg)-Number(andresSnit):null
       const diffStr=diff!==null?(diff>0?'+':'')+diff.toFixed(2):'—'
       const diffColor=diff===null?'var(--muted)':diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
       compEl.innerHTML=`<div class="card card-mb16">
         <div class="section-title-mb12">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
         <div class="cmp-pil-grid">
-          <div><div class="stat-lbl">DIT SNT/PIL</div><div class="stat-val-22">${pilAvg}</div></div>
+          <div><div class="stat-lbl">DIT SNT/PIL</div><div class="stat-val-22">${overallPilAvg}</div></div>
           <div class="cmp-pil-mid">
             <div class="stat-lbl">DIFFERENCE</div>
             <div style="font-size:22px;font-weight:700;color:${diffColor};">${diffStr}</div>

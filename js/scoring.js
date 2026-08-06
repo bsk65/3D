@@ -1,22 +1,29 @@
 // js/scoring.js — Ren scoringslogik (ingen DOM/Firebase-afhængigheder).
 //
 // Scores gemmes som 2D-array pr. skytte: scores[targetIndex] = [pil1, ...]
-// med værdier 11 | 10 | 8 | 5 | 'M' | null. Rækkens længde = antal pile pr.
-// mål for rundens regelsæt (2 for WA, 1 for HDD-IAA, se RULESETS herunder).
-// Serialiseres til Firestore som streng: "11,10;8,5;M,M" (WA) hhv. "11;8;M"
-// (HDD-IAA).
+// med værdier fra rundens regelsæt (se RULESETS herunder, fx 11|10|8|5|'M'
+// for WA, 5|3|-1|'M' for DGS) eller null. Rækkens længde = antal pile pr.
+// mål for regelsættet (2 for WA/DGS, 1 for HDD-IAA). Serialiseres til
+// Firestore som streng: "11,10;8,5;M,M" (WA) hhv. "11;8;M" (HDD-IAA).
 
 export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 
-// Regelsæt-registry: hvert forbund adskiller sig (indtil videre) kun ved
-// antal pile pr. mål. Et nyt forbund tilføjes ved at lægge én linje til her —
-// resten af koden er skrevet mod arrowsPerTarget(), ikke mod hardkodet 1/2.
+// Regelsæt-registry: hvert forbund har sit eget antal pile pr. mål OG sine
+// egne scorezoner (værdier faldende, 'M' for miss). Et nyt forbund tilføjes
+// ved at lægge én linje til her — resten af koden er skrevet mod
+// arrowsPerTarget()/scoreValuesFor(), ikke mod hardkodede tal/zoner.
+// warnThreshold: fornuftig standard-advarselsgrænse ("Aktiver advarsel")
+// for regelsættets skala — forhindrer at fx DGS' 5-3-(-1)-skala arver WA's
+// urealistiske standard på 8 (som DGS aldrig kan nå).
 export const RULESETS = {
-  WA:        { label: 'WA',       arrowsPerTarget: 2 },
-  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1 }
+  WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
+  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
+  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
 }
 export const DEFAULT_RULESET = 'WA'
 export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
+export function scoreValuesFor(ruleset) { return RULESETS[ruleset]?.scoreValues ?? SCORE_VALUES }
+export function warnThresholdFor(ruleset) { return RULESETS[ruleset]?.warnThreshold ?? 8 }
 
 // Numerisk værdi af et enkelt skud. 'M' (miss) og null/undefined tæller som 0.
 export function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }
@@ -51,13 +58,11 @@ export function calcTargetAverage(shooters, tIdx) {
   return (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1)
 }
 
-// Antal forekomster af hver scorezone.
-export function calcDistribution(scores) {
-  const d = {11:0, 10:0, 8:0, 5:0, M:0}
-  scores.flat().forEach(v => {
-    if (v === 'M') d.M++
-    else if (v != null && d[Number(v)] !== undefined) d[Number(v)]++
-  })
+// Antal forekomster af hver scorezone (zonerne bestemmes af rundens regelsæt).
+export function calcDistribution(scores, ruleset) {
+  const d = {}
+  scoreValuesFor(ruleset).forEach(z => { d[z] = 0 })
+  scores.flat().forEach(v => { if (v != null && d[v] !== undefined) d[v]++ })
   return d
 }
 
