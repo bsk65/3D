@@ -395,12 +395,16 @@ window.renderAnalyse=function(){
   const validTA=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
   if(validTA.length>1){
     const w=340,h=160,padL=42,padB=25,padT=15,padR=15
-    const mn=Math.floor(Math.min(...validTA.map(x=>x.v)))
-    const mx=Math.ceil(Math.max(...validTA.map(x=>x.v)))
+    const {slope,intercept}=linReg(validTA.map(({v,i})=>({x:i,y:v})))
+    // Y-aksen skal dække BÅDE de faktiske mål-gennemsnit OG trendlinjens
+    // to endepunkter — ellers kan en stejl trend (fx få, spredte datapunkter)
+    // få den stiplede linje til at ende uden for grafens tegneflade.
+    const trendVals=[intercept,intercept+slope*(numTargets-1)]
+    const mn=Math.floor(Math.min(...validTA.map(x=>x.v),...trendVals))
+    const mx=Math.ceil(Math.max(...validTA.map(x=>x.v),...trendVals))
     const range=mx-mn||1
     const ticks=[]
     for(let t=mn;t<=mx;t++){if((mx-mn)<=6||t%Math.ceil((mx-mn)/5)===0)ticks.push(t)}
-    const {slope,intercept}=linReg(validTA.map(({v,i})=>({x:i,y:v})))
     const stdDevVal=stdDev(validTA.map(x=>x.v))
 
     // Bygger SVG-indholdet for en given pixel-bredde/-højde — bruges både til
@@ -444,7 +448,7 @@ window.renderAnalyse=function(){
       <div class="section-title-mb8">KONSISTENS (SPREDNING)</div>
       <div class="spredning-row">
         <div class="stat-val-28">${stdDevVal.toFixed(2)}</div>
-        <div class="spredning-note">Lavere tal = mere ensartet skydning gennem runden.</div>
+        <div class="spredning-note">Standardafvigelse i point (samme skala som scoren, 0-11) — ikke et 0-1-tal. Tæt på 0 = meget ensartet gennem runden; jo højere tal, jo større udsving mellem de bedste og sværeste mål.</div>
       </div>
     </div>
     <div id="graph-fs" class="fs-ov hidden graph-fs-overlay" onclick="window.closeGraphFs()">
@@ -523,7 +527,7 @@ window.renderAnalyse=function(){
           <text x="${pad2}" y="${h2-5}" font-size="10" fill="var(--muted)">ældst</text>
           <text x="${w2-pad2}" y="${h2-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
         </svg>
-        <div class="graph-caption">Spredning pr. runde — faldende kurve = mere ensartet skydning over tid</div>
+        <div class="graph-caption">Spredning pr. runde (samme point-skala som ovenfor) — faldende kurve = mere ensartet skydning over tid</div>
       </div>`
     }
   }
