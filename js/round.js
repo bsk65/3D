@@ -12,7 +12,7 @@ import { esc, showToast, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
 import { SCORE_VALUES, scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
-         deserializeRound, buildOrder, parseScores } from './scoring.js'
+         deserializeRound, buildOrder, parseScores, arrowsPerTarget, DEFAULT_RULESET } from './scoring.js'
 import { findNearestTarget, getCurrentPosition, startTracking, stopTracking,
          formatDuration, formatDistance } from './gps.js'
 import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
@@ -59,15 +59,17 @@ window.startRound=async function(){
   const gpsAuto=document.getElementById('gps-auto-sw').classList.contains('on')
   const gpsTrack=document.getElementById('gps-track-sw').classList.contains('on')
   state.warnThreshold=Number(document.getElementById('warn-thresh').value)||8
+  const ruleset=document.getElementById('ruleset-sel')?.value||DEFAULT_RULESET
+  const apt=arrowsPerTarget(ruleset)
 
   const parts=[{id:state.user.uid,name:state.profile.name,isGuest:false},...getParticipants().filter(p=>p.id!==state.user.uid)]
   state.course=courseId?(state.courses.find(c=>c.id===courseId)||null):null
 
-  const shooters=parts.map(p=>{const s=makeShooter(p.id,p.name,p.isGuest);normalizeScores(s,numTargets);return s})
+  const shooters=parts.map(p=>{const s=makeShooter(p.id,p.name,p.isGuest);normalizeScores(s,numTargets,apt);return s})
   let startIdx=startAt
   if(gpsAuto&&state.course?.targets){try{startIdx=findNearestTarget(state.course.targets,await getCurrentPosition())}catch(e){}}
 
-  state.round={id:'r_'+Date.now(),name,courseId:courseId||null,courseName:state.course?.name||null,numTargets,startTarget:startIdx+1,
+  state.round={id:'r_'+Date.now(),name,courseId:courseId||null,courseName:state.course?.name||null,numTargets,startTarget:startIdx+1,ruleset,
     shooters,created:Date.now(),traversalOrder:buildOrder(startIdx,numTargets),traversalPos:0}
 
   if(gpsTrack){
@@ -96,7 +98,7 @@ export function updateTopBar(){
   document.getElementById('round-badge').textContent=state.round.name
   const target=state.course?.targets?.[tIdx]
   document.getElementById('anim-name').textContent=target?.name||`Mål ${tIdx+1}`
-  const scored=countScored(state.round.shooters,n)
+  const scored=countScored(state.round.shooters,n,arrowsPerTarget(state.round.ruleset))
   document.getElementById('pbar').style.width=`${(scored/n)*100}%`
   const allVals=state.round.shooters.flatMap(s=>s.scores.flat().filter(v=>v!=null))
   const sum=allVals.reduce((a,v)=>a+scoreVal(v),0)
@@ -119,27 +121,31 @@ export function updateTopBar(){
 function renderShooters(){
   if(!state.round)return
   const tIdx=curTargetIdx(),el=document.getElementById('shooters-list');el.innerHTML=''
+  const apt=arrowsPerTarget(state.round.ruleset)
   state.round.shooters.forEach((s,si)=>{
-    const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||[null,null]
+    const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
     const card=document.createElement('div');card.className='shooter-card'
-    const p1arr=s.scores.map(t=>t[0]).filter(v=>v!=null)
-    const p2arr=s.scores.map(t=>t[1]).filter(v=>v!=null)
-    const allArr=[...p1arr,...p2arr]
-    const p1avg=p1arr.length?(p1arr.reduce((a,v)=>a+scoreVal(v),0)/p1arr.length).toFixed(2):'—'
-    const p2avg=p2arr.length?(p2arr.reduce((a,v)=>a+scoreVal(v),0)/p2arr.length).toFixed(2):'—'
+    const allArr=s.scores.flat().filter(v=>v!=null)
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
+    // Pr.-position-mini-stats (P1/P2/...) giver kun mening når der er mere end
+    // én pil pr. mål — ved 1 pil (fx HDD-IAA) er de redundante med SNT.
+    let miniGroup=`<div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>`
+    if(apt>=2){
+      const posArr=Array.from({length:apt},(_,ai)=>s.scores.map(t=>t[ai]).filter(v=>v!=null))
+      const posAvg=posArr.map(a=>a.length?(a.reduce((x,v)=>x+scoreVal(v),0)/a.length).toFixed(2):'—')
+      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[0]}</div></div>`
+      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
+      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[1]}</div></div>`
+    }else{
+      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
+    }
     card.innerHTML=`
       <div class="sh-head"><span class="sh-target-emoji">🎯</span>${warn?'<span class="warn-dot"></span>':''}
         <span class="sh-name">${esc(s.name)}</span>
-        <div class="sh-mini-group">
-          <div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val sh-mini-val-sm">${p1avg}</div></div>
-          <div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>
-          <div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val sh-mini-val-sm">${p2avg}</div></div>
-        </div>
+        <div class="sh-mini-group">${miniGroup}</div>
       </div>
-      <div class="arrows-row">${[0,1].map(ai=>`
-        <div class="arrow-grp"><div class="arrow-lbl">🎯 PIL ${ai+1}</div>
+      <div class="arrows-row">${Array.from({length:apt},(_,ai)=>`
+        <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">🎯 PIL ${ai+1}</div>`:''}
           <div class="score-btns">${SCORE_VALUES.map(v=>`
             <button class="sbtn ${row[ai]===v?`sel-${v}`:''}" data-v="${v}"
               onclick="setScore(${si},${tIdx},${ai},'${v}')">${v}</button>`).join('')}

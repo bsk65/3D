@@ -1,10 +1,22 @@
 // js/scoring.js — Ren scoringslogik (ingen DOM/Firebase-afhængigheder).
 //
-// Scores gemmes som 2D-array pr. skytte: scores[targetIndex] = [pil1, pil2]
-// med værdier 11 | 10 | 8 | 5 | 'M' | null. Serialiseres til Firestore som
-// streng: "11,10;8,5;M,M".
+// Scores gemmes som 2D-array pr. skytte: scores[targetIndex] = [pil1, ...]
+// med værdier 11 | 10 | 8 | 5 | 'M' | null. Rækkens længde = antal pile pr.
+// mål for rundens regelsæt (2 for WA, 1 for HDD-IAA, se RULESETS herunder).
+// Serialiseres til Firestore som streng: "11,10;8,5;M,M" (WA) hhv. "11;8;M"
+// (HDD-IAA).
 
 export const SCORE_VALUES = [11, 10, 8, 5, 'M']
+
+// Regelsæt-registry: hvert forbund adskiller sig (indtil videre) kun ved
+// antal pile pr. mål. Et nyt forbund tilføjes ved at lægge én linje til her —
+// resten af koden er skrevet mod arrowsPerTarget(), ikke mod hardkodet 1/2.
+export const RULESETS = {
+  WA:        { label: 'WA',       arrowsPerTarget: 2 },
+  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1 }
+}
+export const DEFAULT_RULESET = 'WA'
+export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
 
 // Numerisk værdi af et enkelt skud. 'M' (miss) og null/undefined tæller som 0.
 export function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }
@@ -65,16 +77,16 @@ export function isBelowThreshold(scores, threshold) {
 // Opretter et tomt skytte-objekt.
 export function makeShooter(id, name, isGuest) { return { id, name, isGuest: !!isGuest, scores: [] } }
 
-// Udfylder scores-array med [null,null] op til n mål.
-export function normalizeScores(s, n) {
-  while (s.scores.length < n) s.scores.push([null, null])
+// Udfylder scores-array med tomme mål-rækker (længde = pile pr. mål) op til n mål.
+export function normalizeScores(s, n, arrowsPerTgt=2) {
+  while (s.scores.length < n) s.scores.push(Array(arrowsPerTgt).fill(null))
 }
 
-// Antal mål hvor ALLE skytter har skudt begge pile.
-export function countScored(shooters, n) {
+// Antal mål hvor ALLE skytter har skudt samtlige pile for det mål.
+export function countScored(shooters, n, arrowsPerTgt=2) {
   let c = 0
   for (let t = 0; t < n; t++) {
-    if (shooters.every(s => { const r = s.scores[t]||[null,null]; return r[0]!=null && r[1]!=null })) c++
+    if (shooters.every(s => { const r = s.scores[t]||[]; return r.length>=arrowsPerTgt && r.slice(0,arrowsPerTgt).every(v=>v!=null) })) c++
   }
   return c
 }
@@ -85,6 +97,7 @@ export function serializeRound(round) {
     id: round.id||null,
     name: round.name, courseId: round.courseId||null, courseName: round.courseName||null,
     numTargets: round.numTargets, startTarget: round.startTarget||1,
+    ruleset: round.ruleset||DEFAULT_RULESET,
     created: round.created, completed: round.completed||null,
     gpsRoute: round.gpsRoute||null, gpsDuration: round.gpsDuration||null, gpsDistance: round.gpsDistance||null,
     traversalOrder: round.traversalOrder, traversalPos: round.traversalPos||0,
@@ -95,7 +108,7 @@ export function serializeRound(round) {
 
 // Modsatte af serializeRound (strenge → scores-array).
 export function deserializeRound(data) {
-  return { ...data, shooters: (data.shooters||[]).map(s => ({ ...s, scores: parseScores(s.scores) })) }
+  return { ...data, ruleset: data.ruleset||DEFAULT_RULESET, shooters: (data.shooters||[]).map(s => ({ ...s, scores: parseScores(s.scores) })) }
 }
 
 // Cirkulær rækkefølge af målindeks fra et startmål.

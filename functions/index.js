@@ -1,9 +1,10 @@
-// functions/index.js — Cloud Function der sender push-notifikationer til
-// inviterede brugere, når en ny "Skal vi skyde sammen"-aftale oprettes.
-// Kører server-side (Admin SDK) fordi en klient ikke selv kan sende push
-// til andre brugeres enheder uden en betroet backend.
+// functions/index.js — Cloud Functions der sender push-notifikationer til
+// inviterede brugere for "Skal vi skyde sammen"-aftaler: ved oprettelse af
+// en ny aftale, og ved ændret dato/tidspunkt på en eksisterende. Kører
+// server-side (Admin SDK) fordi en klient ikke selv kan sende push til
+// andre brugeres enheder uden en betroet backend.
 
-const { onDocumentCreated } = require('firebase-functions/v2/firestore')
+const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore')
 const { setGlobalOptions } = require('firebase-functions/v2')
 const admin = require('firebase-admin')
 
@@ -15,13 +16,12 @@ function formatDate(iso) {
   return y && m && d ? `${d}-${m}-${y}` : iso
 }
 
-exports.onMeetupCreated = onDocumentCreated('meetups/{meetupId}', async (event) => {
-  const meetup = event.data.data()
-  const invitedUids = meetup.invitedUids || []
-  if (!invitedUids.length) return
-
+// Sender en push-besked til fcmToken for hver af de givne uids, og rydder
+// døde tokens op. Bruges af begge triggers herunder.
+async function sendToUids(uids, title, body) {
+  if (!uids.length) return
   const db = admin.firestore()
-  const userSnaps = await db.getAll(...invitedUids.map(uid => db.doc(`users/${uid}`)))
+  const userSnaps = await db.getAll(...uids.map(uid => db.doc(`users/${uid}`)))
 
   const tokens = []
   const tokenToUid = new Map()
@@ -32,15 +32,10 @@ exports.onMeetupCreated = onDocumentCreated('meetups/{meetupId}', async (event) 
   if (!tokens.length) return
 
   const message = {
-    data: {
-      title: 'Ny skydning foreslået',
-      body: `${meetup.creatorName} har foreslået en skydning på ${meetup.courseName} d. ${formatDate(meetup.date)} kl. ${meetup.time}`,
-      url: '/3D/'
-    },
+    data: { title, body, url: '/3D/' },
     tokens,
     webpush: { headers: { Urgency: 'high' } }
   }
-
   const resp = await admin.messaging().sendEachForMulticast(message)
 
   const cleanup = []
@@ -55,4 +50,30 @@ exports.onMeetupCreated = onDocumentCreated('meetups/{meetupId}', async (event) 
     }
   })
   await Promise.all(cleanup)
+}
+
+exports.onMeetupCreated = onDocumentCreated('meetups/{meetupId}', async (event) => {
+  const meetup = event.data.data()
+  await sendToUids(
+    meetup.invitedUids || [],
+    'Ny skydning foreslået',
+    `${meetup.creatorName} har foreslået en skydning på ${meetup.courseName} d. ${formatDate(meetup.date)} kl. ${meetup.time}`
+  )
+})
+
+// Notificerer ved ændret dato/tidspunkt (fx "Rediger tidspunkt" eller
+// accept af et foreslået tidspunkt) — ikke ved andre felt-ændringer
+// (kommentarer, deltager-status m.m.). Opretteren selv udelades, da det
+// altid er opretteren der udløser ændringen.
+exports.onMeetupUpdated = onDocumentUpdated('meetups/{meetupId}', async (event) => {
+  const before = event.data.before.data()
+  const after = event.data.after.data()
+  if (before.date === after.date && before.time === after.time) return
+
+  const uids = (after.invitedUids || []).filter(uid => uid !== after.creatorUid)
+  await sendToUids(
+    uids,
+    'Tidspunkt ændret',
+    `${after.creatorName} har ændret tidspunktet for skydningen på ${after.courseName} til d. ${formatDate(after.date)} kl. ${after.time}`
+  )
 })

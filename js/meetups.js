@@ -9,7 +9,7 @@
 
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
-import { db, collection, doc, addDoc, updateDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
+import { db, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
 
 const SEEN_KEY = 'archery_meetups_seen'
 const STATUS_LABELS = { afventer:'Afventer', tilmeldt:'Tilmeldt ✅', 'foreslået':'Foreslår andet tidspunkt 🕓', afvist:'Afbud ❌' }
@@ -107,6 +107,7 @@ function renderMeetupCard(m){
       })
       actions+=`<button class="btn btn-dark btn-sm" onclick="openEditMeetupModal('${m.id}')">Rediger tidspunkt</button>`
       actions+=`<button class="btn btn-dark btn-sm" onclick="cancelMeetup('${m.id}')">Aflys</button>`
+      actions+=`<button class="btn btn-red btn-sm" onclick="deleteMeetup('${m.id}')">Slet</button>`
     }
   }
 
@@ -390,6 +391,20 @@ window.cancelMeetup=function(meetupId){
       await updateDoc(doc(db,'meetups',m.id),{status:'aflyst',updatedAt:serverTimestamp()})
       m.status='aflyst';m.updatedAt=Date.now()
       renderMeetupsList()
+    }catch(e){showToast('Fejl: '+e.message,'error')}
+  })
+}
+
+// Permanent sletning (kun opretter) — i modsætning til Aflys forsvinder
+// aftalen straks for alle, i stedet for at blive stående (nedtonet) til
+// datoen er passeret.
+window.deleteMeetup=function(meetupId){
+  const m=state.meetups.find(x=>x.id===meetupId);if(!m||m.creatorUid!==state.user?.uid)return
+  showConfirm('Slet denne skydning permanent? Det kan ikke fortrydes.',async()=>{
+    try{
+      await deleteDoc(doc(db,'meetups',m.id))
+      state.meetups=state.meetups.filter(x=>x.id!==meetupId)
+      renderMeetupsList();updateMeetupBadge()
     }catch(e){showToast('Fejl: '+e.message,'error')}
   })
 }

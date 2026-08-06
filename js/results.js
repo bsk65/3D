@@ -12,23 +12,28 @@
 import { state } from './state.js'
 import { esc, showToast } from './utils.js'
 import { lsSave } from './storage.js'
-import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores } from './scoring.js'
+import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores, arrowsPerTarget } from './scoring.js'
 import { parseRoute, formatDuration, formatDistance } from './gps.js'
 import { db, doc, deleteDoc } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
 function buildDistribution(round){
+  const apt=arrowsPerTarget(round.ruleset)
   return '<div class="dist-grid">'+round.shooters.map(s=>{
     const d=calcDistribution(s.scores)
     const total=calcTotal(s.scores)
-    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
-    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
     const allArr=s.scores.flat().filter(v=>v!=null)
-    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
-    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
     const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
-    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row dist-row-total"><span>Total</span><span>${total} pt</span></div><div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div><div class="dist-row dist-row-border"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
+    let pilRows=''
+    if(apt>=2){
+      const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
+      const arr2=s.scores.map(t=>(t||[])[1]).filter(v=>v!=null)
+      const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+      const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+      pilRows=`<div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div>`
+    }
+    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row dist-row-total"><span>Total</span><span>${total} pt</span></div>${pilRows}<div class="dist-row dist-row-border"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
   }).join('')+'</div>'
 }
 
@@ -41,13 +46,14 @@ export function renderResults(round){
 
 function buildResultsTable(round){
   const startT=(round.startTarget||1)-1
+  const apt=arrowsPerTarget(round.ruleset)
   let h=`<div class="tbl-wrap"><table class="rtbl"><tr><th>Mål</th>${round.shooters.map(s=>`<th>${s.name}</th>`).join('')}</tr>`
   for(let t=0;t<round.numTargets;t++){
     const isStart=t===startT
     h+=`<tr><td class="tc">${isStart?`<span class="start-target-dot"></span>`:''}${t+1}</td>`
     round.shooters.forEach(s=>{
-      const r=s.scores[t]||[null,null]
-      const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
+      const r=s.scores[t]||Array(apt).fill(null)
+      const sum=r.reduce((a,v)=>a+(v!=null&&v!=='M'?Number(v):0),0)
       h+=`<td>${r.map(v=>v==null?'—':v).join('/')}<br><small>${sum}</small></td>`
     })
     h+='</tr>'
@@ -59,16 +65,30 @@ function buildResultsTable(round){
 function buildSummaryCards(round){
   const zones=['11','10','8','5','M']
   const zColors={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333'}
+  const apt=arrowsPerTarget(round.ruleset)
   return round.shooters.map(s=>{
     const total=calcTotal(s.scores)
-    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
-    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
     const allArr=s.scores.flat().filter(v=>v!=null)
     const totalArrows=allArr.length
-    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
-    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
     const avgAll=totalArrows?(allArr.reduce((a,v)=>a+scoreVal(v),0)/totalArrows).toFixed(2):'—'
     const dist=calcDistribution(s.scores)
+    let pilRow=''
+    if(apt>=2){
+      const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
+      const arr2=s.scores.map(t=>(t||[])[1]).filter(v=>v!=null)
+      const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+      const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+      pilRow=`<div class="summary-stats-row2">
+        <div class="summary-stat-box-sm">
+          <div class="summary-stat-val-sm">${avg1}</div>
+          <div class="summary-stat-lbl">SNIT PIL 1</div>
+        </div>
+        <div class="summary-stat-box-sm">
+          <div class="summary-stat-val-sm">${avg2}</div>
+          <div class="summary-stat-lbl">SNIT PIL 2</div>
+        </div>
+      </div>`
+    }
     return `<div class="summary-card">
       <div class="summary-card-name">${esc(s.name)}</div>
       <div class="summary-stats-row3">
@@ -85,16 +105,7 @@ function buildSummaryCards(round){
           <div class="summary-stat-lbl">SNT/PIL</div>
         </div>
       </div>
-      <div class="summary-stats-row2">
-        <div class="summary-stat-box-sm">
-          <div class="summary-stat-val-sm">${avg1}</div>
-          <div class="summary-stat-lbl">SNIT PIL 1</div>
-        </div>
-        <div class="summary-stat-box-sm">
-          <div class="summary-stat-val-sm">${avg2}</div>
-          <div class="summary-stat-lbl">SNIT PIL 2</div>
-        </div>
-      </div>
+      ${pilRow}
       <div class="summary-zones-row">
         ${zones.map(z=>`<div><div class="summary-zone-key">${z}</div><div class="summary-zone-val">${dist[z]||0}</div></div>`).join('')}
       </div>
@@ -103,8 +114,9 @@ function buildSummaryCards(round){
 }
 
 function buildActualResults(round){
+  const apt=arrowsPerTarget(round.ruleset)
   const data=round.shooters.map(s=>{
-    const shot=s.scores.filter(t=>{const r=t||[null,null];return r[0]!==null&&r[1]!==null})
+    const shot=s.scores.filter(t=>{const r=t||Array(apt).fill(null);return r.length>=apt&&r.slice(0,apt).every(v=>v!==null)})
     if(!shot.length||shot.length===round.numTargets)return null
     const flat=shot.flat().filter(v=>v!==null)
     const total=flat.reduce((a,v)=>a+scoreVal(v),0)
@@ -128,7 +140,8 @@ export function renderRoundsList(){
     const winner=shooters.length?findWinner(shooters):null
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'
     const card=document.createElement('div');card.className='rcard'
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||'Runde')}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||r.numTargets+' mål')}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
+    const rulesetTag=r.ruleset&&r.ruleset!=='WA'?` · <span class="rcard-ruleset-tag">${esc(r.ruleset)}</span>`:''
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||'Runde')}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||r.numTargets+' mål')}${rulesetTag}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
     card.querySelector('.rcard-analyse').onclick=()=>window.analyseRound(r.id)
     card.querySelector('.del-btn').onclick=e=>{
@@ -177,22 +190,27 @@ window.sendResults=async function(round){
   const sorted=[...round.shooters].sort((a,b)=>calcTotal(b.scores)-calcTotal(a.scores))
   sorted.forEach((s,i)=>{body+='\n'+(i+1)+'. '+s.name+': '+calcTotal(s.scores)+' point'})
   body+='\n\n--- DETALJERET ---\n'
+  const apt=arrowsPerTarget(round.ruleset)
   round.shooters.forEach(s=>{
     body+='\n'+s.name+':\n'
     for(let t=0;t<round.numTargets;t++){
-      const r=s.scores[t]||[null,null]
-      const sum=(r[0]!=null&&r[0]!=='M'?Number(r[0]):0)+(r[1]!=null&&r[1]!=='M'?Number(r[1]):0)
+      const r=s.scores[t]||Array(apt).fill(null)
+      const sum=r.reduce((a,v)=>a+(v!=null&&v!=='M'?Number(v):0),0)
       body+='  Mål '+(t+1)+': '+r.map(v=>v??'-').join('+')+' = '+sum+'\n'
     }
-    const arr1=s.scores.map(t=>(t||[null,null])[0]).filter(v=>v!=null)
-    const arr2=s.scores.map(t=>(t||[null,null])[1]).filter(v=>v!=null)
     const allArr=s.scores.flat().filter(v=>v!=null)
-    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
-    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
     const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     const dist=calcDistribution(s.scores)
     body+='  Total: '+calcTotal(s.scores)+' point\n'
-    body+='  Snit pil 1: '+avg1+' | Snit pil 2: '+avg2+' | Samlet snit: '+avgAll+'\n'
+    if(apt>=2){
+      const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
+      const arr2=s.scores.map(t=>(t||[])[1]).filter(v=>v!=null)
+      const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+      const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+      body+='  Snit pil 1: '+avg1+' | Snit pil 2: '+avg2+' | Samlet snit: '+avgAll+'\n'
+    }else{
+      body+='  Samlet snit: '+avgAll+'\n'
+    }
     body+='  Fordeling: '+Object.entries(dist).map(([k,v])=>k+':'+v+'x').join('  ')+'\n'
   })
   if(round.id)body+=`\n\nSe resultater i appen:\nhttps://bsk65.github.io/3D/?round=${round.id}\n(Kræver login med din bruger)`
