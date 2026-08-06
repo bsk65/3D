@@ -185,8 +185,10 @@ window.renderAnalyse=function(){
   if(rundeWrap2)rundeWrap2.style.display=isCompare?'':'none'
   if(rundeLbl)rundeLbl.style.display=isCompare?'':'none'
   const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
+  const rulesetFilterEarly=document.getElementById('analyse-ruleset')?.value||'all'
   const populateRundeSelect=(selectEl,placeholder)=>{
-    const relevant=bane==='all'?state.rounds:state.rounds.filter(r=>r.courseId===bane)
+    let relevant=bane==='all'?state.rounds:state.rounds.filter(r=>r.courseId===bane)
+    if(rulesetFilterEarly!=='all')relevant=relevant.filter(r=>(r.ruleset||'WA')===rulesetFilterEarly)
     const prevSel=selectEl.value
     selectEl.innerHTML=`<option value="">${placeholder}</option>`
     relevant.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;selectEl.appendChild(o)})
@@ -234,7 +236,7 @@ window.renderAnalyse=function(){
     return true
   }
   const isStartAt1Round=r=>r.startTarget===1
-  const rulesetFilter=document.getElementById('analyse-ruleset')?.value||'all'
+  const rulesetFilter=rulesetFilterEarly
   let filtered=bane==='all'?allRounds:allRounds.filter(r=>r.courseId===bane)
   if(rulesetFilter!=='all')filtered=filtered.filter(r=>(r.ruleset||'WA')===rulesetFilter)
   if(completedOnly)filtered=filtered.filter(isCompletedRound)
