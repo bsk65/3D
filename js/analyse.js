@@ -298,9 +298,12 @@ window.renderAnalyse=function(){
 
   // Pil statistik — PIL 1 vs PIL 2 giver kun mening for regelsæt med ≥2 pile
   // pr. mål; vis en forklarende note i stedet, hvis udvalget ikke indeholder
-  // nogen WA-runder (p1n/p2n er da altid 0, jf. udelukkelsen ovenfor).
+  // nogen WA-runder (p1n/p2n er da altid 0, jf. udelukkelsen ovenfor). Ved en
+  // BLANDING af WA- og andre runder skal overskriften gøre det tydeligt at
+  // kun WA-runderne indgår, så tallet ikke fejlagtigt læses som "alle runder".
+  const waScopeNote=(waRoundCount>0&&waRoundCount<rounds.length)?` <span class="pil-scope-note">(kun WA-runder: ${waRoundCount} af ${rounds.length})</span>`:''
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb8">PIL STATISTIK</div>
+    <div class="section-title-mb8">PIL STATISTIK${waScopeNote}</div>
     ${waRoundCount?`<div class="cmp-pil-grid">
       <div><div class="stat-lbl">PIL 1</div><div class="stat-val-22">${p1avg}</div></div>
       <div class="cmp-pil-mid">
@@ -337,7 +340,7 @@ window.renderAnalyse=function(){
   // begrænsning som PIL STATISTIK-kortet ovenfor: kun meningsfuldt for
   // WA-runder, vis en note i stedet hvis udvalget ikke indeholder nogen.
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>`
+    <div class="section-title-mb12">FORDELING PR. SCOREZONE${waScopeNote}</div>`
   if(waRoundCount){
     html+=`<div class="pie-grid">`
     zones.forEach(z=>{
