@@ -10,9 +10,9 @@
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
-import { SCORE_VALUES, scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
+import { scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
-         deserializeRound, buildOrder, parseScores, arrowsPerTarget, DEFAULT_RULESET } from './scoring.js'
+         deserializeRound, buildOrder, parseScores, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
 import { findNearestTarget, getCurrentPosition, startTracking, stopTracking,
          formatDuration, formatDistance } from './gps.js'
 import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
@@ -122,6 +122,7 @@ function renderShooters(){
   if(!state.round)return
   const tIdx=curTargetIdx(),el=document.getElementById('shooters-list');el.innerHTML=''
   const apt=arrowsPerTarget(state.round.ruleset)
+  const zoneValues=scoreValuesFor(state.round.ruleset)
   state.round.shooters.forEach((s,si)=>{
     const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
     const card=document.createElement('div');card.className='shooter-card'
@@ -146,7 +147,7 @@ function renderShooters(){
       </div>
       <div class="arrows-row">${Array.from({length:apt},(_,ai)=>`
         <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">🎯 PIL ${ai+1}</div>`:''}
-          <div class="score-btns">${SCORE_VALUES.map(v=>`
+          <div class="score-btns">${zoneValues.map(v=>`
             <button class="sbtn ${row[ai]===v?`sel-${v}`:''}" data-v="${v}"
               onclick="setScore(${si},${tIdx},${ai},'${v}')">${v}</button>`).join('')}
           </div></div>`).join('')}
@@ -257,7 +258,7 @@ window.finishRound=async function(){
     const me=finished.shooters.find(x=>x.id===state.user?.uid)||finished.shooters?.[0]
     if(me){
       const arrowsShot=me.scores.flat().filter(v=>v!=null).length
-      setDoc(doc(db,'bane_stats',finished.courseId,'runder',roundId),{score:calcTotal(me.scores),arrowsShot,kon:state.profile.kon,bueklasse:state.profile.bueklasse,numTargets:finished.numTargets,dato:serverTimestamp()}).catch(e=>console.warn('bane_stats fejl:',e))
+      setDoc(doc(db,'bane_stats',finished.courseId,'runder',roundId),{score:calcTotal(me.scores),arrowsShot,kon:state.profile.kon,bueklasse:state.profile.bueklasse,numTargets:finished.numTargets,ruleset:finished.ruleset||DEFAULT_RULESET,dato:serverTimestamp()}).catch(e=>console.warn('bane_stats fejl:',e))
     }
   }
   window._lastRound=finished

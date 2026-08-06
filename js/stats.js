@@ -1,6 +1,6 @@
 // js/stats.js — Analysestatistik (ren beregning, ingen DOM/Firebase).
 
-import { scoreVal, calcTotal, arrowsPerTarget } from './scoring.js'
+import { scoreVal, calcTotal, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
 
 // Beregner nøgletal for analysevisningen ud fra et sæt runder set fra én skytte:
 // totalscorer, snit pr. pil-position, scorezone-fordeling og bedste/sværeste mål.
@@ -8,26 +8,35 @@ import { scoreVal, calcTotal, arrowsPerTarget } from './scoring.js'
 export function calcAnalyseStats(rounds,userId){
   const getMe=r=>r.shooters.find(x=>x.id===userId)||r.shooters?.[0]
   const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
-  let p1t=0,p1n=0,p2t=0,p2n=0,waRoundCount=0
-  const distP1={11:0,10:0,8:0,5:0,M:0},distP2={11:0,10:0,8:0,5:0,M:0}
-  // distAll: samlet fordeling uanset pil-position/regelsæt — bruges hvor en
-  // rundes/skyttens totale fordeling skal vises uden PIL1-vs-PIL2-opdeling
-  // (fx sammenlign-tilstands "fordeling pr. scorezone", som blot er en total,
-  // ikke et reelt split, men historisk beregnet som distP1+distP2).
-  const distAll={11:0,10:0,8:0,5:0,M:0}
+
+  // PIL 1 vs PIL 2-sammenligning og fordeling pr. scorezone kræver ÉN fælles
+  // pointskala — kun meningsfuldt hvis ALLE runder i udvalget deler samme
+  // regelsæt (uanset hvilket) OG det regelsæt har mindst 2 pile pr. mål.
+  // Ved en blanding af regelsæt (fx WA+DGS, forskellige scorezoner) er der
+  // ingen fælles skala, så pilEligible bliver false og kalderen skal vise
+  // en forklarende note i stedet for tallene.
+  const rulesetsInPlay=new Set(rounds.map(r=>r.ruleset||DEFAULT_RULESET))
+  const pilRuleset=rulesetsInPlay.size===1?[...rulesetsInPlay][0]:null
+  const pilEligible=!!pilRuleset&&arrowsPerTarget(pilRuleset)>=2
+
+  let p1t=0,p1n=0,p2t=0,p2n=0
+  const zoneValues=pilEligible?scoreValuesFor(pilRuleset):[]
+  const distP1={},distP2={}
+  zoneValues.forEach(z=>{distP1[z]=0;distP2[z]=0})
+  // distAll: samlet fordeling for de faktiske runder i udvalget (ingen
+  // forudbestemte zone-nøgler — bruges hvor en rundes totale fordeling skal
+  // vises uden PIL1-vs-PIL2-opdeling, fx sammenlign-tilstands "fordeling
+  // pr. scorezone", som blot er en total, ikke et reelt split).
+  const distAll={}
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
     s.scores.forEach(t=>{
-      t.forEach(v=>{if(v!=null){if(v==='M')distAll.M++;else distAll[Number(v)]=(distAll[Number(v)]||0)+1}})
+      t.forEach(v=>{if(v!=null)distAll[v]=(distAll[v]||0)+1})
     })
-    // PIL 1 vs PIL 2-sammenligning giver kun mening for regelsæt med ≥2 pile
-    // pr. mål (fx WA) — runder skudt efter et 1-pil-regelsæt (fx HDD-IAA)
-    // udelades helt fra denne opgørelse, men indgår stadig i myScores/distAll/targetAvgs.
-    if(arrowsPerTarget(r.ruleset)<2)return
-    waRoundCount++
+    if(!pilEligible)return
     s.scores.forEach(t=>{
-      if(t[0]!=null){if(t[0]==='M'){distP1.M++;p1n++}else{distP1[Number(t[0])]=(distP1[Number(t[0])]||0)+1;p1t+=Number(t[0]);p1n++}}
-      if(t[1]!=null){if(t[1]==='M'){distP2.M++;p2n++}else{distP2[Number(t[1])]=(distP2[Number(t[1])]||0)+1;p2t+=Number(t[1]);p2n++}}
+      if(t[0]!=null){if(distP1[t[0]]!==undefined)distP1[t[0]]++;p1t+=scoreVal(t[0]);p1n++}
+      if(t[1]!=null){if(distP2[t[1]]!==undefined)distP2[t[1]]++;p2t+=scoreVal(t[1]);p2n++}
     })
   })
   const p1avg=p1n?(p1t/p1n).toFixed(2):0,p2avg=p2n?(p2t/p2n).toFixed(2):0
@@ -41,7 +50,7 @@ export function calcAnalyseStats(rounds,userId){
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
   const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
   const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
-  return {myScores,p1avg,p2avg,pilAvg,distP1,distP2,distAll,bestTarget,worstTarget,waRoundCount}
+  return {myScores,p1avg,p2avg,pilAvg,distP1,distP2,distAll,bestTarget,worstTarget,pilRuleset,pilEligible}
 }
 
 // Standardafvigelse (population) — bruges som mål for hvor ensartet skytten
