@@ -139,7 +139,7 @@ function renderShooters(){
     const allArr=s.scores.flat().filter(v=>v!=null)
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     // Pr.-position-mini-stats (P1/P2/...) giver kun mening når der er mere end
-    // én pil pr. mål — ved 1 pil (fx HDD-IAA) er de redundante med SNT.
+    // én pil pr. mål — ved 1 pil (fx HDH-IAA) er de redundante med SNT.
     let miniGroup=`<div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>`
     if(apt>=2){
       const posArr=Array.from({length:apt},(_,ai)=>s.scores.map(t=>t[ai]).filter(v=>v!=null))

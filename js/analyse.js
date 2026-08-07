@@ -85,7 +85,7 @@ function analyseRound(id){
 window.analyseRound = analyseRound
 
 // Farve pr. scorezone i sammenlign-tilstandens fordelingstabel — dækker alle
-// tre regelsæts værdier (WA/HDD-IAA: 11/10/8/5/M, DGS: 5/3/-1/M); ukendte
+// tre regelsæts værdier (WA/HDH-IAA: 11/10/8/5/M, DGS: 5/3/-1/M); ukendte
 // fremtidige zoner falder tilbage til --muted.
 const CMP_ZONE_COLORS={'11':'#1a7a3a','10':'#1a5aaa','8':'#d4700a','5':'#7a3aaa','M':'#cc3333','3':'#0a8a8a','-1':'#5a5a6a'}
 

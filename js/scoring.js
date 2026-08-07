@@ -3,8 +3,8 @@
 // Scores gemmes som 2D-array pr. skytte: scores[targetIndex] = [pil1, ...]
 // med værdier fra rundens regelsæt (se RULESETS herunder, fx 11|10|8|5|'M'
 // for WA, 5|3|-1|'M' for DGS) eller null. Rækkens længde = antal pile pr.
-// mål for regelsættet (2 for WA/DGS, 1 for HDD-IAA). Serialiseres til
-// Firestore som streng: "11,10;8,5;M,M" (WA) hhv. "11;8;M" (HDD-IAA).
+// mål for regelsættet (2 for WA/DGS, 1 for HDH-IAA). Serialiseres til
+// Firestore som streng: "11,10;8,5;M,M" (WA) hhv. "11;8;M" (HDH-IAA).
 
 export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 
@@ -17,7 +17,7 @@ export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 // urealistiske standard på 8 (som DGS aldrig kan nå).
 export const RULESETS = {
   WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
-  'HDD-IAA': { label: 'HDD-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
+  'HDH-IAA': { label: 'HDH-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
   DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
 }
 export const DEFAULT_RULESET = 'WA'
