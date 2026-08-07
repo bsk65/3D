@@ -25,7 +25,12 @@ export function mapCourseDoc(d){
   return {id:d.id,name:data.name||data.yam||'—',numTargets:data.numTargets||data.antalMål||24,
     location:data.location||data.beliggenhed||'',targets:data.targets||data.mål||[],visits:data.visits||data.besøg||[],
     private:data.private??data.privat??false,hidden:data.hidden??data.skjult??false,
-    approvedUsers:data.approvedUsers||data.godkendteBrugere||[]}
+    approvedUsers:data.approvedUsers||data.godkendteBrugere||[],ownerId:data.ownerId||null}
+}
+
+// Baner uden ownerId (oprettet før ejerskabs-funktionen) kan kun redigeres af admins.
+function canEditCourse(course){
+  return state.isAdmin || (!!course.ownerId && course.ownerId===state.user?.uid)
 }
 
 export async function fetchCourses(){
@@ -67,6 +72,7 @@ function openCourseDetail(course){
   document.getElementById('courses-list-view').classList.add('hidden')
   document.getElementById('course-detail-view').classList.remove('hidden')
   document.getElementById('course-detail-title').textContent=course.name+(course.private?' (Banen er kun for medlemmer)':'')
+  document.getElementById('course-edit-stab-btn').classList.toggle('hidden',!canEditCourse(course))
   window.switchSubtab('map');initCourseMap(course);renderVisits(course);renderCourseEditForm(course)
 }
 
@@ -359,10 +365,11 @@ window.doCreateCourse=async function(){
   if(!name)return
   const targets=Array.from({length:num},(_,i)=>({number:i+1,name:'',emoji:'',imageUrl:'',distance:null,gps:null}))
   try{
+    const ownerId=state.user.uid
     const docRef=await addDoc(collection(db,'courses'),{name,yam:name,numTargets:num,antalMål:num,location:loc,beliggenhed:loc,targets,mål:targets,
       private:isPrivate,privat:isPrivate,hidden:isHidden,skjult:isHidden,approvedUsers,godkendteBrugere:approvedUsers,
-      created:serverTimestamp(),visits:[],besøg:[]})
-    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[],private:isPrivate,hidden:isHidden,approvedUsers})
+      ownerId,created:serverTimestamp(),visits:[],besøg:[]})
+    state.courses.unshift({id:docRef.id,name,numTargets:num,location:loc,targets,visits:[],private:isPrivate,hidden:isHidden,approvedUsers,ownerId})
     lsSave();renderCoursesList();window.populateCourseDropdown()
     document.getElementById('create-course-modal').classList.add('hidden')
     document.getElementById('new-course-name').value=''
