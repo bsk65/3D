@@ -58,7 +58,7 @@ if errorlevel 1 (
 REM Sikkerhedstjek: bekraeft at index.html rent faktisk peger paa en
 REM JS-fil der findes i assets/, foer vi committer noget som helst.
 REM Fanger den "gammel hash overlevede kopiering"-fejl fra en gang for alle.
-powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\index.html" -AssetsDir "%TMPWT%\assets"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\index.html" -AssetsDir "%TMPWT%\assets"
 if errorlevel 1 (
   echo FEJL: index.html og assets/ er ikke i sync - build.bat afbrudt for at undgaa en 404-produktion.
   pause
@@ -77,7 +77,7 @@ if errorlevel 1 (
   REM Har fanget en gentagen fejl hvor pre-commit-tjekket herover bestod,
   REM men det committede indhold alligevel pegede paa en gammel JS-fil.
   git show HEAD:index.html > "%TMPWT%\_verify_index.html" 2>nul
-  powershell -NoProfile -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\_verify_index.html" -AssetsDir "%TMPWT%\assets"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJ%\verify-build.ps1" -Html "%TMPWT%\_verify_index.html" -AssetsDir "%TMPWT%\assets"
   if errorlevel 1 (
     echo.
     echo FEJL: Det COMMITTEDE indhold er ikke i sync - push afbrudt!
