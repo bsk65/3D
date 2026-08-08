@@ -67,6 +67,15 @@ if errorlevel 1 (
 
 REM Commit og push fra main worktree
 cd /d "%TMPWT%"
+
+REM Fjern index.html fra git-indekset foer re-tilfoejelse - tvinger git til at
+REM lase indholdet friskt fra disk fremfor at stole paa cachet mtime/size ("racy
+REM git"). Uden dette kan "git add" tro filen er uaendret, hvis dens tidsstempel
+REM efter kopieringen ligger for taet paa index'ets checkout-tidspunkt, saa
+REM index.html committes med GAMLE asset-referencer selvom filen paa disk er
+REM korrekt - fanget gentagne gange 2026-08-08, se ogsaa build-dev.bat.
+git rm --cached --quiet index.html >nul 2>&1
+
 git add index.html assets/ css/style.css icons/
 git diff --cached --quiet
 if errorlevel 1 (

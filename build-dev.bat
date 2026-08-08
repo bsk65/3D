@@ -76,6 +76,15 @@ if errorlevel 1 (
 )
 
 cd /d "%TMPWT%"
+
+REM Fjern 3D-dev/index.html fra git-indekset foer re-tilfoejelse - tvinger git
+REM til at lase indholdet friskt fra disk fremfor at stole paa cachet mtime/size
+REM ("racy git"). Uden dette kan "git add" tro filen er uaendret, hvis dens
+REM tidsstempel efter kopieringen ligger for taet paa index'ets checkout-
+REM tidspunkt, saa index.html committes med GAMLE asset-referencer selvom
+REM filen paa disk er korrekt - fanget gentagne gange 2026-08-08.
+git rm --cached --quiet 3D-dev/index.html >nul 2>&1
+
 git add 3D-dev/
 git diff --cached --quiet
 if errorlevel 1 (
