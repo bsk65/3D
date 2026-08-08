@@ -168,7 +168,9 @@ window.cancelShareRequest=async function(id){
 
 window.acceptShareRequest=async function(id){
   try{
-    await updateDoc(doc(db,'shareRequests',id),{status:'accepteret',updatedAt:serverTimestamp()})
+    // acceptedAt er ankerpunktet firestore.rules bruger til kun at give adgang
+    // til runder afsluttet EFTER denne godkendelse — ikke hele historikken.
+    await updateDoc(doc(db,'shareRequests',id),{status:'accepteret',acceptedAt:serverTimestamp(),updatedAt:serverTimestamp()})
     const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='accepteret'
     renderSharingSection();updateShareBadge()
     showToast('Deling accepteret','success')
