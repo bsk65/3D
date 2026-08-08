@@ -1,6 +1,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // "Del resultater": afgør om viewerUid har en godkendt (accepteret)
+    // shareRequests-relation til ownerUid, OG at runden er afsluttet EFTER selve
+    // godkendelsen (acceptedAt) — så en ny deling ikke automatisk giver adgang
+    // til hele ejerens historik, kun runder skudt fra godkendelsestidspunktet.
+    // acceptedAt findes ikke på shareRequests-dokumenter fra før dette felt blev
+    // tilføjet; der falder vi tilbage til updatedAt, som acceptShareRequest i
+    // js/sharing.js altid sætter til selve godkendelsestidspunktet.
+    // Funktionerne står her (inde i match-blokken) fordi $(database) kun er
+    // bundet inden for denne blok — uden for den løser $(database) ikke til
+    // den rigtige værdi.
+    function shareAcceptedAtMillis(ownerUid, viewerUid) {
+      let r = get(/databases/$(database)/documents/shareRequests/$(ownerUid + '_' + viewerUid)).data;
+      return ('acceptedAt' in r ? r.acceptedAt : r.updatedAt).toMillis();
+    }
+    function canViewSharedRound(ownerUid, viewerUid, completedMillis) {
+      return exists(/databases/$(database)/documents/shareRequests/$(ownerUid + '_' + viewerUid)) &&
+        get(/databases/$(database)/documents/shareRequests/$(ownerUid + '_' + viewerUid)).data.status == 'accepteret' &&
+        completedMillis is number &&
+        completedMillis > shareAcceptedAtMillis(ownerUid, viewerUid);
+    }
     match /users/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == uid;
@@ -20,11 +40,11 @@ service cloud.firestore {
           request.auth.uid in request.resource.data.shooterIds &&
           uid in request.resource.data.shooterIds;
         // "Del resultater": en godkendt seer (accepteret shareRequests-dokument,
-        // se nedenfor) må læse ejerens færdige runder. Kombineres via OR med
-        // ejerens egen adgang fra den generiske {subcol}/{docId}-regel ovenfor.
+        // se nedenfor) må læse ejerens runder afsluttet efter godkendelsen —
+        // se canViewSharedRound ovenfor. Kombineres via OR med ejerens egen
+        // adgang fra den generiske {subcol}/{docId}-regel ovenfor.
         allow read: if request.auth != null &&
-          exists(/databases/$(database)/documents/shareRequests/$(uid + '_' + request.auth.uid)) &&
-          get(/databases/$(database)/documents/shareRequests/$(uid + '_' + request.auth.uid)).data.status == 'accepteret';
+          canViewSharedRound(uid, request.auth.uid, resource.data.completed);
       }
     }
     match /courses/{courseId} {
