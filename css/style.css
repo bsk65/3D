@@ -201,12 +201,18 @@ select option{background:var(--surf);}
 .rtbl .tc{text-align:left;color:var(--muted);font-size:10px;}
 .rtbl .tr-tot td{font-weight:700;color:var(--acc);}
 .dist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:0 12px 14px;}
-.dist-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rs);padding:10px;}
+.dist-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rs);padding:10px;cursor:zoom-in;}
 .dist-name{font-family:var(--fd);font-size:13px;color:var(--acc);margin-bottom:4px;}
 .dist-row{display:flex;justify-content:space-between;font-size:11px;padding:1px 0;}
 .dist-row span:first-child{color:var(--muted);}
 .dist-row-total{font-weight:700;border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;}
 .dist-row-border{border-bottom:1px solid var(--surface2);padding-bottom:4px;margin-bottom:4px;}
+
+/* Forstørret enkelt-deltager-visning (tap på et dist-card i resultat-gitteret) */
+.dist-card-lg{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:24px 28px;min-width:260px;max-width:90vw;cursor:default;}
+.dist-card-lg .dist-name{font-size:26px;margin-bottom:14px;}
+.dist-card-lg .dist-row{font-size:19px;padding:5px 0;}
+.dist-card-lg .dist-row-total,.dist-card-lg .dist-row-border{padding-bottom:10px;margin-bottom:10px;}
 .rcard{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:12px 14px;margin:0 12px 8px;display:flex;align-items:center;gap:10px;cursor:pointer;}
 .rcard:hover{border-color:var(--acc);}
 .rcard-info{flex:1;min-width:0;}
