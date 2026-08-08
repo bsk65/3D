@@ -8,5 +8,6 @@ export const state = {
   friends:[], courses:[], rounds:[], round:null, course:null, meetups:[],
   currentCourse:null, courseMap:null, courseMapLayer:null, approvedDraft:{new:[],edit:[]},
   gpsTracking:false, warnThreshold:8,
-  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0
+  deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0,
+  shareRequests:[], viewingUid:null, viewingName:null, viewedRounds:{}
 }

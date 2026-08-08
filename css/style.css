@@ -119,6 +119,15 @@ select option{background:var(--surf);}
 .meetup-comment-add{display:flex;gap:6px;}
 .meetup-comment-add input{flex:1;}
 .meetup-comment-add button{width:auto;}
+
+/* ─── MÅ JEG KIGGE MED? (del resultater) ────────────────────────────────── */
+.sharing-sec{margin-top:6px;}
+.share-empty{font-size:12px;color:var(--muted);padding:6px 12px 4px;}
+.share-group-title{font-family:var(--fd);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 12px 4px;}
+.share-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rl);padding:10px 14px;margin:0 12px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.share-name{font-weight:600;font-size:14px;color:var(--txt);}
+.share-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.share-actions .btn{width:auto;}
 .shoot-top{background:var(--surf);border-bottom:1px solid var(--bord);padding:10px 14px;position:sticky;top:0;z-index:10;}
 .target-line{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .tnum{font-family:var(--fd);}
@@ -288,6 +297,12 @@ select option{background:var(--surf);}
 .fname{font-weight:700;font-size:15px;color:var(--txt);}
 .fmeta{font-size:11px;color:var(--muted);margin-top:1px;}
 .factions{display:flex;gap:4px;}
+.fshare-row{margin-top:6px;}
+.btn-share-req{background:none;border:1px solid var(--acc);color:var(--acc);font-family:var(--fb);font-size:11px;border-radius:20px;padding:4px 10px;cursor:pointer;}
+.share-badge{font-size:11px;border-radius:20px;padding:4px 10px;margin-right:4px;display:inline-block;}
+.share-badge-afventer{background:var(--surf2);color:var(--muted);border:1px solid var(--bord);}
+.share-badge-accepteret{background:var(--acc);color:#000;font-weight:600;}
+.share-badge-afvist{background:var(--surf2);color:var(--danger);border:1px solid var(--danger);}
 .admin-sec{border-top:2px solid var(--acc);margin-top:14px;padding:14px 12px;}
 .admin-sec h3{font-family:var(--fd);font-size:16px;color:var(--acc);margin-bottom:10px;}
 .urow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bord);font-size:12px;}
@@ -450,6 +465,8 @@ select option{background:var(--surf);}
 .analyse-runde2-lbl{font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;}
 .analyse-runde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
 .analyse-content-wrap{padding:12px;}
+.analyse-viewer-wrap{padding:8px 12px 0;}
+.viewing-banner{background:var(--surf2);border:1px solid var(--acc);color:var(--acc);font-family:var(--fd);font-size:12px;text-align:center;padding:8px;margin:10px 12px 0;border-radius:var(--rs);}
 .course-detail-title-style{font-size:17px;margin:0;}
 .delete-course-btn{margin-top:8px;}
 .course-visibility-hint{margin-top:-4px;}
