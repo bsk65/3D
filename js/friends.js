@@ -6,11 +6,24 @@
 //
 // addParticipant/getParticipants (runde-opsætning) forbliver i main.js;
 // dette modul kalder window.addParticipant.
+//
+// window.renderFriendsList eksponeres desuden som bro, så js/sharing.js kan
+// gen-rendere venne-kortenes "Må jeg kigge med?"-status uden cirkulær import.
 
 import { state } from './state.js'
 import { esc, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
 import { db, doc, setDoc, deleteDoc, collection, getDocs } from './firebase-init.js'
+
+// "Må jeg kigge med?"-knap/status pr. ven — afspejler state.shareRequests, hvor
+// man selv er viewerUid og vennen er ownerUid (se js/sharing.js).
+function shareStatusHtml(friendId){
+  const r=state.shareRequests.find(x=>x.viewerUid===state.user?.uid&&x.ownerUid===friendId)
+  if(!r)return `<button class="btn-share-req" data-share-friend="${friendId}">🔎 Må jeg kigge med?</button>`
+  if(r.status==='afventer')return `<span class="share-badge share-badge-afventer">Afventer</span><button class="btn-icon" onclick="window.cancelShareRequest('${r.id}')" title="Fortryd anmodning">✕</button>`
+  if(r.status==='accepteret')return `<span class="share-badge share-badge-accepteret">Kan se resultater ✅</span>`
+  return `<span class="share-badge share-badge-afvist">Afvist</span><button class="btn-share-req" data-share-friend="${friendId}">Prøv igen</button>`
+}
 
 // Fuld venneliste på Venner-fanen.
 export function renderFriendsList(){
@@ -19,12 +32,15 @@ export function renderFriendsList(){
   el.innerHTML=''
   state.friends.forEach(f=>{
     const card=document.createElement('div');card.className='fcard'
-    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del">🗑</button></div>`
+    card.innerHTML=`<div class="favatar">🎯</div><div class="finfo"><div class="fname">${esc(f.name)}</div><div class="fmeta">${[f.email,f.phone,f.club,f.bowType].filter(Boolean).map(esc).join(' · ')}</div><div class="fshare-row">${shareStatusHtml(f.id)}</div></div><div class="factions"><button class="btn-icon frd-edit">✏️</button><button class="btn-icon frd-del">🗑</button></div>`
     card.querySelector('.frd-edit').addEventListener('click',()=>openFriendModal(f))
     card.querySelector('.frd-del').addEventListener('click',()=>doDeleteFriend(f.id,f.name))
+    const shareBtn=card.querySelector('[data-share-friend]')
+    if(shareBtn)shareBtn.addEventListener('click',()=>window.requestViewAccess(f.id,f.name))
     el.appendChild(card)
   })
 }
+window.renderFriendsList=renderFriendsList
 
 // Hurtig-knapper til at tilføje venner som deltagere i opsætningen.
 export function renderQuickFriends(){

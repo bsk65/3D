@@ -1,0 +1,169 @@
+// js/sharing.js — "Må jeg kigge med?": anmod om at se en vens færdige runder.
+// Firestore-primær (ingen localStorage) — samme tankegang som meetups.js:
+// et delt forhold mellem to konti, ikke lokal reference som venner/runder.
+// Dokument-id i shareRequests er deterministisk (ownerUid_viewerUid), så
+// firestore.rules kan slå status op med get()/exists() ved læsning af
+// users/{ownerUid}/rounds — se rules-kommentaren der.
+//
+// Registrerer window.requestViewAccess/acceptShareRequest/declineShareRequest/
+// endSharing/cancelShareRequest som HTML-handlere ved import.
+// fetchShareRequests/renderSharingSection/getViewableUsers/fetchViewedRounds
+// eksporteres — kaldes fra app-init.js (login-flow, switchTab) og analyse.js.
+
+import { state } from './state.js'
+import { esc, showToast, showConfirm } from './utils.js'
+import { db, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
+
+const STATUS_LABELS = { afventer:'Afventer godkendelse', accepteret:'Godkendt ✅', afvist:'Afvist ❌' }
+
+function reqId(ownerUid,viewerUid){ return `${ownerUid}_${viewerUid}` }
+
+// ─── HENT ───────────────────────────────────────────────────────────────────
+// Firestore har ikke OR — to simple queries merges client-side (ejer ELLER seer),
+// samme mønster som fetchMeetups.
+export async function fetchShareRequests(){
+  if(!state.user)return
+  try{
+    const [asOwner,asViewer]=await Promise.all([
+      getDocs(query(collection(db,'shareRequests'),where('ownerUid','==',state.user.uid))),
+      getDocs(query(collection(db,'shareRequests'),where('viewerUid','==',state.user.uid)))
+    ])
+    const map=new Map()
+    asOwner.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()}))
+    asViewer.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()}))
+    state.shareRequests=[...map.values()]
+  }catch(e){console.warn('Hent delingsanmodninger:',e)}
+}
+
+// Liste over personer man selv (som seer) er godkendt til at se — bruges af
+// analyse.js's seer-dropdown.
+export function getViewableUsers(){
+  if(!state.user)return []
+  return state.shareRequests
+    .filter(r=>r.viewerUid===state.user.uid&&r.status==='accepteret')
+    .map(r=>({uid:r.ownerUid,name:r.ownerName}))
+    .sort((a,b)=>a.name.localeCompare(b.name,'da'))
+}
+
+// Henter en anden brugers færdige runder (kun tilladt af firestore.rules hvis
+// et accepteret shareRequests-dokument findes). Samme mapping/sortering som
+// app-init.js' egen-runde-hentning.
+export async function fetchViewedRounds(uid){
+  try{
+    const snap=await getDocs(collection(db,'users',uid,'rounds'))
+    const rounds=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>{
+      const ta=a.completed||a.created||0
+      const tb=b.completed||b.created||0
+      return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)
+    })
+    state.viewedRounds[uid]=rounds
+    return rounds
+  }catch(e){console.warn('Hent delte runder:',e);state.viewedRounds[uid]=[];return []}
+}
+
+// ─── VISNING (Venner-fanen) ─────────────────────────────────────────────────
+export function renderSharingSection(){
+  const el=document.getElementById('sharing-list');if(!el)return
+  const me=state.user?.uid
+  const incoming=state.shareRequests.filter(r=>r.ownerUid===me&&r.status==='afventer')
+  const granted=state.shareRequests.filter(r=>r.ownerUid===me&&r.status==='accepteret')
+  const viewing=state.shareRequests.filter(r=>r.viewerUid===me&&r.status==='accepteret')
+  if(!incoming.length&&!granted.length&&!viewing.length){
+    el.innerHTML='<div class="share-empty">Anmod om at se en vens resultater ved at trykke "🔎 Må jeg kigge med?" på personen i din venneliste ovenfor.</div>'
+    return
+  }
+  let html=''
+  if(incoming.length){
+    html+=`<div class="share-group-title">Anmodninger om at se dine resultater</div>`
+    incoming.forEach(r=>{
+      html+=`<div class="share-card">
+        <div class="share-name">${esc(r.viewerName)}</div>
+        <div class="share-actions">
+          <button class="btn btn-gold btn-sm" onclick="acceptShareRequest('${r.id}')">Accepter</button>
+          <button class="btn btn-dark btn-sm" onclick="declineShareRequest('${r.id}')">Afvis</button>
+        </div>
+      </div>`
+    })
+  }
+  if(granted.length){
+    html+=`<div class="share-group-title">Du deler resultater med</div>`
+    granted.forEach(r=>{
+      html+=`<div class="share-card">
+        <div class="share-name">${esc(r.viewerName)}</div>
+        <div class="share-actions">
+          <button class="btn btn-red btn-sm" onclick="endSharing('${r.id}')">Afslut deling</button>
+        </div>
+      </div>`
+    })
+  }
+  if(viewing.length){
+    html+=`<div class="share-group-title">Du kan se resultater for</div>`
+    viewing.forEach(r=>{
+      html+=`<div class="share-card">
+        <div class="share-name">${esc(r.ownerName)}</div>
+        <div class="share-actions">
+          <button class="btn btn-dark btn-sm" onclick="window.switchTab('analyse');window.setAnalyseViewer('${r.ownerUid}')">Se i Analyse</button>
+        </div>
+      </div>`
+    })
+  }
+  el.innerHTML=html
+}
+
+// ─── HANDLINGER ─────────────────────────────────────────────────────────────
+// Kun venner med en reel Firebase-konto kan anmodes — lokalt tilføjede venner
+// (manuel indtastning uden søgning) har et genereret id og findes ikke i
+// users-collectionen, jf. samme begrænsning som meetup-invitationer.
+window.requestViewAccess=async function(ownerUid,ownerName){
+  if(!state.user)return
+  if(ownerUid===state.user.uid){showToast('Du kan ikke anmode om at se dine egne resultater','error');return}
+  try{
+    const ownerDoc=await getDoc(doc(db,'users',ownerUid))
+    if(!ownerDoc.exists()){showToast(`${ownerName} er ikke registreret i appen`,'error');return}
+    await setDoc(doc(db,'shareRequests',reqId(ownerUid,state.user.uid)),{
+      ownerUid, ownerName,
+      viewerUid:state.user.uid, viewerName:state.profile?.name||'—',
+      status:'afventer', createdAt:serverTimestamp(), updatedAt:serverTimestamp()
+    })
+    showToast('Anmodning sendt','success')
+    await fetchShareRequests();renderSharingSection();window.renderFriendsList?.()
+  }catch(e){showToast('Fejl: '+e.message,'error')}
+}
+
+window.cancelShareRequest=async function(id){
+  try{
+    await deleteDoc(doc(db,'shareRequests',id))
+    state.shareRequests=state.shareRequests.filter(r=>r.id!==id)
+    renderSharingSection();window.renderFriendsList?.()
+  }catch(e){showToast('Fejl: '+e.message,'error')}
+}
+
+window.acceptShareRequest=async function(id){
+  try{
+    await updateDoc(doc(db,'shareRequests',id),{status:'accepteret',updatedAt:serverTimestamp()})
+    const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='accepteret'
+    renderSharingSection()
+    showToast('Deling accepteret','success')
+  }catch(e){showToast('Fejl: '+e.message,'error')}
+}
+
+window.declineShareRequest=function(id){
+  showConfirm('Afvis denne anmodning?',async()=>{
+    try{
+      await updateDoc(doc(db,'shareRequests',id),{status:'afvist',updatedAt:serverTimestamp()})
+      const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='afvist'
+      renderSharingSection()
+    }catch(e){showToast('Fejl: '+e.message,'error')}
+  })
+}
+
+window.endSharing=function(id){
+  showConfirm('Afslut denne deling? Personen mister med det samme adgang til dine resultater.',async()=>{
+    try{
+      await deleteDoc(doc(db,'shareRequests',id))
+      state.shareRequests=state.shareRequests.filter(r=>r.id!==id)
+      renderSharingSection()
+      showToast('Deling afsluttet','success')
+    }catch(e){showToast('Fejl: '+e.message,'error')}
+  })
+}

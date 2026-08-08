@@ -14,6 +14,7 @@ import { esc } from './utils.js'
 import { scoreVal, calcTotal, parseScores, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
 import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
+import { getViewableUsers, fetchViewedRounds } from './sharing.js'
 
 // Pinch-to-zoom/pan af fullscreen-grafen. `viewportEl` er det faste,
 // touch-lyttende "vindue" (overflow:hidden) — `contentEl` er selve SVG'en
@@ -77,8 +78,25 @@ window.closeGraphFs=closeGraphFs
 
 function analyseRound(id){
   state.pendingAnalyseRound=id
+  // Runden kommer altid fra egen resultatliste (results.js) — nulstil evt.
+  // valgt "Må jeg kigge med?"-seer, ellers ville opslaget i renderAnalyse
+  // lede efter runde-id'et i den forkerte persons runder.
+  state.viewingUid=null;state.viewingName=null
   document.getElementById('analyse-filter').value='specific'
   window.switchTab('analyse')
+}
+
+// Skifter hvis resultater analyse-fanen viser: null/'' = mig selv, ellers en
+// uid fra getViewableUsers() (personer der har accepteret ens "Må jeg kigge
+// med?"-anmodning, se js/sharing.js). Henter og cacher runderne on-demand.
+window.setAnalyseViewer=async function(uid){
+  state.viewingUid=uid||null
+  const target=uid?getViewableUsers().find(u=>u.uid===uid):null
+  state.viewingName=target?.name||null
+  if(uid&&!state.viewedRounds[uid]){
+    await fetchViewedRounds(uid)
+  }
+  window.renderAnalyse()
 }
 // results.js' renderRoundsList kalder analyseRound via window (bro-mønster,
 // undgår cirkulær import — samme som window.populateCourseDropdown).
@@ -164,17 +182,33 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
 window.renderAnalyse=function(){
   const el=document.getElementById('analyse-content')
   if(!el)return
+  // Hvis resultater vises: mig selv (state.rounds) eller en godkendt "Må jeg
+  // kigge med?"-relation (state.viewedRounds, hentet on-demand af setAnalyseViewer).
+  const viewingUid=state.viewingUid||state.user?.uid
+  const sourceRounds=state.viewingUid?(state.viewedRounds[state.viewingUid]||[]):state.rounds
+
+  const viewerWrap=document.getElementById('analyse-viewer-wrap')
+  const viewerEl=document.getElementById('analyse-viewer')
+  if(viewerEl){
+    const viewableUsers=getViewableUsers()
+    while(viewerEl.options.length>1)viewerEl.remove(1)
+    viewableUsers.forEach(u=>{const o=document.createElement('option');o.value=u.uid;o.textContent=u.name;viewerEl.appendChild(o)})
+    viewerEl.value=state.viewingUid&&viewableUsers.some(u=>u.uid===state.viewingUid)?state.viewingUid:''
+    if(viewerWrap)viewerWrap.classList.toggle('hidden',!viewableUsers.length)
+  }
+
   const baneEl=document.getElementById('analyse-bane')
-  if(baneEl&&baneEl.options.length<=1){
-    const brugteBaner=[...new Set(state.rounds.map(r=>r.courseId).filter(Boolean))]
+  if(baneEl){
+    const prevBaneSel=baneEl.value
+    while(baneEl.options.length>1)baneEl.remove(1)
+    const brugteBaner=[...new Set(sourceRounds.map(r=>r.courseId).filter(Boolean))]
     brugteBaner.forEach(id=>{
       const c=state.courses.find(x=>x.id===id)
-      if(c&&!Array.from(baneEl.options).find(o=>o.value===id)){
-        const o=document.createElement('option');o.value=id;o.textContent=c.name;baneEl.appendChild(o)
-      }
+      if(c){const o=document.createElement('option');o.value=id;o.textContent=c.name;baneEl.appendChild(o)}
     })
+    if(brugteBaner.includes(prevBaneSel))baneEl.value=prevBaneSel
   }
-  if(state.pendingAnalyseRound&&baneEl){
+  if(state.pendingAnalyseRound&&baneEl&&!state.viewingUid){
     const pendingRound=state.rounds.find(r=>r.id===state.pendingAnalyseRound)
     if(pendingRound?.courseId&&Array.from(baneEl.options).some(o=>o.value===pendingRound.courseId)){
       baneEl.value=pendingRound.courseId
@@ -196,7 +230,7 @@ window.renderAnalyse=function(){
   const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
   const rulesetFilterEarly=document.getElementById('analyse-ruleset')?.value||'all'
   const populateRundeSelect=(selectEl,placeholder)=>{
-    let relevant=bane==='all'?state.rounds:state.rounds.filter(r=>r.courseId===bane)
+    let relevant=bane==='all'?sourceRounds:sourceRounds.filter(r=>r.courseId===bane)
     if(rulesetFilterEarly!=='all')relevant=relevant.filter(r=>(r.ruleset||'WA')===rulesetFilterEarly)
     const prevSel=selectEl.value
     selectEl.innerHTML=`<option value="">${placeholder}</option>`
@@ -213,14 +247,14 @@ window.renderAnalyse=function(){
   if(isCompare){
     const sel1=rundeEl?.value,sel2=rundeEl2?.value
     if(!sel1||!sel2){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div>Vælg to runder ovenfor</div>';return}
-    const allR=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+    const allR=sourceRounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
     const r1=allR.find(r=>r.id===sel1),r2=allR.find(r=>r.id===sel2)
     if(!r1||!r2){el.innerHTML='<div class="empty">Kunne ikke finde runderne</div>';return}
     const lbl1=`${r1.name||'Runde'} (${fmtRD(r1)})`,lbl2=`${r2.name||'Runde'} (${fmtRD(r2)})`
-    el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],state.user?.uid),lbl1,calcAnalyseStats([r2],state.user?.uid),lbl2)
+    el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],viewingUid),lbl1,calcAnalyseStats([r2],viewingUid),lbl2)
     return
   }
-  const allRounds=state.rounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
+  const allRounds=sourceRounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
   // To uafhængige filtre: "gennemført" (alle mål skudt, uanset startpunkt) og
   // "startet ved mål 1" (gør skud-nr.-X sammenligneligt med det fysiske mål,
   // uanset om runden blev gennemført til ende). Kan bruges hver for sig eller
@@ -235,7 +269,7 @@ window.renderAnalyse=function(){
   // heller ikke med banens nuværende antal mål — en bane kan have fået
   // tilføjet/fjernet mål siden runden blev skudt.
   const isCompletedRound=r=>{
-    const s=r.shooters?.find(x=>x.id===state.user?.uid)||r.shooters?.[0]
+    const s=r.shooters?.find(x=>x.id===viewingUid)||r.shooters?.[0]
     if(!s)return false
     const nt=r.numTargets||24
     for(let ti=0;ti<nt;ti++){
@@ -254,7 +288,7 @@ window.renderAnalyse=function(){
   const antal=antalInput||filter
   const rounds=antal&&filterVal!=='specific'?filtered.slice(0,antal):filtered
   if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
-  const getMe=r=>r.shooters.find(x=>x.id===state.user?.uid)||r.shooters?.[0]
+  const getMe=r=>r.shooters.find(x=>x.id===viewingUid)||r.shooters?.[0]
   const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
   const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
   const best=myScores.length?Math.max(...myScores):0
@@ -300,6 +334,10 @@ window.renderAnalyse=function(){
   const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
   const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
   let html=''
+
+  if(state.viewingUid){
+    html+=`<div class="viewing-banner">👁 Viser resultater for ${esc(state.viewingName||'—')}</div>`
+  }
 
   // Nøgletal
   html+=`<div class="stats-grid2">
@@ -534,7 +572,7 @@ window.renderAnalyse=function(){
       .filter(r=>r.courseId===bane)
       .filter(r=>!completedOnly||isCompletedRound(r))
       .filter(r=>!startAt1Only||isStartAt1Round(r))
-      .map(r=>{const posAvgs=calcRoundPositionAvgs(r,state.user?.uid);return posAvgs.length>1?{t:toTime(r),cv:stdDev(posAvgs)}:null})
+      .map(r=>{const posAvgs=calcRoundPositionAvgs(r,viewingUid);return posAvgs.length>1?{t:toTime(r),cv:stdDev(posAvgs)}:null})
       .filter(Boolean)
       .sort((a,b)=>a.t-b.t)
     if(consistencyPts.length>1){
@@ -559,8 +597,9 @@ window.renderAnalyse=function(){
 
   el.innerHTML=html
 
-  // Sammenligning med andre skytter på samme bane
-  if(bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
+  // Sammenligning med andre skytter på samme bane — kun relevant for mine egne
+  // runder, da den er bundet til mit eget køn/bueklasse (state.profile).
+  if(!state.viewingUid&&bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
     const konNavn=state.profile.kon==='herre'?'Herre':'Dame'
     const klasseNavn={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}[state.profile.bueklasse]||state.profile.bueklasse
     const compEl=document.createElement('div')
