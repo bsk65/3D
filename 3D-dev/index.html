@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-DVlXTaAO.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-DRQWuGvq.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-Bd6_3wR_.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-CvV5Q7_h.css">
   </head>
 <body>
 
@@ -249,6 +249,11 @@
       <div class="tab-header">
         <span class="tab-title">Analyse</span>
       </div>
+      <div id="analyse-viewer-wrap" class="analyse-viewer-wrap hidden">
+        <select id="analyse-viewer" onchange="setAnalyseViewer(this.value)" class="analyse-filter-select">
+          <option value="">Mig selv</option>
+        </select>
+      </div>
       <div class="analyse-filters-row">
         <select id="analyse-filter" onchange="renderAnalyse()" class="analyse-filter-select">
           <option value="all">Alle runder</option>
@@ -371,6 +376,14 @@
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
       </div>
       <div id="friends-list"></div>
+
+      <!-- SHARING SECTION -->
+      <div id="sharing-section" class="sharing-sec">
+        <div class="tab-header">
+          <span class="tab-title">Må jeg kigge med?</span>
+        </div>
+        <div id="sharing-list"></div>
+      </div>
 
       <!-- MEETUPS SECTION -->
       <div id="meetups-section" class="meetups-sec">
