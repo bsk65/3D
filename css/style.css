@@ -51,6 +51,7 @@ select option{background:var(--surf);}
 .nav-btn.active{color:var(--acc);border-bottom-color:var(--acc);}
 .nav-icon{font-size:19px;position:relative;display:inline-block;}
 .nav-count-badge{position:absolute;top:-4px;right:-9px;background:var(--danger);color:#fff;font-family:var(--fb);font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;}
+.nav-count-badge-alt{right:auto;left:-9px;background:var(--acc);color:#000;}
 .nav-lbl{font-family:var(--fd);font-size:9px;letter-spacing:0.5px;}
 #app-main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;max-width:480px;margin:0 auto;width:100%;padding-bottom:var(--nav-h);}
 .tab{display:none;}

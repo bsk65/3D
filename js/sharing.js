@@ -7,14 +7,16 @@
 //
 // Registrerer window.requestViewAccess/acceptShareRequest/declineShareRequest/
 // endSharing/cancelShareRequest som HTML-handlere ved import.
-// fetchShareRequests/renderSharingSection/getViewableUsers/fetchViewedRounds
-// eksporteres — kaldes fra app-init.js (login-flow, switchTab) og analyse.js.
+// fetchShareRequests/renderSharingSection/getViewableUsers/fetchViewedRounds/
+// updateShareBadge/markShareRequestsSeen eksporteres — kaldes fra app-init.js
+// (login-flow, switchTab) og analyse.js.
 
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
 import { db, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
 
 const STATUS_LABELS = { afventer:'Afventer godkendelse', accepteret:'Godkendt ✅', afvist:'Afvist ❌' }
+const SEEN_KEY = 'archery_share_requests_seen'
 
 function reqId(ownerUid,viewerUid){ return `${ownerUid}_${viewerUid}` }
 
@@ -33,6 +35,32 @@ export async function fetchShareRequests(){
     asViewer.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()}))
     state.shareRequests=[...map.values()]
   }catch(e){console.warn('Hent delingsanmodninger:',e)}
+}
+
+// ─── BADGE (uset-tæller på Venner-fanens ikon) ─────────────────────────────
+// Kun NYE indkommende anmodninger (nogen har bedt om at måtte se ens egne
+// resultater) tæller som "notifikation" — hverken egne udestående anmodninger
+// eller allerede accepterede/afviste forhold, jf. brugerens ønske om besked
+// "når man bliver anmodet om at dele resultater".
+export function getUnseenShareRequestCount(shareRequests,ownerUid,lastSeenAt){
+  return shareRequests.filter(r=>{
+    if(r.ownerUid!==ownerUid||r.status!=='afventer')return false
+    const t=r.createdAt?.toMillis?.()??(typeof r.createdAt==='number'?r.createdAt:0)
+    return t>lastSeenAt
+  }).length
+}
+
+export function updateShareBadge(){
+  const el=document.getElementById('share-badge');if(!el)return
+  const lastSeen=Number(localStorage.getItem(SEEN_KEY)||0)
+  const n=getUnseenShareRequestCount(state.shareRequests,state.user?.uid,lastSeen)
+  el.classList.toggle('hidden',n===0)
+  el.textContent=n
+}
+
+export function markShareRequestsSeen(){
+  localStorage.setItem(SEEN_KEY,String(Date.now()))
+  updateShareBadge()
 }
 
 // Liste over personer man selv (som seer) er godkendt til at se — bruges af
@@ -142,7 +170,7 @@ window.acceptShareRequest=async function(id){
   try{
     await updateDoc(doc(db,'shareRequests',id),{status:'accepteret',updatedAt:serverTimestamp()})
     const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='accepteret'
-    renderSharingSection()
+    renderSharingSection();updateShareBadge()
     showToast('Deling accepteret','success')
   }catch(e){showToast('Fejl: '+e.message,'error')}
 }
@@ -152,7 +180,7 @@ window.declineShareRequest=function(id){
     try{
       await updateDoc(doc(db,'shareRequests',id),{status:'afvist',updatedAt:serverTimestamp()})
       const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='afvist'
-      renderSharingSection()
+      renderSharingSection();updateShareBadge()
     }catch(e){showToast('Fejl: '+e.message,'error')}
   })
 }

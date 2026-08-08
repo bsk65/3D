@@ -12,7 +12,7 @@ import { fetchCourses, renderCoursesList, updateTargetInFirestore, compressImage
 import { renderAdminSection } from './admin.js'
 import { renderRoundsList } from './results.js'
 import { fetchMeetups, renderMeetupsList, updateMeetupBadge, markMeetupsSeen } from './meetups.js'
-import { fetchShareRequests, renderSharingSection } from './sharing.js'
+import { fetchShareRequests, renderSharingSection, updateShareBadge, markShareRequestsSeen } from './sharing.js'
 import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGranted,
          shouldShowPushBanner, listenForegroundPush } from './push.js'
 import './analyse.js'
@@ -224,7 +224,7 @@ function onLogin(){
   // Hent "Må jeg kigge med?"-delingsanmodninger — renderFriendsList kaldes igen
   // fordi venne-kortenes status-badge (se friends.js' shareStatusHtml) afhænger
   // af state.shareRequests, som endnu ikke var hentet ved det første kald ovenfor.
-  fetchShareRequests().then(()=>{renderSharingSection();renderFriendsList()}).catch(e=>console.warn('Hent delinger:',e))
+  fetchShareRequests().then(()=>{renderSharingSection();renderFriendsList();updateShareBadge()}).catch(e=>console.warn('Hent delinger:',e))
 
   // Push-notifikationer: registrér SW + lyt efter push mens appen er åben.
   // Har brugeren allerede givet tilladelse fornyes token stille; ellers vises
@@ -259,7 +259,7 @@ window.switchTab=function(tab){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
   const _t=document.getElementById(`tab-${tab}`);if(_t){_t.classList.add('active');_t.classList.remove('hidden')}
   document.querySelector(`.nav-btn[data-tab="${tab}"]`)?.classList.add('active')
-  if(tab==='friends'){renderAdminSection();renderMeetupsList();markMeetupsSeen();renderSharingSection()}
+  if(tab==='friends'){renderAdminSection();renderMeetupsList();markMeetupsSeen();renderSharingSection();markShareRequestsSeen()}
   if(tab==='analyse')window.renderAnalyse()
   if(tab==='courses'&&state.courseMap)setTimeout(()=>state.courseMap.invalidateSize(),100)
 }
