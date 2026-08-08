@@ -18,23 +18,44 @@ import { db, doc, deleteDoc } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
+// Selve kort-indholdet (bruges både i det lille grid og i den forstørrede
+// tap-visning, så de to altid viser præcis de samme tal).
+function distCardContent(s,round,apt){
+  const d=calcDistribution(s.scores,round.ruleset)
+  const total=calcTotal(s.scores)
+  const allArr=s.scores.flat().filter(v=>v!=null)
+  const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
+  let pilRows=''
+  if(apt>=2){
+    const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
+    const arr2=s.scores.map(t=>(t||[])[1]).filter(v=>v!=null)
+    const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
+    const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
+    pilRows=`<div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div>`
+  }
+  return `<div class="dist-name">${esc(s.name)}</div><div class="dist-row dist-row-total"><span>Total</span><span>${total} pt</span></div>${pilRows}<div class="dist-row dist-row-border"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}`
+}
+
+// Runden bag det senest tegnede dist-grid — bruges af showDistCardEnlarged
+// til at slå deltageren op igen ved tap, uafhængigt af window._lastRound
+// (som andre visninger, fx showRoundPopup, også skriver til).
+let _distRound=null
+
 function buildDistribution(round){
+  _distRound=round
   const apt=arrowsPerTarget(round.ruleset)
-  return '<div class="dist-grid">'+round.shooters.map(s=>{
-    const d=calcDistribution(s.scores,round.ruleset)
-    const total=calcTotal(s.scores)
-    const allArr=s.scores.flat().filter(v=>v!=null)
-    const avgAll=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
-    let pilRows=''
-    if(apt>=2){
-      const arr1=s.scores.map(t=>(t||[])[0]).filter(v=>v!=null)
-      const arr2=s.scores.map(t=>(t||[])[1]).filter(v=>v!=null)
-      const avg1=arr1.length?(arr1.reduce((a,v)=>a+scoreVal(v),0)/arr1.length).toFixed(2):'—'
-      const avg2=arr2.length?(arr2.reduce((a,v)=>a+scoreVal(v),0)/arr2.length).toFixed(2):'—'
-      pilRows=`<div class="dist-row"><span>Snit pil 1</span><span>${avg1}</span></div><div class="dist-row"><span>Snit pil 2</span><span>${avg2}</span></div>`
-    }
-    return `<div class="dist-card"><div class="dist-name">${esc(s.name)}</div><div class="dist-row dist-row-total"><span>Total</span><span>${total} pt</span></div>${pilRows}<div class="dist-row dist-row-border"><span>Samlet snit</span><span>${avgAll}</span></div>${Object.entries(d).map(([k,v])=>`<div class="dist-row"><span>${k}</span><span>${v}x</span></div>`).join('')}</div>`
-  }).join('')+'</div>'
+  return '<div class="dist-grid">'+round.shooters.map((s,i)=>
+    `<div class="dist-card" onclick="window.showDistCardEnlarged(${i})">${distCardContent(s,round,apt)}</div>`
+  ).join('')+'</div>'
+}
+
+// Åbner et deltager-kort i fuld skærmstørrelse (tap på et lille dist-card).
+window.showDistCardEnlarged=function(idx){
+  if(!_distRound)return
+  const s=_distRound.shooters[idx];if(!s)return
+  const body=document.getElementById('dist-enlarge-body');if(!body)return
+  body.innerHTML=distCardContent(s,_distRound,arrowsPerTarget(_distRound.ruleset))
+  document.getElementById('dist-enlarge-ov').classList.remove('hidden')
 }
 
 export function renderResults(round){
