@@ -117,7 +117,14 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
         <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
       </div>
       <div><div class="cmp-pil-lbl">PIL 2</div><div class="cmp-pil-val">${st.p2avg}</div></div>
-    </div>`:`<div class="pil-best-note">Ikke relevant${st.pilRuleset?` (${st.pilRuleset} skydes med 1 pil pr. mål)`:''}</div>`}`
+    </div>`:`<div class="cmp-pil-grid">
+      <div></div>
+      <div class="cmp-pil-mid">
+        <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.overallPilAvg}</div>
+      </div>
+      <div></div>
+    </div>
+    <div class="pil-best-note">${st.pilRuleset?`${st.pilRuleset} skydes med 1 pil pr. mål — PIL 1/PIL 2 er derfor ikke relevant`:'Ikke relevant'}</div>`}`
   const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
     <div class="cmp-target-grid">
       <div class="cmp-target-best">
@@ -360,8 +367,12 @@ window.renderAnalyse=function(){
   // mål (se pilEligible ovenfor). Note forklarer HVORFOR hvis skjult: enten
   // fordi udvalget blander flere regelsæt, eller fordi det ene regelsæt der
   // er valgt kun har 1 pil pr. mål.
+  // Ved ét regelsæt med kun 1 pil/mål (fx HDH-IAA) giver PIL1-vs-PIL2 ingen
+  // mening, men SNT/PIL (samlet snit pr. pil) er stadig et relevant tal —
+  // vis det i stedet for blot at skjule hele kortet.
+  const singleArrowRuleset=pilRuleset&&!pilEligible
   const pilNote=pilRuleset
-    ?`Ikke relevant — ${pilRuleset} skydes med 1 pil pr. mål`
+    ?`${pilRuleset} skydes med 1 pil pr. mål — PIL 1/PIL 2-sammenligning er derfor ikke relevant`
     :`Vælg et specifikt forbund i filteret ovenfor for at se pil-fordeling (runderne i dette udvalg bruger forskellige regelsæt)`
   html+=`<div class="card card-mb16">
     <div class="section-title-mb8">PIL STATISTIK</div>
@@ -375,7 +386,15 @@ window.renderAnalyse=function(){
     </div>
     <div class="pil-best-note">
       ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
-    </div>`:`<div class="pil-best-note">${pilNote}</div>`}
+    </div>`:singleArrowRuleset?`<div class="cmp-pil-grid">
+      <div></div>
+      <div class="cmp-pil-mid">
+        <div class="stat-lbl">SNT/PIL</div>
+        <div class="stat-val-22-mid">${overallPilAvg}</div>
+      </div>
+      <div></div>
+    </div>
+    <div class="pil-best-note">${pilNote}</div>`:`<div class="pil-best-note">${pilNote}</div>`}
   </div>`
 
   // Bedste/dårligste mål

@@ -28,10 +28,14 @@ export function calcAnalyseStats(rounds,userId){
   // vises uden PIL1-vs-PIL2-opdeling, fx sammenlign-tilstands "fordeling
   // pr. scorezone", som blot er en total, ikke et reelt split).
   const distAll={}
+  // Samlet snit/pil på tværs af ALLE positioner — beregnes uafhængigt af
+  // pilEligible, så et 1-pil-regelsæt (fx HDH-IAA) stadig kan vise et
+  // meningsfuldt SNT/PIL-tal, selvom PIL1-vs-PIL2-opdelingen ikke giver mening.
+  let allArrowT=0,allArrowN=0
   rounds.forEach(r=>{
     const s=getMe(r);if(!s)return
     s.scores.forEach(t=>{
-      t.forEach(v=>{if(v!=null)distAll[v]=(distAll[v]||0)+1})
+      t.forEach(v=>{if(v!=null){distAll[v]=(distAll[v]||0)+1;allArrowT+=scoreVal(v);allArrowN++}})
     })
     if(!pilEligible)return
     s.scores.forEach(t=>{
@@ -41,6 +45,7 @@ export function calcAnalyseStats(rounds,userId){
   })
   const p1avg=p1n?(p1t/p1n).toFixed(2):0,p2avg=p2n?(p2t/p2n).toFixed(2):0
   const pilAvg=(p1n+p2n)?((p1t+p2t)/(p1n+p2n)).toFixed(2):0
+  const overallPilAvg=allArrowN?(allArrowT/allArrowN).toFixed(2):0
   const numTargets=rounds[0]?.numTargets||24
   const targetAvgs=Array.from({length:numTargets},(_,ti)=>{
     let tot=0,cnt=0
@@ -50,7 +55,7 @@ export function calcAnalyseStats(rounds,userId){
   const validAvgs=targetAvgs.map((v,i)=>({v,i})).filter(x=>x.v!==null)
   const bestTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v>b.v?a:b):null
   const worstTarget=validAvgs.length?validAvgs.reduce((a,b)=>a.v<b.v?a:b):null
-  return {myScores,p1avg,p2avg,pilAvg,distP1,distP2,distAll,bestTarget,worstTarget,pilRuleset,pilEligible}
+  return {myScores,p1avg,p2avg,pilAvg,overallPilAvg,distP1,distP2,distAll,bestTarget,worstTarget,pilRuleset,pilEligible}
 }
 
 // Standardafvigelse (population) — bruges som mål for hvor ensartet skytten
