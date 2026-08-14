@@ -95,7 +95,13 @@ window.startRound=async function(){
 export function curTargetIdx(){return state.round.traversalOrder[state.round.traversalPos]}
 
 // ─── PANELS ───────────────────────────────────────────────────────────────────
-window.showSetupPanel=function showSetupPanel(){document.getElementById('setup-panel').classList.remove('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.add('hidden')}
+window.showSetupPanel=function showSetupPanel(){
+  document.getElementById('setup-panel').classList.remove('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.add('hidden')
+  // Ryd deltager-chips fra forrige runde — ellers "arver" en ny runde
+  // stiltiende medskytterne fra sidste opsætning (#p-list nulstilles ikke
+  // andre steder, og SPA'en genindlæser aldrig DOM'en mellem runder).
+  const pList=document.getElementById('p-list');if(pList)pList.innerHTML=''
+}
 window.showActivePanel=function showActivePanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.remove('hidden');document.getElementById('results-panel').classList.add('hidden')}
 window.showResultsPanel=function showResultsPanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.remove('hidden')}
 
