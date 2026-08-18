@@ -16,6 +16,7 @@ import { fetchShareRequests, renderSharingSection, updateShareBadge, markShareRe
 import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGranted,
          shouldShowPushBanner, listenForegroundPush } from './push.js'
 import './analyse.js'
+import './round-import.js'
 import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
          releaseWakeLock } from './round.js'
 import { parseRoute, haversine, toggleGpsPause } from './gps.js'
