@@ -52,7 +52,16 @@ service cloud.firestore {
         (resource.data.hidden != true
          || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
          || (request.auth.token.email != null && resource.data.approvedUsers.hasAny([request.auth.token.email.lower()])));
-      allow write: if exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      // Enhver autentificeret bruger må oprette en bane og blive ejer (ownerId
+      // sættes af klienten til egen uid, tjekkes her så man ikke kan sætte en
+      // andens uid som ejer). Redigering/sletning kræver admin ELLER at man
+      // selv er ejeren — matcher canEditCourse() i js/courses.js. Baner uden
+      // ownerId (oprettet før ejerskabs-feltet fandtes) kan derfor kun
+      // redigeres af admins, ligesom klientkoden allerede antager.
+      allow create: if request.auth != null &&
+        request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        resource.data.ownerId == request.auth.uid;
     }
     match /admins/{uid} {
       allow read: if request.auth != null;
