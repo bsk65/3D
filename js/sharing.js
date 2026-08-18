@@ -13,6 +13,7 @@
 
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
+import { lsSave } from './storage.js'
 import { db, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
 
 const STATUS_LABELS = { afventer:'Afventer godkendelse', accepteret:'Godkendt ✅', afvist:'Afvist ❌' }
@@ -139,15 +140,36 @@ export function renderSharingSection(){
 }
 
 // ─── HANDLINGER ─────────────────────────────────────────────────────────────
-// Kun venner med en reel Firebase-konto kan anmodes — lokalt tilføjede venner
-// (manuel indtastning uden søgning) har et genereret id og findes ikke i
-// users-collectionen, jf. samme begrænsning som meetup-invitationer.
+// Kun venner med en reel Firebase-konto kan anmodes. Manuelt tilføjede venner
+// (indtastning uden søgning) har typisk et lokalt genereret id i stedet for
+// personens rigtige uid — requestViewAccess falder i så fald tilbage til at
+// slå kontoen op via vennens gemte e-mail, se nedenfor.
 window.requestViewAccess=async function(ownerUid,ownerName){
   if(!state.user)return
   if(ownerUid===state.user.uid){showToast('Du kan ikke anmode om at se dine egne resultater','error');return}
   try{
-    const ownerDoc=await getDoc(doc(db,'users',ownerUid))
-    if(!ownerDoc.exists()){showToast(`${ownerName} er ikke registreret i appen`,'error');return}
+    let ownerExists=(await getDoc(doc(db,'users',ownerUid))).exists()
+    if(!ownerExists){
+      // Vennens gemte id matcher ingen konto — sker for venner tilføjet manuelt
+      // ("Tilføj ven" uden at vælge fra søgeresultaterne), som får et lokalt
+      // genereret id i stedet for personens rigtige uid. Prøv at finde kontoen
+      // via vennens gemte e-mail, og "helbred" venne-posten så fremtidige
+      // opslag rammer direkte.
+      const friend=state.friends.find(f=>f.id===ownerUid)
+      if(friend?.email){
+        const usersSnap=await getDocs(collection(db,'users'))
+        const match=usersSnap.docs.find(d=>{
+          const u=d.data();const ue=(u.email||u['e-mail']||'').toLowerCase()
+          return ue&&ue===friend.email.toLowerCase()
+        })
+        if(match){
+          ownerUid=match.id;ownerExists=true
+          friend.id=ownerUid;lsSave()
+          setDoc(doc(db,'users',state.user.uid,'friends',ownerUid),friend).catch(e=>console.warn(e))
+        }
+      }
+    }
+    if(!ownerExists){showToast(`${ownerName} er ikke registreret i appen`,'error');return}
     await setDoc(doc(db,'shareRequests',reqId(ownerUid,state.user.uid)),{
       ownerUid, ownerName,
       viewerUid:state.user.uid, viewerName:state.profile?.name||'—',
