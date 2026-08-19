@@ -100,7 +100,6 @@ const importInputEl = document.getElementById('import-round-input')
 if (!importInputEl) console.warn('round-import.js: #import-round-input findes ikke i DOM')
 
 importInputEl?.addEventListener('change', async e => {
-  showToast('Læser fil…', 'success')
   const file = e.target.files[0]
   e.target.value = ''
   if (!file) { showToast('Ingen fil valgt', 'error'); return }
