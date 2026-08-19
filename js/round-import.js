@@ -96,10 +96,14 @@ function openImportPlayerModal(raw, validPlayers) {
   document.getElementById('import-player-modal').classList.remove('hidden')
 }
 
-document.getElementById('import-round-input')?.addEventListener('change', async e => {
+const importInputEl = document.getElementById('import-round-input')
+if (!importInputEl) console.warn('round-import.js: #import-round-input findes ikke i DOM')
+
+importInputEl?.addEventListener('change', async e => {
+  showToast('Læser fil…', 'success')
   const file = e.target.files[0]
   e.target.value = ''
-  if (!file) return
+  if (!file) { showToast('Ingen fil valgt', 'error'); return }
   if (!state.user) { showToast('Log ind først', 'error'); return }
   try {
     const raw = JSON.parse(await file.text())
@@ -112,6 +116,6 @@ document.getElementById('import-round-input')?.addEventListener('change', async 
     await saveImportedRound(raw, self, validPlayers)
   } catch (err) {
     console.warn('Import fejl:', err)
-    showToast('Kunne ikke læse filen — er det en gyldig eksport-JSON?', 'error')
+    showToast('Kunne ikke læse filen: ' + (err?.message || err), 'error')
   }
 })
