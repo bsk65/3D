@@ -45,6 +45,7 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 | `js/stats.js` | Ren analyse-statistik-beregning |
 | `js/analyse.js` | Analyse-fanens rendering |
 | `js/results.js` | Runde-liste/resultater |
+| `js/round-import.js` | Selvbetjent import af runder fra Bueskydning Danmark-appens JSON-eksport (se også `import_legacy_round.mjs` i repo-roden til at importere på en andens vegne via terminal) |
 | `js/admin.js` | Admin-panel: adminliste, brugerliste, tilføj/fjern admin |
 | `js/meetups.js` | "Skal vi skyde sammen": foreslå/tilmeld/afvis fælles skydninger |
 | `js/storage.js` | localStorage-persistens (`archery_v5`) |
