@@ -16,7 +16,7 @@ import { readFileSync } from 'fs'
 import { createInterface } from 'readline/promises'
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: "AIzaSyD6jfZeueaQfBhlI5Mz6766c3k--gCwIjc",
@@ -127,6 +127,8 @@ const roundData = {
 // created sættes til den historiske dato (ikke serverTimestamp/nu) — kortet i
 // runde-listen viser created som dato, og skal derfor matche completed.
 await setDoc(doc(db, 'users', uid, 'rounds', roundId), { ...roundData, created: completedMs })
+// Indeksér runden på egen profil — se kommentaren i js/sharing.js' fetchViewedRounds.
+await setDoc(doc(db, 'users', uid), { roundIndex: arrayUnion({ id: roundId, completed: completedMs }) }, { merge: true })
 const total = scoresFor(self).flat().reduce((s, v) => s + (v === 'M' || v == null ? 0 : v), 0)
 const others = otherShooters.length ? ` + ${otherShooters.map(s => s.name).join(', ')} som gæster` : ''
 console.log(`Importeret: ${roundData.name} (${new Date(completedMs).toLocaleDateString('da-DK')}) — ${numTargets} mål, din total ${total} point${others}, id=${roundId}`)

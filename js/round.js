@@ -16,7 +16,7 @@ import { scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
          warnThresholdFor, DEFAULT_RULESET } from './scoring.js'
 import { findNearestTarget, getCurrentPosition, startTracking, stopTracking,
          formatDuration, formatDistance } from './gps.js'
-import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
+import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp, arrayUnion } from './firebase-init.js'
 import { renderRoundsList, renderResults, showRoundPopup } from './results.js'
 import { updateTargetInFirestore } from './courses.js'
 
@@ -263,6 +263,11 @@ window.finishRound=async function(){
   lsSave();renderRoundsList()
   // Gem runde i Firestore
   setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Runde gemt lokalt (netværksfejl)','error'))
+  // Indeksér runden på egen profil, så en "Må jeg kigge med?"-seer kan finde
+  // den via enkelt-dokument-læsning i stedet for en list-forespørgsel på hele
+  // rounds-samlingen — se kommentaren i sharing.js' fetchViewedRounds for
+  // hvorfor list-forespørgslen aldrig kan virke pålideligt med denne regel.
+  setDoc(doc(db,'users',state.user.uid),{roundIndex:arrayUnion({id:roundId,completed:roundData.completed})},{merge:true}).catch(()=>{})
   // Gem runde direkte hos medskytter med bruger-konto (ikke gæster)
   state.round.shooters.filter(s=>!s.isGuest&&s.id!==state.user.uid).forEach(s=>{
     setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Kunne ikke dele runde med medskytte','error'))
