@@ -4,7 +4,7 @@
 // små window-onclick-handlere der ikke hørte hjemme i et af de øvrige
 // moduler. Importeres som ren side-effekt fra main.js.
 import { auth, db, storage, onAuthStateChanged, collection, doc, getDoc,
-         getDocs, updateDoc, ref, uploadString, getDownloadURL } from './firebase-init.js'
+         getDocs, updateDoc, setDoc, serverTimestamp, ref, uploadString, getDownloadURL } from './firebase-init.js'
 import { state } from './state.js'
 import { showToast } from './utils.js'
 import { renderFriendsList, renderQuickFriends } from './friends.js'
@@ -201,19 +201,30 @@ function onLogin(){
 
   // Hent runder fra Firestore
   getDocs(collection(db,'users',state.user.uid,'rounds')).then(snap=>{
-    if(!snap.docs.length)return
-    const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
-    const localIds=new Set(state.rounds.map(r=>r.id))
-    const newRounds=fsRounds.filter(r=>!localIds.has(r.id))
-    if(newRounds.length){
-      state.rounds=[...state.rounds,...newRounds].sort((a,b)=>{
-        const ta=a.completed||a.created||0
-        const tb=b.completed||b.created||0
-        return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)
-      })
-      lsSave(); renderRoundsList()
-      if(state.pendingRound)tryOpenPendingRound()
+    const fsIds=new Set(snap.docs.map(d=>d.id))
+    if(snap.docs.length){
+      const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
+      const localIds=new Set(state.rounds.map(r=>r.id))
+      const newRounds=fsRounds.filter(r=>!localIds.has(r.id))
+      if(newRounds.length){
+        state.rounds=[...state.rounds,...newRounds].sort((a,b)=>{
+          const ta=a.completed||a.created||0
+          const tb=b.completed||b.created||0
+          return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)
+        })
+        lsSave(); renderRoundsList()
+        if(state.pendingRound)tryOpenPendingRound()
+      }
     }
+    // Gensynkroniser runder der findes lokalt men mangler i Firestore — sker
+    // typisk hvis finishRound()'s Firestore-skrivning fejlede pga. dårligt
+    // mobilsignal på banen (ingen retry på selve skrivningstidspunktet, kun
+    // en let-at-overse toast). Uden dette forbliver runden usynlig for andre
+    // (fx "Må jeg kigge med?"-delinger) selvom brugeren selv kan se den lokalt.
+    state.rounds.filter(r=>r.id&&!fsIds.has(r.id)).forEach(r=>{
+      const {id,...roundData}=r
+      setDoc(doc(db,'users',state.user.uid,'rounds',id),{...roundData,created:serverTimestamp()}).catch(()=>{})
+    })
   }).catch(e=>console.warn('Hent runder:',e))
 
   // Hent baner fra Firestore

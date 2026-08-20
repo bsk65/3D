@@ -75,11 +75,19 @@ export function getViewableUsers(){
 }
 
 // Henter en anden brugers færdige runder (kun tilladt af firestore.rules hvis
-// et accepteret shareRequests-dokument findes). Samme mapping/sortering som
-// app-init.js' egen-runde-hentning.
+// et accepteret shareRequests-dokument findes, og kun runder afsluttet efter
+// godkendelsen — se canViewSharedRound i firestore.rules).
+// Firestore-regler er ikke et filter på en ufiltreret query: hvis blot ét
+// dokument i samlingen (fx en ældre runde fra før godkendelsen) IKKE ville
+// bestå regel-tjekket, afviser Firestore hele query'en med "Missing or
+// insufficient permissions" — heller ikke de runder der faktisk kvalificerer.
+// Derfor skal where('completed','>',cutoff) matche regel-tjekket nøjagtigt,
+// så Firestore kan verificere at ALLE mulige resultater består reglen.
 export async function fetchViewedRounds(uid){
   try{
-    const snap=await getDocs(collection(db,'users',uid,'rounds'))
+    const req=state.shareRequests.find(r=>r.ownerUid===uid&&r.viewerUid===state.user?.uid&&r.status==='accepteret')
+    const cutoff=(req?.acceptedAt||req?.updatedAt)?.toMillis?.()??0
+    const snap=await getDocs(query(collection(db,'users',uid,'rounds'),where('completed','>',cutoff)))
     const rounds=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>{
       const ta=a.completed||a.created||0
       const tb=b.completed||b.created||0
