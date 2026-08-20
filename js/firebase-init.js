@@ -8,7 +8,7 @@ import { getAuth, onAuthStateChanged,
          sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
          collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
-         updateDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
+         updateDoc, addDoc, serverTimestamp, query, where, arrayUnion } from 'firebase/firestore'
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 import { getMessaging, isSupported as isMessagingSupported, getToken, onMessage } from 'firebase/messaging'
 
@@ -44,6 +44,6 @@ export { app, auth, db, storage, messaging, messagingReady }
 export { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut }
 export { collection, collectionGroup, doc, setDoc, getDoc, getDocs, deleteDoc,
-         updateDoc, addDoc, serverTimestamp, query, where }
+         updateDoc, addDoc, serverTimestamp, query, where, arrayUnion }
 export { ref, uploadString, getDownloadURL, deleteObject }
 export { getToken, onMessage }

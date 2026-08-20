@@ -77,18 +77,25 @@ export function getViewableUsers(){
 // Henter en anden brugers færdige runder (kun tilladt af firestore.rules hvis
 // et accepteret shareRequests-dokument findes, og kun runder afsluttet efter
 // godkendelsen — se canViewSharedRound i firestore.rules).
-// Firestore-regler er ikke et filter på en ufiltreret query: hvis blot ét
-// dokument i samlingen (fx en ældre runde fra før godkendelsen) IKKE ville
-// bestå regel-tjekket, afviser Firestore hele query'en med "Missing or
-// insufficient permissions" — heller ikke de runder der faktisk kvalificerer.
-// Derfor skal where('completed','>',cutoff) matche regel-tjekket nøjagtigt,
-// så Firestore kan verificere at ALLE mulige resultater består reglen.
+// Kan IKKE gøres som én collection-query: Firestore's regel-motor understøtter
+// get()-opslag i et andet dokument (her: shareRequests) pålideligt for
+// enkelt-dokument-læsninger, men ikke for list/query-forespørgsler — der
+// afviser Firestore forespørgslen med "Missing or insufficient permissions"
+// uanset filter, også selvom et filter beviseligt ikke kunne ramme noget
+// dokument der fejler reglen (afprøvet). Derfor slås runde-id'erne op via et
+// separat indeks (roundIndex på selve users/{uid}-dokumentet, som enhver
+// logget ind bruger allerede må læse, se onLogin i app-init.js), og hver
+// kvalificerende runde hentes bagefter enkeltvis med getDoc — det virker,
+// fordi canViewSharedRound-reglen evalueres korrekt for enkelt-læsninger.
 export async function fetchViewedRounds(uid){
   try{
     const req=state.shareRequests.find(r=>r.ownerUid===uid&&r.viewerUid===state.user?.uid&&r.status==='accepteret')
     const cutoff=(req?.acceptedAt||req?.updatedAt)?.toMillis?.()??0
-    const snap=await getDocs(query(collection(db,'users',uid,'rounds'),where('completed','>',cutoff)))
-    const rounds=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>{
+    const profileSnap=await getDoc(doc(db,'users',uid))
+    const idx=profileSnap.data()?.roundIndex||[]
+    const ids=idx.filter(e=>(e.completed||0)>cutoff).map(e=>e.id)
+    const docs=await Promise.all(ids.map(id=>getDoc(doc(db,'users',uid,'rounds',id)).catch(()=>null)))
+    const rounds=docs.filter(d=>d?.exists()).map(d=>({...d.data(),id:d.id})).sort((a,b)=>{
       const ta=a.completed||a.created||0
       const tb=b.completed||b.created||0
       return (typeof tb==='number'?tb:tb.toMillis?.()??0)-(typeof ta==='number'?ta:ta.toMillis?.()??0)

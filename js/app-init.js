@@ -202,8 +202,8 @@ function onLogin(){
   // Hent runder fra Firestore
   getDocs(collection(db,'users',state.user.uid,'rounds')).then(snap=>{
     const fsIds=new Set(snap.docs.map(d=>d.id))
-    if(snap.docs.length){
-      const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
+    const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
+    if(fsRounds.length){
       const localIds=new Set(state.rounds.map(r=>r.id))
       const newRounds=fsRounds.filter(r=>!localIds.has(r.id))
       if(newRounds.length){
@@ -221,10 +221,20 @@ function onLogin(){
     // mobilsignal på banen (ingen retry på selve skrivningstidspunktet, kun
     // en let-at-overse toast). Uden dette forbliver runden usynlig for andre
     // (fx "Må jeg kigge med?"-delinger) selvom brugeren selv kan se den lokalt.
-    state.rounds.filter(r=>r.id&&!fsIds.has(r.id)).forEach(r=>{
+    const unsynced=state.rounds.filter(r=>r.id&&!fsIds.has(r.id))
+    unsynced.forEach(r=>{
       const {id,...roundData}=r
       setDoc(doc(db,'users',state.user.uid,'rounds',id),{...roundData,created:serverTimestamp()}).catch(()=>{})
     })
+    // Genopbygger roundIndex-feltet på egen profil fuldt ud hvert login —
+    // selvhelende backfill af "Må jeg kigge med?"-indekset (se sharing.js'
+    // fetchViewedRounds) for både historiske runder fra før indekset fandtes
+    // og runder hvor selve indeks-opdateringen i finishRound()/round-import.js
+    // måtte være fejlet uden retry, ligesom gensynkroniseringen ovenfor.
+    const allKnown=[...fsRounds,...unsynced].filter(r=>r.id).map(r=>({id:r.id,completed:r.completed||0}))
+    if(allKnown.length){
+      setDoc(doc(db,'users',state.user.uid),{roundIndex:allKnown},{merge:true}).catch(()=>{})
+    }
   }).catch(e=>console.warn('Hent runder:',e))
 
   // Hent baner fra Firestore

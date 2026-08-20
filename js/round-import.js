@@ -19,7 +19,7 @@ import { state } from './state.js'
 import { esc, showToast } from './utils.js'
 import { lsSave } from './storage.js'
 import { serializeScores, buildOrder } from './scoring.js'
-import { db, doc, setDoc } from './firebase-init.js'
+import { db, doc, setDoc, arrayUnion } from './firebase-init.js'
 import { renderRoundsList } from './results.js'
 
 function scoresFor(p, numTargets, arrowsPerTgt) {
@@ -61,6 +61,8 @@ async function saveImportedRound(raw, self, validPlayers) {
   // created sættes til den historiske dato (ikke "nu") så rundekortet viser
   // den rigtige dato — samme grund som i import_legacy_round.mjs.
   await setDoc(doc(db, 'users', state.user.uid, 'rounds', roundId), { ...roundData, created: completedMs })
+  // Indeksér runden på egen profil — se kommentaren i sharing.js' fetchViewedRounds.
+  setDoc(doc(db, 'users', state.user.uid), { roundIndex: arrayUnion({ id: roundId, completed: completedMs }) }, { merge: true }).catch(() => {})
 
   state.rounds = state.rounds.filter(r => r.id !== roundId)
   state.rounds.unshift({ ...roundData, created: completedMs })
