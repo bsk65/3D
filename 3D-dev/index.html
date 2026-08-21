@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-DQIwicUh.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-DTVBDrbG.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-D2-Ngp9y.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-BUfWfEql.css">
   </head>
 <body>
 
@@ -292,12 +292,18 @@
       </div>
       <div id="analyse-runde-wrap" class="analyse-runde-panel" style="display:none;">
         <div id="analyse-runde-lbl" class="analyse-runde-lbl-style" style="display:none;">RUNDE 1</div>
+        <select id="analyse-kilde-1" onchange="setCompareKilde(1,this.value)" class="analyse-kilde-select hidden">
+          <option value="">Mig selv</option>
+        </select>
         <select id="analyse-runde" onchange="renderAnalyse()" class="analyse-runde-select">
           <option value="">Vælg runde...</option>
         </select>
       </div>
       <div id="analyse-runde-wrap-2" class="analyse-runde-panel" style="display:none;">
         <div class="analyse-runde2-lbl">RUNDE 2</div>
+        <select id="analyse-kilde-2" onchange="setCompareKilde(2,this.value)" class="analyse-kilde-select hidden">
+          <option value="">Mig selv</option>
+        </select>
         <select id="analyse-runde-2" onchange="renderAnalyse()" class="analyse-runde-select">
           <option value="">Vælg runde 2...</option>
         </select>
