@@ -102,6 +102,22 @@ window.setAnalyseViewer=async function(uid){
 // undgår cirkulær import — samme som window.populateCourseDropdown).
 window.analyseRound = analyseRound
 
+// Vælger hvilken person runde 1 hhv. runde 2 hentes fra i "Sammenlign
+// runder"-tilstand — uafhængigt af hinanden og af den øverste seer-vælger, så
+// man fx kan sammenligne EN AF SINE EGNE runder mod EN AF en vens runder på
+// samme bane (før var begge runder altid fra samme kilde, den øverste
+// seer-vælger). uid=''→null (mig selv). undefined (state.compareUid1/2's
+// startværdi) betyder "følger endnu den øverste seer-vælger" — sat første
+// gang isCompare-blokken kører, se renderAnalyse.
+window.setCompareKilde=async function(which,uid){
+  uid=uid||null
+  if(which===1)state.compareUid1=uid;else state.compareUid2=uid
+  if(uid&&!state.viewedRounds[uid]){
+    await fetchViewedRounds(uid)
+  }
+  window.renderAnalyse()
+}
+
 // Farve pr. scorezone i sammenlign-tilstandens fordelingstabel — dækker alle
 // tre regelsæts værdier (WA/HDH-IAA: 11/10/8/5/M, DGS: 5/3/-1/M); ukendte
 // fremtidige zoner falder tilbage til --muted.
@@ -193,22 +209,49 @@ window.renderAnalyse=function(){
   // kigge med?"-relation (state.viewedRounds, hentet on-demand af setAnalyseViewer).
   const viewingUid=state.viewingUid||state.user?.uid
   const sourceRounds=state.viewingUid?(state.viewedRounds[state.viewingUid]||[]):state.rounds
+  const viewableUsers=getViewableUsers()
+
+  const filterVal=document.getElementById('analyse-filter')?.value||'all'
+  const isCompare=filterVal==='compare'
+  // Sammenlign-tilstand: runde 1 og runde 2 kan hver have deres egen kilde
+  // (mig selv eller en godkendt seer-relation), uafhængigt af hinanden og af
+  // den øverste seer-vælger — så man fx kan sammenligne en af sine EGNE
+  // runder mod en af en vens runder på samme bane. undefined (startværdien,
+  // se state.js) betyder "følger stadig den øverste seer-vælger"; sættes til
+  // en konkret værdi (inkl. null="mig selv") først når man selv vælger i
+  // kilde-dropdownen (window.setCompareKilde).
+  const compareUid1=state.compareUid1!==undefined?state.compareUid1:state.viewingUid
+  const compareUid2=state.compareUid2!==undefined?state.compareUid2:state.viewingUid
+  const compareRounds1=compareUid1?(state.viewedRounds[compareUid1]||[]):state.rounds
+  const compareRounds2=compareUid2?(state.viewedRounds[compareUid2]||[]):state.rounds
 
   const viewerWrap=document.getElementById('analyse-viewer-wrap')
   const viewerEl=document.getElementById('analyse-viewer')
   if(viewerEl){
-    const viewableUsers=getViewableUsers()
     while(viewerEl.options.length>1)viewerEl.remove(1)
     viewableUsers.forEach(u=>{const o=document.createElement('option');o.value=u.uid;o.textContent=u.name;viewerEl.appendChild(o)})
     viewerEl.value=state.viewingUid&&viewableUsers.some(u=>u.uid===state.viewingUid)?state.viewingUid:''
     if(viewerWrap)viewerWrap.classList.toggle('hidden',!viewableUsers.length)
   }
+  const fillKildeSelect=(selEl,uid)=>{
+    if(!selEl)return
+    while(selEl.options.length>1)selEl.remove(1)
+    viewableUsers.forEach(u=>{const o=document.createElement('option');o.value=u.uid;o.textContent=u.name;selEl.appendChild(o)})
+    selEl.value=uid&&viewableUsers.some(u=>u.uid===uid)?uid:''
+    selEl.classList.toggle('hidden',!isCompare||!viewableUsers.length)
+  }
+  fillKildeSelect(document.getElementById('analyse-kilde-1'),compareUid1)
+  fillKildeSelect(document.getElementById('analyse-kilde-2'),compareUid2)
 
   const baneEl=document.getElementById('analyse-bane')
   if(baneEl){
     const prevBaneSel=baneEl.value
     while(baneEl.options.length>1)baneEl.remove(1)
-    const brugteBaner=[...new Set(sourceRounds.map(r=>r.courseId).filter(Boolean))]
+    // I sammenlign-tilstand skal banelisten dække begge runders (potentielt
+    // forskellige) kilder — ellers ville en bane kun den ene person har
+    // skudt, ikke kunne vælges.
+    const baneSourceRounds=isCompare?[...compareRounds1,...compareRounds2]:sourceRounds
+    const brugteBaner=[...new Set(baneSourceRounds.map(r=>r.courseId).filter(Boolean))]
     brugteBaner.forEach(id=>{
       const c=state.courses.find(x=>x.id===id)
       if(c){const o=document.createElement('option');o.value=id;o.textContent=c.name;baneEl.appendChild(o)}
@@ -221,7 +264,6 @@ window.renderAnalyse=function(){
       baneEl.value=pendingRound.courseId
     }
   }
-  const filterVal=document.getElementById('analyse-filter')?.value||'all'
   const filter=filterVal==='all'?0:filterVal==='lastround'?1:filterVal==='specific'?0:Number(filterVal)
   const bane=document.getElementById('analyse-bane')?.value||'all'
   const antalInput=Number(document.getElementById('analyse-antal')?.value)||0
@@ -230,14 +272,13 @@ window.renderAnalyse=function(){
   const rundeWrap2=document.getElementById('analyse-runde-wrap-2')
   const rundeEl2=document.getElementById('analyse-runde-2')
   const rundeLbl=document.getElementById('analyse-runde-lbl')
-  const isCompare=filterVal==='compare'
   if(rundeWrap)rundeWrap.style.display=(filterVal==='specific'||isCompare)?'':'none'
   if(rundeWrap2)rundeWrap2.style.display=isCompare?'':'none'
   if(rundeLbl)rundeLbl.style.display=isCompare?'':'none'
   const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
   const rulesetFilterEarly=document.getElementById('analyse-ruleset')?.value||'all'
-  const populateRundeSelect=(selectEl,placeholder)=>{
-    let relevant=bane==='all'?sourceRounds:sourceRounds.filter(r=>r.courseId===bane)
+  const populateRundeSelect=(selectEl,placeholder,roundsSource)=>{
+    let relevant=bane==='all'?roundsSource:roundsSource.filter(r=>r.courseId===bane)
     if(rulesetFilterEarly!=='all')relevant=relevant.filter(r=>(r.ruleset||'WA')===rulesetFilterEarly)
     const prevSel=selectEl.value
     selectEl.innerHTML=`<option value="">${placeholder}</option>`
@@ -245,20 +286,22 @@ window.renderAnalyse=function(){
     if(relevant.some(r=>r.id===prevSel))selectEl.value=prevSel
   }
   if((filterVal==='specific'||isCompare)&&rundeEl){
-    populateRundeSelect(rundeEl,'Vælg runde...')
+    populateRundeSelect(rundeEl,'Vælg runde...',isCompare?compareRounds1:sourceRounds)
     if(state.pendingAnalyseRound){rundeEl.value=state.pendingAnalyseRound;state.pendingAnalyseRound=null}
   }
   if(isCompare&&rundeEl2){
-    populateRundeSelect(rundeEl2,'Vælg runde 2...')
+    populateRundeSelect(rundeEl2,'Vælg runde 2...',compareRounds2)
   }
   if(isCompare){
     const sel1=rundeEl?.value,sel2=rundeEl2?.value
     if(!sel1||!sel2){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div>Vælg to runder ovenfor</div>';return}
-    const allR=sourceRounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))
-    const r1=allR.find(r=>r.id===sel1),r2=allR.find(r=>r.id===sel2)
+    const mapR=r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))})
+    const r1=compareRounds1.map(mapR).find(r=>r.id===sel1),r2=compareRounds2.map(mapR).find(r=>r.id===sel2)
     if(!r1||!r2){el.innerHTML='<div class="empty">Kunne ikke finde runderne</div>';return}
-    const lbl1=`${r1.name||'Runde'} (${fmtRD(r1)})`,lbl2=`${r2.name||'Runde'} (${fmtRD(r2)})`
-    el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],viewingUid),lbl1,calcAnalyseStats([r2],viewingUid),lbl2)
+    const name1=compareUid1?(viewableUsers.find(u=>u.uid===compareUid1)?.name||'—'):(state.profile?.name||'Mig')
+    const name2=compareUid2?(viewableUsers.find(u=>u.uid===compareUid2)?.name||'—'):(state.profile?.name||'Mig')
+    const lbl1=`${name1}: ${r1.name||'Runde'} (${fmtRD(r1)})`,lbl2=`${name2}: ${r2.name||'Runde'} (${fmtRD(r2)})`
+    el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],compareUid1||state.user?.uid),lbl1,calcAnalyseStats([r2],compareUid2||state.user?.uid),lbl2)
     return
   }
   const allRounds=sourceRounds.map(r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))}))

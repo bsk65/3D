@@ -471,6 +471,7 @@ select option{background:var(--surf);}
 .analyse-runde-lbl-style{font-size:11px;color:var(--acc);padding-top:6px;padding-bottom:2px;}
 .analyse-runde2-lbl{font-size:11px;color:#f0c030;padding-top:6px;padding-bottom:2px;}
 .analyse-runde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;}
+.analyse-kilde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;margin-bottom:6px;}
 .analyse-content-wrap{padding:12px;}
 .analyse-viewer-wrap{padding:8px 12px 0;}
 .viewing-banner{background:var(--surf2);border:1px solid var(--acc);color:var(--acc);font-family:var(--fd);font-size:12px;text-align:center;padding:8px;margin:10px 12px 0;border-radius:var(--rs);}
