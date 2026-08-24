@@ -157,7 +157,7 @@ function renderShooters(){
       miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
     }
     card.innerHTML=`
-      <div class="sh-head"><span class="sh-target-emoji">🎯</span>${warn?'<span class="warn-dot"></span>':''}
+      <div class="sh-head">${warn?'<span class="warn-dot"></span>':''}
         <span class="sh-name">${esc(s.name)}</span>
         <div class="sh-mini-group">${miniGroup}</div>
       </div>
