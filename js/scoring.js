@@ -24,6 +24,10 @@ export const DEFAULT_RULESET = 'WA'
 export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
 export function scoreValuesFor(ruleset) { return RULESETS[ruleset]?.scoreValues ?? SCORE_VALUES }
 export function warnThresholdFor(ruleset) { return RULESETS[ruleset]?.warnThreshold ?? 8 }
+// "Kill zone" = de to højeste scorezoner for regelsættet (11+10 for WA/HDH-IAA,
+// 5+3 for DGS) — bruges af afstands-analysen i stats.js til at vurdere
+// træfsikkerhed pr. afstandsgruppe. Ét sted at justere definitionen senere.
+export function killZoneValuesFor(ruleset) { return scoreValuesFor(ruleset).slice(0, 2) }
 
 // Numerisk værdi af et enkelt skud. 'M' (miss) og null/undefined tæller som 0.
 export function scoreVal(v) { return (v === 'M' || v == null) ? 0 : Number(v) }

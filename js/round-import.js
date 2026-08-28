@@ -17,6 +17,7 @@
 
 import { state } from './state.js'
 import { esc, showToast } from './utils.js'
+import { t } from './i18n.js'
 import { lsSave } from './storage.js'
 import { serializeScores, buildOrder } from './scoring.js'
 import { db, doc, setDoc, arrayUnion } from './firebase-init.js'
@@ -41,7 +42,7 @@ async function saveImportedRound(raw, self, validPlayers) {
   }
 
   const otherShooters = validPlayers.filter(p => p !== self).map((p, i) => ({
-    id: `guest-import-${Date.now()}-${i}`, name: p.name || `Gæst ${i + 1}`, isGuest: true,
+    id: `guest-import-${Date.now()}-${i}`, name: p.name || t('roundImport.guestFallback', { n: i + 1 }), isGuest: true,
     scores: serializeScores(scoresFor(p, numTargets, arrowsPerTgt))
   }))
 
@@ -49,11 +50,11 @@ async function saveImportedRound(raw, self, validPlayers) {
   const roundId = 'imp_' + (self.objectId || raw.eventobjectId || Date.now())
 
   const roundData = {
-    id: roundId, name: courseName || 'Importeret runde', courseId, courseName,
+    id: roundId, name: courseName || t('roundImport.importedRoundFallback'), courseId, courseName,
     numTargets, startTarget: 1, ruleset: 'WA',
     completed: completedMs, gpsRoute: null, gpsDuration: null, gpsDistance: null,
     traversalOrder: buildOrder(0, numTargets), traversalPos: numTargets,
-    shooters: [{ id: state.user.uid, name: state.profile?.name || 'Mig', isGuest: false,
+    shooters: [{ id: state.user.uid, name: state.profile?.name || t('analyse.meFallback'), isGuest: false,
       scores: serializeScores(scoresFor(self, numTargets, arrowsPerTgt)) }, ...otherShooters],
     shooterIds: [state.user.uid]
   }
@@ -71,7 +72,7 @@ async function saveImportedRound(raw, self, validPlayers) {
     return (typeof tb === 'number' ? tb : tb.toMillis?.() ?? 0) - (typeof ta === 'number' ? ta : ta.toMillis?.() ?? 0)
   })
   lsSave(); renderRoundsList()
-  showToast(`Runde importeret: ${roundData.name}`, 'success')
+  showToast(t('roundImport.importedToast', { name: roundData.name }), 'success')
 }
 
 let _pendingImport = null // { raw, validPlayers } mens spiller-valg-modalen er åben
@@ -88,7 +89,7 @@ window.pickImportPlayer = async function (idx) {
   const self = validPlayers[idx]
   closeImportPlayerModal()
   try { await saveImportedRound(raw, self, validPlayers) }
-  catch (e) { console.warn('Import fejl:', e); showToast('Fejl ved import: ' + e.message, 'error') }
+  catch (e) { console.warn('Import fejl:', e); showToast(t('roundImport.importError', { msg: e.message }), 'error') }
 }
 
 function openImportPlayerModal(raw, validPlayers) {
@@ -104,12 +105,12 @@ if (!importInputEl) console.warn('round-import.js: #import-round-input findes ik
 importInputEl?.addEventListener('change', async e => {
   const file = e.target.files[0]
   e.target.value = ''
-  if (!file) { showToast('Ingen fil valgt', 'error'); return }
-  if (!state.user) { showToast('Log ind først', 'error'); return }
+  if (!file) { showToast(t('roundImport.noFileSelected'), 'error'); return }
+  if (!state.user) { showToast(t('roundImport.loginFirst'), 'error'); return }
   try {
     const raw = JSON.parse(await file.text())
     const validPlayers = (raw.players || []).filter(p => Array.isArray(p.eventresult) && p.eventresult.length)
-    if (!validPlayers.length) { showToast('Filen indeholder ingen spillere med resultater', 'error'); return }
+    if (!validPlayers.length) { showToast(t('roundImport.noPlayersInFile'), 'error'); return }
     const myEmail = (state.profile?.email || '').toLowerCase()
     let self = validPlayers.find(p => (p.email || '').toLowerCase() === myEmail)
     if (!self && validPlayers.length === 1) self = validPlayers[0]
@@ -117,6 +118,6 @@ importInputEl?.addEventListener('change', async e => {
     await saveImportedRound(raw, self, validPlayers)
   } catch (err) {
     console.warn('Import fejl:', err)
-    showToast('Kunne ikke læse filen: ' + (err?.message || err), 'error')
+    showToast(t('roundImport.readError', { msg: err?.message || err }), 'error')
   }
 })

@@ -15,6 +15,7 @@ import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
 import { db, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
+import { t } from './i18n.js'
 
 const STATUS_LABELS = { afventer:'Afventer godkendelse', accepteret:'Godkendt ✅', afvist:'Afvist ❌' }
 const SEEN_KEY = 'archery_share_requests_seen'
@@ -113,40 +114,40 @@ export function renderSharingSection(){
   const granted=state.shareRequests.filter(r=>r.ownerUid===me&&r.status==='accepteret')
   const viewing=state.shareRequests.filter(r=>r.viewerUid===me&&r.status==='accepteret')
   if(!incoming.length&&!granted.length&&!viewing.length){
-    el.innerHTML='<div class="share-empty">Anmod om at se en vens resultater ved at trykke "🔎 Må jeg kigge med?" på personen i din venneliste ovenfor.</div>'
+    el.innerHTML=`<div class="share-empty">${t('sharing.emptyState')}</div>`
     return
   }
   let html=''
   if(incoming.length){
-    html+=`<div class="share-group-title">Anmodninger om at se dine resultater</div>`
+    html+=`<div class="share-group-title">${t('sharing.incomingRequestsTitle')}</div>`
     incoming.forEach(r=>{
       html+=`<div class="share-card">
         <div class="share-name">${esc(r.viewerName)}</div>
         <div class="share-actions">
-          <button class="btn btn-gold btn-sm" onclick="acceptShareRequest('${r.id}')">Accepter</button>
-          <button class="btn btn-dark btn-sm" onclick="declineShareRequest('${r.id}')">Afvis</button>
+          <button class="btn btn-gold btn-sm" onclick="acceptShareRequest('${r.id}')">${t('sharing.acceptBtn')}</button>
+          <button class="btn btn-dark btn-sm" onclick="declineShareRequest('${r.id}')">${t('sharing.rejectBtn')}</button>
         </div>
       </div>`
     })
   }
   if(granted.length){
-    html+=`<div class="share-group-title">Du deler resultater med</div>`
+    html+=`<div class="share-group-title">${t('sharing.sharingWithTitle')}</div>`
     granted.forEach(r=>{
       html+=`<div class="share-card">
         <div class="share-name">${esc(r.viewerName)}</div>
         <div class="share-actions">
-          <button class="btn btn-red btn-sm" onclick="endSharing('${r.id}')">Afslut deling</button>
+          <button class="btn btn-red btn-sm" onclick="endSharing('${r.id}')">${t('sharing.stopSharingBtn')}</button>
         </div>
       </div>`
     })
   }
   if(viewing.length){
-    html+=`<div class="share-group-title">Du kan se resultater for</div>`
+    html+=`<div class="share-group-title">${t('sharing.viewableTitle')}</div>`
     viewing.forEach(r=>{
       html+=`<div class="share-card">
         <div class="share-name">${esc(r.ownerName)}</div>
         <div class="share-actions">
-          <button class="btn btn-dark btn-sm" onclick="window.switchTab('analyse');window.setAnalyseViewer('${r.ownerUid}')">Se i Analyse</button>
+          <button class="btn btn-dark btn-sm" onclick="window.switchTab('analyse');window.setAnalyseViewer('${r.ownerUid}')">${t('sharing.viewInAnalyseBtn')}</button>
         </div>
       </div>`
     })
@@ -161,7 +162,7 @@ export function renderSharingSection(){
 // slå kontoen op via vennens gemte e-mail, se nedenfor.
 window.requestViewAccess=async function(ownerUid,ownerName){
   if(!state.user)return
-  if(ownerUid===state.user.uid){showToast('Du kan ikke anmode om at se dine egne resultater','error');return}
+  if(ownerUid===state.user.uid){showToast(t('sharing.ownRequestError'),'error');return}
   try{
     let ownerExists=(await getDoc(doc(db,'users',ownerUid))).exists()
     if(!ownerExists){
@@ -184,15 +185,15 @@ window.requestViewAccess=async function(ownerUid,ownerName){
         }
       }
     }
-    if(!ownerExists){showToast(`${ownerName} er ikke registreret i appen`,'error');return}
+    if(!ownerExists){showToast(t('sharing.notRegisteredError',{name:ownerName}),'error');return}
     await setDoc(doc(db,'shareRequests',reqId(ownerUid,state.user.uid)),{
       ownerUid, ownerName,
       viewerUid:state.user.uid, viewerName:state.profile?.name||'—',
       status:'afventer', createdAt:serverTimestamp(), updatedAt:serverTimestamp()
     })
-    showToast('Anmodning sendt','success')
+    showToast(t('sharing.requestSentToast'),'success')
     await fetchShareRequests();renderSharingSection();window.renderFriendsList?.()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 window.cancelShareRequest=async function(id){
@@ -200,7 +201,7 @@ window.cancelShareRequest=async function(id){
     await deleteDoc(doc(db,'shareRequests',id))
     state.shareRequests=state.shareRequests.filter(r=>r.id!==id)
     renderSharingSection();window.renderFriendsList?.()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 window.acceptShareRequest=async function(id){
@@ -210,27 +211,27 @@ window.acceptShareRequest=async function(id){
     await updateDoc(doc(db,'shareRequests',id),{status:'accepteret',acceptedAt:serverTimestamp(),updatedAt:serverTimestamp()})
     const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='accepteret'
     renderSharingSection();updateShareBadge()
-    showToast('Deling accepteret','success')
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+    showToast(t('sharing.acceptedToast'),'success')
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 window.declineShareRequest=function(id){
-  showConfirm('Afvis denne anmodning?',async()=>{
+  showConfirm(t('sharing.rejectConfirm'),async()=>{
     try{
       await updateDoc(doc(db,'shareRequests',id),{status:'afvist',updatedAt:serverTimestamp()})
       const r=state.shareRequests.find(x=>x.id===id);if(r)r.status='afvist'
       renderSharingSection();updateShareBadge()
-    }catch(e){showToast('Fejl: '+e.message,'error')}
+    }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
   })
 }
 
 window.endSharing=function(id){
-  showConfirm('Afslut denne deling? Personen mister med det samme adgang til dine resultater.',async()=>{
+  showConfirm(t('sharing.stopConfirm'),async()=>{
     try{
       await deleteDoc(doc(db,'shareRequests',id))
       state.shareRequests=state.shareRequests.filter(r=>r.id!==id)
       renderSharingSection()
-      showToast('Deling afsluttet','success')
-    }catch(e){showToast('Fejl: '+e.message,'error')}
+      showToast(t('sharing.stoppedToast'),'success')
+    }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
   })
 }

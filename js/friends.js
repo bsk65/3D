@@ -14,21 +14,22 @@ import { state } from './state.js'
 import { esc, showConfirm } from './utils.js'
 import { lsSave } from './storage.js'
 import { db, doc, setDoc, deleteDoc, collection, getDocs } from './firebase-init.js'
+import { t } from './i18n.js'
 
 // "Må jeg kigge med?"-knap/status pr. ven — afspejler state.shareRequests, hvor
 // man selv er viewerUid og vennen er ownerUid (se js/sharing.js).
 function shareStatusHtml(friendId){
   const r=state.shareRequests.find(x=>x.viewerUid===state.user?.uid&&x.ownerUid===friendId)
-  if(!r)return `<button class="btn-share-req" data-share-friend="${friendId}">🔎 Må jeg kigge med?</button>`
-  if(r.status==='afventer')return `<span class="share-badge share-badge-afventer">Afventer</span><button class="btn-icon" onclick="window.cancelShareRequest('${r.id}')" title="Fortryd anmodning">✕</button>`
-  if(r.status==='accepteret')return `<span class="share-badge share-badge-accepteret">Kan se resultater ✅</span>`
-  return `<span class="share-badge share-badge-afvist">Afvist</span><button class="btn-share-req" data-share-friend="${friendId}">Prøv igen</button>`
+  if(!r)return `<button class="btn-share-req" data-share-friend="${friendId}">${t('friends.requestAccessBtn')}</button>`
+  if(r.status==='afventer')return `<span class="share-badge share-badge-afventer">${t('friends.statusPending')}</span><button class="btn-icon" onclick="window.cancelShareRequest('${r.id}')" title="${t('friends.cancelRequestTitle')}">✕</button>`
+  if(r.status==='accepteret')return `<span class="share-badge share-badge-accepteret">${t('friends.statusApproved')}</span>`
+  return `<span class="share-badge share-badge-afvist">${t('friends.statusRejected')}</span><button class="btn-share-req" data-share-friend="${friendId}">${t('friends.retryBtn')}</button>`
 }
 
 // Fuld venneliste på Venner-fanen.
 export function renderFriendsList(){
   const el=document.getElementById('friends-list')
-  if(!state.friends.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>Ingen venner endnu</div>';return}
+  if(!state.friends.length){el.innerHTML=`<div class="empty"><div class="empty-icon">👥</div>${t('friends.empty')}</div>`;return}
   el.innerHTML=''
   state.friends.forEach(f=>{
     const card=document.createElement('div');card.className='fcard'
@@ -87,7 +88,7 @@ window.selectFriend=function(id,name,email){
 // Åbner tilføj/rediger-modal for en ven.
 window.openFriendModal=function(friend){
   state.editFriendId=friend?.id||null
-  document.getElementById('friend-modal-title').textContent=friend?'Rediger ven':'Tilføj ven'
+  document.getElementById('friend-modal-title').textContent=friend?t('friends.editTitle'):t('friends.addTitle')
   document.getElementById('f-name').value=friend?.name||''
   document.getElementById('f-email').value=friend?.email||''
   document.getElementById('f-phone').value=friend?.phone||''
@@ -117,7 +118,7 @@ window.saveFriendModal=function(){
 
 // Sletter en ven lokalt og i Firestore-backup.
 window.doDeleteFriend=function(id,name){
-  showConfirm(`Slet ${name}?`,()=>{
+  showConfirm(t('friends.deleteConfirm',{name}),()=>{
     state.friends=state.friends.filter(f=>f.id!==id);lsSave();renderFriendsList();renderQuickFriends()
     if(state.user)deleteDoc(doc(db,'users',state.user.uid,'friends',id)).catch(e=>console.warn(e))
   })

@@ -9,6 +9,7 @@
 
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
+import { t } from './i18n.js'
 import { lsSave } from './storage.js'
 import { scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
@@ -61,7 +62,7 @@ document.getElementById('ruleset-sel')?.addEventListener('change',e=>{
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
 window.startRound=async function(){
-  const name=(document.getElementById('round-name').value.trim()||'Min Skydning').slice(0,80)
+  const name=(document.getElementById('round-name').value.trim()||t('setup.roundNameDefault')).slice(0,80)
   const courseId=document.getElementById('course-sel').value
   const _tc=document.getElementById('target-count')
   const numTargets=(_tc.value==='custom'?Number(document.getElementById('target-count-custom').value):Number(_tc.value))||24
@@ -110,10 +111,14 @@ export function updateTopBar(){
   if(!state.round)return
   const tIdx=curTargetIdx(),n=state.round.numTargets
   document.getElementById('tnum-big').textContent=tIdx+1
-  document.getElementById('tnum-suf').textContent=' af '+n
+  document.getElementById('tnum-suf').textContent=t('active.ofN',{n})
   document.getElementById('round-badge').textContent=state.round.name
   const target=state.course?.targets?.[tIdx]
-  document.getElementById('anim-name').textContent=target?.name||`Mål ${tIdx+1}`
+  document.getElementById('anim-name').textContent=target?.name||t('active.targetFallback',{n:tIdx+1})
+  const distEl=document.getElementById('target-distance')
+  const showDist=state.showDistances&&target?.distance!=null
+  distEl.classList.toggle('hidden',!showDist)
+  distEl.textContent=showDist?t('active.distanceLabel',{m:target.distance}):''
   const scored=countScored(state.round.shooters,n,arrowsPerTarget(state.round.ruleset))
   document.getElementById('pbar').style.width=`${(scored/n)*100}%`
   const allVals=state.round.shooters.flatMap(s=>s.scores.flat().filter(v=>v!=null))
@@ -129,12 +134,12 @@ export function updateTopBar(){
     imgEl.src=target.imageUrl||target.photo
   }else{imgEl.src='';imgEl.classList.add('hidden')}
   document.getElementById('edit-target-btn').classList.toggle('hidden',!(state.isAdmin&&state.round.courseId))
-  document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?'AFSLUT →':'NÆSTE →'
+  document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?t('active.finish'):t('active.next')
   const tAvg=calcTargetAverage(state.round.shooters,tIdx)
-  document.getElementById('target-avg').textContent=tAvg!==null?`Gns. dette mål: ${tAvg}`:''
+  document.getElementById('target-avg').textContent=tAvg!==null?t('active.targetAvg',{v:tAvg}):''
 }
 
-function renderShooters(){
+export function renderShooters(){
   if(!state.round)return
   const tIdx=curTargetIdx(),el=document.getElementById('shooters-list');el.innerHTML=''
   const apt=arrowsPerTarget(state.round.ruleset)
@@ -146,15 +151,15 @@ function renderShooters(){
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
     // Pr.-position-mini-stats (P1/P2/...) giver kun mening når der er mere end
     // én pil pr. mål — ved 1 pil (fx HDH-IAA) er de redundante med SNT.
-    let miniGroup=`<div class="sh-mini"><div class="sh-mini-lbl">RUNDE</div><div class="sh-mini-val">${total}</div></div>`
+    let miniGroup=`<div class="sh-mini"><div class="sh-mini-lbl">${t('active.runde')}</div><div class="sh-mini-val">${total}</div></div>`
     if(apt>=2){
       const posArr=Array.from({length:apt},(_,ai)=>s.scores.map(t=>t[ai]).filter(v=>v!=null))
       const posAvg=posArr.map(a=>a.length?(a.reduce((x,v)=>x+scoreVal(v),0)/a.length).toFixed(2):'—')
-      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">P1</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[0]}</div></div>`
-      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
-      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">P2</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[1]}</div></div>`
+      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">${t('active.arrowShort1')}</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[0]}</div></div>`
+      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">${t('active.snt')}</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
+      miniGroup+=`<div class="sh-mini"><div class="sh-mini-lbl">${t('active.arrowShort2')}</div><div class="sh-mini-val sh-mini-val-sm">${posAvg[1]}</div></div>`
     }else{
-      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">SNT</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
+      miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">${t('active.snt')}</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
     }
     card.innerHTML=`
       <div class="sh-head">${warn?'<span class="warn-dot"></span>':''}
@@ -162,7 +167,7 @@ function renderShooters(){
         <div class="sh-mini-group">${miniGroup}</div>
       </div>
       <div class="arrows-row">${Array.from({length:apt},(_,ai)=>`
-        <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">🎯 PIL ${ai+1}</div>`:''}
+        <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">${t('active.pilLabel',{n:ai+1})}</div>`:''}
           <div class="score-btns">${zoneValues.map((v,zi)=>`
             <button class="sbtn ${v==='M'?'rank-M':`rank-${zi}`} ${row[ai]===v?`sel-${v}`:''}" data-v="${v}"
               onclick="setScore(${si},${tIdx},${ai},'${v}')">${v}</button>`).join('')}
@@ -198,7 +203,7 @@ export async function tryResumeRound(){
     if(data.id&&state.rounds.some(r=>r.id===data.id)){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
     const age=Date.now()-(data.created?.toMillis?data.created.toMillis():(data.created||0))
     if(age>24*60*60*1000){await deleteDoc(doc(db,'users',state.user.uid,'active','round'));return}
-    showConfirm('Genoptag den igangværende runde?',()=>{
+    showConfirm(t('active.resumeConfirm'),()=>{
       state.round=deserializeRound(data)
       state.round.traversalOrder=data.traversalOrder||buildOrder(0,state.round.numTargets)
       state.round.traversalPos=data.traversalPos||0
@@ -247,11 +252,11 @@ window.finishRound=async function(){
   state.finishTap++
   const btn=document.getElementById('finish-btn')
   if(state.finishTap===1){
-    btn.textContent='✓ BEKRÆFT'
-    setTimeout(()=>{state.finishTap=0;btn.textContent='✓ AFSLUT NU'},3000)
+    btn.textContent=t('active.finishConfirm')
+    setTimeout(()=>{state.finishTap=0;btn.textContent=t('active.finishNow')},3000)
     return
   }
-  state.finishTap=0;btn.textContent='✓ AFSLUT NU'
+  state.finishTap=0;btn.textContent=t('active.finishNow')
   let gpsData={}
   if(state.gpsTracking){gpsData=stopTracking();state.gpsTracking=false}
   releaseWakeLock()
@@ -262,7 +267,7 @@ window.finishRound=async function(){
   state.rounds.unshift({...roundData,created:Date.now()})
   lsSave();renderRoundsList()
   // Gem runde i Firestore
-  setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Runde gemt lokalt (netværksfejl)','error'))
+  setDoc(doc(db,'users',state.user.uid,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast(t('active.networkError'),'error'))
   // Indeksér runden på egen profil, så en "Må jeg kigge med?"-seer kan finde
   // den via enkelt-dokument-læsning i stedet for en list-forespørgsel på hele
   // rounds-samlingen — se kommentaren i sharing.js' fetchViewedRounds for
@@ -270,7 +275,7 @@ window.finishRound=async function(){
   setDoc(doc(db,'users',state.user.uid),{roundIndex:arrayUnion({id:roundId,completed:roundData.completed})},{merge:true}).catch(()=>{})
   // Gem runde direkte hos medskytter med bruger-konto (ikke gæster)
   state.round.shooters.filter(s=>!s.isGuest&&s.id!==state.user.uid).forEach(s=>{
-    setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast('Kunne ikke dele runde med medskytte','error'))
+    setDoc(doc(db,'users',s.id,'rounds',roundId),{...roundData,created:serverTimestamp()}).catch(()=>showToast(t('active.shareError'),'error'))
   })
 
   const finished=state.round
@@ -293,11 +298,11 @@ window.abortRound=async function(){
   state.abortTap++
   const btn=document.getElementById('abort-btn')
   if(state.abortTap===1){
-    btn.textContent='🗑 BEKRÆFT'
-    setTimeout(()=>{state.abortTap=0;btn.textContent='🗑 AFBRYD'},3000)
+    btn.textContent=t('active.abortConfirm')
+    setTimeout(()=>{state.abortTap=0;btn.textContent=t('active.abort')},3000)
     return
   }
-  state.abortTap=0;btn.textContent='🗑 AFBRYD'
+  state.abortTap=0;btn.textContent=t('active.abort')
   if(state.gpsTracking){stopTracking();state.gpsTracking=false}
   releaseWakeLock()
   await deleteDoc(doc(db,'users',state.user.uid,'active','round')).catch(()=>{})
@@ -309,7 +314,7 @@ window.abortRound=async function(){
 // main.js — begge peger ind i runde/bane-visning (showRoundPopup/courseMap).
 window.showVisitResults=function(roundId){
   const round=state.rounds.find(r=>r.id===roundId)
-  if(!round){showToast('Runden er ikke gemt lokalt','error');return}
+  if(!round){showToast(t('active.notSavedLocally'),'error');return}
   const shooters=(round.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))
   window.switchTab('results')
   showRoundPopup({...round,shooters})
@@ -337,6 +342,6 @@ window.saveEditTarget=async function(){
 }
 
 window.editGps=async function(){
-  try{const pos=await getCurrentPosition(),tIdx=curTargetIdx();await updateTargetInFirestore(state.round.courseId,tIdx,{gps:pos});if(state.course?.targets)state.course.targets[tIdx].gps=pos;showToast('GPS gemt!','success')}
-  catch(e){showToast('GPS fejl: '+e.message,'error')}
+  try{const pos=await getCurrentPosition(),tIdx=curTargetIdx();await updateTargetInFirestore(state.round.courseId,tIdx,{gps:pos});if(state.course?.targets)state.course.targets[tIdx].gps=pos;showToast(t('active.gpsSaved'),'success')}
+  catch(e){showToast(t('active.gpsError',{msg:e.message}),'error')}
 }

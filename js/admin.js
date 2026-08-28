@@ -9,6 +9,7 @@
 import { state } from './state.js'
 import { esc, showToast } from './utils.js'
 import { db, collection, collectionGroup, doc, getDocs, setDoc, deleteDoc, serverTimestamp } from './firebase-init.js'
+import { t, getLocale } from './i18n.js'
 
 let _allUsers=[]
 
@@ -29,20 +30,20 @@ export async function renderAdminSection(){
 
 async function renderAdminsList(){
   const el=document.getElementById('admins-list');if(!el)return
-  el.innerHTML='<div class="admin-hint">Henter admins…</div>'
+  el.innerHTML=`<div class="admin-hint">${t('admin.loading')}</div>`
   const snap=await getDocs(collection(db,'admins'))
-  if(snap.empty){el.innerHTML='<div class="admin-hint">Ingen admins fundet</div>';return}
-  el.innerHTML='<div class="admin-list-label">NUVÆRENDE ADMINISTRATORER</div>'
+  if(snap.empty){el.innerHTML=`<div class="admin-hint">${t('admin.empty')}</div>`;return}
+  el.innerHTML=`<div class="admin-list-label">${t('admin.currentAdminsTitle')}</div>`
   snap.docs.forEach(d=>{
     const row=document.createElement('div')
     row.className='admin-row'
     const email=d.data().email||d.id
     const isMe=d.id===state.user?.uid
-    row.innerHTML=`<span class="admin-row-email">${esc(email)}${isMe?' <span class="admin-you-tag">(dig)</span>':''}</span>`
+    row.innerHTML=`<span class="admin-row-email">${esc(email)}${isMe?` <span class="admin-you-tag">${t('admin.youTag')}</span>`:''}</span>`
     if(state.isSuperAdmin&&!isMe){
       const btn=document.createElement('button')
       btn.className='btn btn-dark btn-sm admin-remove-btn'
-      btn.textContent='Fjern'
+      btn.textContent=t('admin.removeBtn')
       btn.onclick=()=>doRemoveAdmin(d.id,email)
       row.appendChild(btn)
     }
@@ -53,10 +54,10 @@ async function renderAdminsList(){
 // bane_stats/*/runder er den anonyme, tværgående runde-log (skrives i round.js
 // ved runde-afslutning, slettes i results.js ved sletning) — bruges her som proxy
 // for "hvor mange runder er registreret", uden at røre users/{uid}/rounds pr. bruger.
-const _usagePeriods=[{label:'Sidste 7 dage',ms:7*86400000},{label:'Sidste 30 dage',ms:30*86400000},{label:'Sidste 365 dage',ms:365*86400000}]
+const _usagePeriods=[{key:'period7',ms:7*86400000},{key:'period30',ms:30*86400000},{key:'period365',ms:365*86400000}]
 window.loadUsageStats=async function(){
   const el=document.getElementById('usage-stats-result');if(!el)return
-  el.textContent='Henter…'
+  el.textContent=t('admin.loadingStats')
   try{
     const snap=await getDocs(collectionGroup(db,'runder'))
     const now=Date.now()
@@ -69,25 +70,25 @@ window.loadUsageStats=async function(){
       const age=now-dato.getTime()
       _usagePeriods.forEach((p,i)=>{if(age<=p.ms)counts[i]++})
     })
-    const rows=_usagePeriods.map((p,i)=>`<div class="usage-stat-row"><span>${esc(p.label)}</span><b>${counts[i]}</b></div>`).join('')
-    el.innerHTML=`${rows}<div class="usage-stat-row usage-stat-total"><span>I alt registreret</span><b>${total}</b></div>`
-  }catch(e){el.textContent='Fejl: '+e.message}
+    const rows=_usagePeriods.map((p,i)=>`<div class="usage-stat-row"><span>${esc(t('admin.'+p.key))}</span><b>${counts[i]}</b></div>`).join('')
+    el.innerHTML=`${rows}<div class="usage-stat-row usage-stat-total"><span>${t('admin.totalRegistered')}</span><b>${total}</b></div>`
+  }catch(e){el.textContent=t('common.errorPrefix')+e.message}
 }
 
-const _bowLabels={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}
+const _bowLabelKeys={langbue:'langbue',trad:'trad',recurve:'recurve',compound:'compound',barbue:'barbue','buejæger':'buejaeger','trad-buejæger':'tradBuejaeger',rytterbue:'rytterbue'}
 function renderUsersList(filter=''){
   const el=document.getElementById('users-list');el.innerHTML=''
   const q=filter.toLowerCase()
   const users=q?_allUsers.filter(d=>(d.name||d.yam||'').toLowerCase().includes(q)||(d.email||d['e-mail']||'').toLowerCase().includes(q)):_allUsers
-  document.getElementById('users-count').textContent=`${_allUsers.length} brugere`
+  document.getElementById('users-count').textContent=t('admin.usersCount',{n:_allUsers.length})
   const summaryEl=document.getElementById('users-summary')
   const counts={}
-  _allUsers.forEach(d=>{const b=d.bueklasse||'Ukendt';counts[b]=(counts[b]||0)+1})
-  const chips=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="bow-chip"><b>${v}</b> ${esc(_bowLabels[k]||k)}</span>`).join('')
+  _allUsers.forEach(d=>{const b=d.bueklasse||t('common.unknown');counts[b]=(counts[b]||0)+1})
+  const chips=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="bow-chip"><b>${v}</b> ${esc(_bowLabelKeys[k]?t('common.bowClassShort.'+_bowLabelKeys[k]):k)}</span>`).join('')
   summaryEl.innerHTML=`<div class="bow-chips-wrap">${chips}</div>`
   users.forEach(d=>{
     const row=document.createElement('div');row.className='urow'
-    const date=d.created?.toDate?d.created.toDate().toLocaleDateString('da-DK'):'—'
+    const date=d.created?.toDate?d.created.toDate().toLocaleDateString(getLocale()):'—'
     const bow=d.bueklasse||'';const kon=d.kon==='m'?'♂':d.kon==='k'?'♀':''
     row.innerHTML=`<span class="un">${esc(d.name||d.yam||'—')}</span><span class="ue">${esc(d.email||d['e-mail']||'')}</span><span class="ubow">${esc(bow)}${kon?` ${esc(kon)}`:''}</span><span class="ud">${esc(date)}</span>`
     el.appendChild(row)
@@ -101,19 +102,19 @@ window.doAddAdmin=async function(){
   try{
     const snap=await getDocs(collection(db,'users'))
     const user=snap.docs.find(d=>d.data().email===email||d.data()['e-mail']===email)
-    if(!user){showToast('Bruger ikke fundet','error');return}
+    if(!user){showToast(t('admin.userNotFound'),'error');return}
     await setDoc(doc(db,'admins',user.id),{email,created:serverTimestamp()})
-    showToast(`${user.data().name||email} er nu admin`,'success')
+    showToast(t('admin.nowAdmin',{name:user.data().name||email}),'success')
     document.getElementById('admin-email').value=''
     await renderAdminsList()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 window.doRemoveAdmin=async function(uid,email){
   if(!state.isSuperAdmin)return
-  if(!confirm(`Fjern ${email} som administrator?`))return
+  if(!confirm(t('admin.removeConfirm',{email})))return
   try{
     await deleteDoc(doc(db,'admins',uid))
-    showToast(`${email} er fjernet som admin`,'success')
+    showToast(t('admin.removedAdmin',{email}),'success')
     await renderAdminsList()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }

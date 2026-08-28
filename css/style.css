@@ -137,6 +137,7 @@ select option{background:var(--surf);}
 .tnum-suf{font-size:12px;color:var(--muted);}
 .tanim{font-family:var(--fd);font-size:19px;font-weight:600;flex:1;text-align:center;color:var(--txt);}
 .rbadge{background:var(--acc2);color:#fff;font-size:10px;padding:3px 7px;border-radius:5px;}
+.target-distance-lbl{background:var(--surf2);color:var(--muted);font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--bord);}
 .stats-row{display:flex;gap:7px;}
 .sbox{flex:1;background:var(--surf2);border:1px solid var(--bord);border-radius:var(--rs);padding:7px 8px;text-align:center;}
 .sbox-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
@@ -398,6 +399,13 @@ select option{background:var(--surf);}
 .target-worst-box{background:rgba(204,51,51,0.15);border-radius:8px;padding:10px;}
 .target-worst-val{font-size:24px;font-weight:700;color:var(--danger);}
 .target-sub-13{font-size:13px;color:var(--muted);}
+.dist-subtitle{font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;margin-top:-4px;}
+.dist-trend-line{font-size:13px;color:var(--txt);text-align:center;margin-bottom:10px;}
+.dist-trend-line.dist-trend-muted{color:var(--muted);font-size:12px;}
+.dist-bucket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;text-align:center;}
+.dist-bucket-cell{background:var(--surf2);border-radius:8px;padding:8px;}
+.dist-bucket-pct{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--acc);}
+.dist-weakest-note{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
 .comp-loading-msg{color:var(--muted);font-size:13px;text-align:center;padding:8px;}
 .section-title-mb12{font-family:var(--fd);font-size:13px;color:var(--muted);margin-bottom:12px;}
 .stat-val-22-txt{font-size:22px;font-weight:700;color:var(--txt);}
@@ -483,6 +491,7 @@ select option{background:var(--surf);}
 .users-section-title{font-family:var(--font-display);font-size:14px;color:var(--text-muted);margin:0;}
 .users-count-lbl{font-size:12px;color:var(--text-muted);}
 .users-search-input{width:100%;margin-bottom:8px;box-sizing:border-box;}
+.courses-search-input{width:100%;margin-bottom:8px;box-sizing:border-box;}
 .profil-modal-title{font-family:var(--fd);margin-bottom:4px;}
 .profil-modal-desc{font-size:13px;color:var(--muted);margin-bottom:16px;}
 .profil-modal-fields{display:flex;flex-direction:column;gap:10px;}

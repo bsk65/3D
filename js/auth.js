@@ -6,18 +6,19 @@
 import { auth, db, doc, setDoc, serverTimestamp,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from './firebase-init.js'
+import { t } from './i18n.js'
 
-const AUTH_ERRORS = {
-  'auth/user-not-found':       'Bruger ikke fundet.',
-  'auth/wrong-password':       'Forkert kodeord.',
-  'auth/invalid-credential':   'Ugyldig email eller kodeord.',
-  'auth/email-already-in-use': 'Email er allerede i brug.',
-  'auth/weak-password':        'Kodeordet er for svagt (min. 6 tegn).',
-  'auth/invalid-email':        'Ugyldig email-adresse.',
-  'auth/too-many-requests':    'For mange forsøg. Prøv igen senere.',
-  'auth/network-request-failed': 'Netværksfejl. Tjek din forbindelse.',
+const AUTH_ERROR_KEYS = {
+  'auth/user-not-found':       'auth.errUserNotFound',
+  'auth/wrong-password':       'auth.errWrongPassword',
+  'auth/invalid-credential':   'auth.errInvalidCredential',
+  'auth/email-already-in-use': 'auth.errEmailInUse',
+  'auth/weak-password':        'auth.errWeakPassword',
+  'auth/invalid-email':        'auth.errInvalidEmail',
+  'auth/too-many-requests':    'auth.errTooManyRequests',
+  'auth/network-request-failed': 'auth.errNetwork',
 }
-function authErrMsg(code){ return AUTH_ERRORS[code] || 'Der opstod en fejl. Prøv igen.' }
+function authErrMsg(code){ return AUTH_ERROR_KEYS[code] ? t(AUTH_ERROR_KEYS[code]) : t('auth.errGeneric') }
 
 function showAuthErr(msg,type='error'){
   const el=document.getElementById('auth-err')
@@ -34,12 +35,12 @@ window.showAuthTab = function(tab){
 window.doLogin = async function(){
   const email=document.getElementById('login-email').value.trim()
   const pw=document.getElementById('login-password').value
-  if(!email||!pw){showAuthErr('Udfyld alle felter.');return}
+  if(!email||!pw){showAuthErr(t('auth.errFillAllFields'));return}
   const btn=document.querySelector('#login-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{ await signInWithEmailAndPassword(auth,email,pw) }
   catch(err){ showAuthErr(authErrMsg(err.code)) }
-  finally{ btn.disabled=false; btn.textContent='LOG IND' }
+  finally{ btn.disabled=false; btn.textContent=t('auth.loginBtn') }
 }
 
 window.doSignup = async function(){
@@ -48,22 +49,22 @@ window.doSignup = async function(){
   const pw=document.getElementById('signup-password').value
   const kon=document.getElementById('signup-kon').value
   const bueklasse=document.getElementById('signup-bueklasse').value
-  if(!name||!email||!pw||!kon||!bueklasse){showAuthErr('Udfyld alle felter.');return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Ugyldig email-adresse.');return}
-  if(pw.length<6){showAuthErr('Adgangskoden skal være mindst 6 tegn.');return}
+  if(!name||!email||!pw||!kon||!bueklasse){showAuthErr(t('auth.errFillAllFields'));return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr(t('auth.errInvalidEmail'));return}
+  if(pw.length<6){showAuthErr(t('auth.errPasswordTooShort'));return}
   const btn=document.querySelector('#signup-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
     await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp()})
   }catch(err){showAuthErr(authErrMsg(err.code))}
-  finally{btn.disabled=false;btn.textContent='OPRET KONTO'}
+  finally{btn.disabled=false;btn.textContent=t('auth.signupBtn')}
 }
 
 window.doForgot = async function(){
   const email=document.getElementById('login-email').value.trim()
-  if(!email){showAuthErr('Indtast din email først.');return}
-  try{await sendPasswordResetEmail(auth,email);showAuthErr('Nulstillingsmail sendt!','ok')}
+  if(!email){showAuthErr(t('auth.errEnterEmailFirst'));return}
+  try{await sendPasswordResetEmail(auth,email);showAuthErr(t('auth.resetEmailSent'),'ok')}
   catch(err){showAuthErr(authErrMsg(err.code))}
 }
 
