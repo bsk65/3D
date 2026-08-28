@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-_T0UZxVe.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-CJ-5X6_8.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-BJ1w7pKd.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-BkGOgLqe.css">
   </head>
 <body>
 
@@ -144,6 +144,11 @@
               <div class="trow-sub" data-i18n="setup.trackRouteSub">Registrer rute og afstand</div></div>
             <div class="tswitch" id="gps-track-sw" onclick="this.classList.toggle('on')"></div>
           </div>
+          <div class="trow">
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.showDistancesTitle">Vis afstande på mål</div>
+              <div class="trow-sub" data-i18n="setup.showDistancesSub">Kun visning — ikke redigering</div></div>
+            <div class="tswitch" id="show-distances-sw"></div>
+          </div>
         </div>
 
         <div class="start-round-wrap">
@@ -163,6 +168,7 @@
               <span class="tnum-suf" id="tnum-suf"> af 24</span>
             </div>
             <span class="tanim" id="anim-name">Dyr</span>
+            <span class="target-distance-lbl hidden" id="target-distance"></span>
             <span class="rbadge" id="round-badge">Min Skydning</span>
           </div>
           <div class="pbar-track">
