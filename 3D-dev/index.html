@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-DwH1pGmR.js"></script>
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-Cn_QDp88.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-CJ-5X6_8.css">
   </head>
 <body>
@@ -83,19 +83,19 @@
     <div id="tab-scoring" class="tab active">
       <div id="setup-panel">
         <div class="card">
-          <div class="card-title">🌲 Ny Runde</div>
-          <div class="fg"><label class="lbl">Rundenavn</label>
+          <div class="card-title" data-i18n="setup.newRoundTitle">🌲 Ny Runde</div>
+          <div class="fg"><label class="lbl" data-i18n="setup.roundName">Rundenavn</label>
             <input type="text" id="round-name" value="Min Skydning" /></div>
-          <div class="fg"><label class="lbl">Bane (valgfri)</label>
-            <select id="course-sel"><option value="">-- Ingen bane --</option></select></div>
-          <div class="fg"><label class="lbl">Antal mål</label>
+          <div class="fg"><label class="lbl" data-i18n="setup.courseLabel">Bane (valgfri)</label>
+            <select id="course-sel"><option value="" data-i18n="setup.noCourse">-- Ingen bane --</option></select></div>
+          <div class="fg"><label class="lbl" data-i18n="setup.targetCountLabel">Antal mål</label>
             <select id="target-count">
-              <option value="24" selected>24 Mål</option>
-              <option value="30">30 Mål</option>
-              <option value="custom">Andet...</option>
+              <option value="24" selected data-i18n="setup.targets24">24 Mål</option>
+              <option value="30" data-i18n="setup.targets30">30 Mål</option>
+              <option value="custom" data-i18n="setup.other">Andet...</option>
             </select>
-            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" style="display:none;" /></div>
-          <div class="fg"><label class="lbl">Forbund</label>
+            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" data-i18n-placeholder="setup.targetCountPlaceholder" class="custom-count-field" style="display:none;" /></div>
+          <div class="fg"><label class="lbl" data-i18n="setup.rulesetLabel">Forbund</label>
             <select id="ruleset-sel">
               <option value="WA" selected>WA</option>
               <option value="HDH-IAA">HDH-IAA</option>
@@ -104,50 +104,50 @@
         </div>
 
         <div class="card">
-          <div class="card-title">👥 Deltagere</div>
+          <div class="card-title" data-i18n="setup.participantsTitle">👥 Deltagere</div>
           <div id="p-list"></div>
           <div class="ac-wrap fg">
-            <input type="text" id="friend-search" placeholder="Søg ven..." autocomplete="off" oninput="searchFriends(this.value)" />
+            <input type="text" id="friend-search" placeholder="Søg ven..." data-i18n-placeholder="setup.searchFriend" autocomplete="off" oninput="searchFriends(this.value)" />
             <div id="ac-list" class="ac-list hidden"></div>
           </div>
           <div id="qfriends" class="qfriends"></div>
-          <button class="btn btn-dark btn-sm mt6" onclick="openGuestModal()">+ Tilføj gæst</button>
+          <button class="btn btn-dark btn-sm mt6" onclick="openGuestModal()" data-i18n="setup.addGuest">+ Tilføj gæst</button>
         </div>
 
         <div class="card">
-          <div class="card-title">🔴 Advarsel</div>
+          <div class="card-title" data-i18n="setup.warningTitle">🔴 Advarsel</div>
           <div class="warn-box">
             <div class="warn-enable-row">
-              <span>Aktiver advarsel</span>
+              <span data-i18n="setup.enableWarning">Aktiver advarsel</span>
               <div class="tswitch on" id="warn-enabled-sw"></div>
             </div>
-            Rød prik hvis gns. under
+            <span data-i18n="setup.warnThreshPre">Rød prik hvis gns. under</span>
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
               class="warn-thresh-input" />
-            point/pil
+            <span data-i18n="setup.warnThreshPost">point/pil</span>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">📍 GPS</div>
+          <div class="card-title" data-i18n="setup.gpsTitle">📍 GPS</div>
           <div class="gps-startmaal-row">
-            <span class="gps-startmaal-lbl">Startmål</span>
+            <span class="gps-startmaal-lbl" data-i18n="setup.startTarget">Startmål</span>
             <select id="start-target" class="start-target-select"></select>
           </div>
           <div class="trow">
-            <div class="trow-left"><div class="trow-main">Auto-find nærmeste mål</div>
-              <div class="trow-sub">Brug GPS automatisk</div></div>
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.autoFindTitle">Auto-find nærmeste mål</div>
+              <div class="trow-sub" data-i18n="setup.autoFindSub">Brug GPS automatisk</div></div>
             <div class="tswitch" id="gps-auto-sw" onclick="this.classList.toggle('on')"></div>
           </div>
           <div class="trow">
-            <div class="trow-left"><div class="trow-main">Spor rute og tid</div>
-              <div class="trow-sub">Registrer rute og afstand</div></div>
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.trackRouteTitle">Spor rute og tid</div>
+              <div class="trow-sub" data-i18n="setup.trackRouteSub">Registrer rute og afstand</div></div>
             <div class="tswitch" id="gps-track-sw" onclick="this.classList.toggle('on')"></div>
           </div>
         </div>
 
         <div class="start-round-wrap">
-          <button class="btn btn-gold btn-start-round" onclick="startRound()">
+          <button class="btn btn-gold btn-start-round" onclick="startRound()" data-i18n="setup.startRoundBtn">
             START RUNDE →
           </button>
         </div>
@@ -158,7 +158,7 @@
         <div class="shoot-top">
           <div class="target-line">
             <div class="tnum">
-              <span class="tnum-pre">MÅL </span>
+              <span class="tnum-pre" data-i18n="active.targetPrefix">MÅL </span>
               <span class="tnum-big" id="tnum-big">1</span>
               <span class="tnum-suf" id="tnum-suf"> af 24</span>
             </div>
@@ -169,9 +169,9 @@
             <div id="pbar" class="pbar-fill"></div>
           </div>
           <div class="stats-row">
-            <div class="sbox"><div class="sbox-lbl">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
-            <div class="sbox"><div class="sbox-lbl">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
-            <div class="sbox"><div class="sbox-lbl">Tilbage</div><div class="sbox-val" id="stat-rem">24</div><div class="sbox-sub">mål</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statAvg">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statPoint">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statRemaining">Tilbage</div><div class="sbox-val" id="stat-rem">24</div><div class="sbox-sub" data-i18n="active.statRemainingSub">mål</div></div>
           </div>
         </div>
 
@@ -181,16 +181,16 @@
         </div>
 
         <div id="edit-panel" class="edit-panel hidden">
-          <h3>Rediger mål</h3>
-          <input type="text" id="edit-tname" placeholder="Navn på dyr" class="mb8" />
+          <h3 data-i18n="active.editTitle">Rediger mål</h3>
+          <input type="text" id="edit-tname" placeholder="Navn på dyr" data-i18n-placeholder="active.editNamePlaceholder" class="mb8" />
           <div class="edit-panel-btn-row">
-            <button class="btn btn-dark flex-1" onclick="document.getElementById('photo-input').click()">📷 Tag billede</button>
-            <button class="btn btn-dark flex-1" onclick="editGps()">📍 Gem GPS</button>
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('photo-input').click()" data-i18n="active.takePhoto">📷 Tag billede</button>
+            <button class="btn btn-dark flex-1" onclick="editGps()" data-i18n="active.saveGps">📍 Gem GPS</button>
           </div>
           <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden" />
           <div class="brow">
-            <button class="btn btn-gold flex-1" onclick="saveEditTarget()">Gem</button>
-            <button class="btn btn-dark flex-1" onclick="document.getElementById('edit-panel').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold flex-1" onclick="saveEditTarget()" data-i18n="active.save">Gem</button>
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('edit-panel').classList.add('hidden')" data-i18n="active.cancel">Annuller</button>
           </div>
         </div>
 
@@ -203,19 +203,19 @@
 
         <div class="shoot-bot">
           <div class="nav-big">
-            <button class="btn-back" onclick="prevTarget()">← TILBAGE</button>
+            <button class="btn-back" onclick="prevTarget()" data-i18n="active.back">← TILBAGE</button>
             <button class="btn-next" id="next-btn" onclick="nextTarget()">NÆSTE →</button>
           </div>
           <div class="act-row">
-            <button class="btn-act" onclick="skipToTarget()">⤵ SPRING</button>
-            <button class="btn-act" id="finish-btn" onclick="finishRound()">✓ AFSLUT NU</button>
-            <button class="btn-act red" id="abort-btn" onclick="abortRound()">🗑 AFBRYD</button>
+            <button class="btn-act" onclick="skipToTarget()" data-i18n="active.skip">⤵ SPRING</button>
+            <button class="btn-act" id="finish-btn" onclick="finishRound()" data-i18n="active.finishNow">✓ AFSLUT NU</button>
+            <button class="btn-act red" id="abort-btn" onclick="abortRound()" data-i18n="active.abort">🗑 AFBRYD</button>
           </div>
         </div>
         <div id="animal-fixed" class="animal-fixed-wrap">
           <div class="target-avg-row">
             <div id="target-avg" class="target-avg-lbl"></div>
-            <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()">✏️ RET</button>
+            <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()" data-i18n="active.editBtn">✏️ RET</button>
           </div>
           <img id="anim-img" src="" alt="" class="hidden anim-img-style"
             onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
@@ -228,8 +228,8 @@
         <div id="res-dist"></div>
         <div id="res-table"></div>
         <div class="results-btn-row">
-          <button class="btn btn-dark flex-1" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>
-          <button class="btn btn-gold flex-1" onclick="showSetupPanel()">Afslut</button>
+          <button class="btn btn-dark flex-1" onclick="window.sendResults(window._lastRound)" data-i18n="results.sendResultsBtn">📧 Send resultater</button>
+          <button class="btn btn-gold flex-1" onclick="showSetupPanel()" data-i18n="results.doneBtn">Afslut</button>
         </div>
       </div>
     </div>
@@ -237,8 +237,8 @@
     <!-- RESULTS TAB -->
     <div id="tab-results" class="tab">
       <div class="tab-header">
-        <span class="tab-title">Mine runder</span>
-        <button class="btn btn-gold btn-sm" onclick="document.getElementById('import-round-input').click()">⬆ Importér</button>
+        <span class="tab-title" data-i18n="results.title">Mine runder</span>
+        <button class="btn btn-gold btn-sm" onclick="document.getElementById('import-round-input').click()" data-i18n="results.import">⬆ Importér</button>
       </div>
       <input type="file" id="import-round-input" accept="application/json" class="hidden" />
       <div id="rounds-list"></div>
@@ -515,19 +515,19 @@
   <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
     <button class="nav-btn active" data-tab="scoring" onclick="switchTab('scoring')">
-      <span class="nav-icon">🎯</span><span class="nav-lbl" data-i18n="scoring">POINT</span>
+      <span class="nav-icon">🎯</span><span class="nav-lbl" data-i18n="nav.scoring">POINT</span>
     </button>
     <button class="nav-btn" data-tab="results" onclick="switchTab('results')">
-      <span class="nav-icon">📊</span><span class="nav-lbl" data-i18n="results">RESULTATER</span>
+      <span class="nav-icon">📊</span><span class="nav-lbl" data-i18n="nav.results">RESULTATER</span>
     </button>
     <button class="nav-btn" data-tab="analyse" onclick="switchTab('analyse')">
-      <span class="nav-icon">📈</span><span class="nav-lbl">ANALYSE</span>
+      <span class="nav-icon">📈</span><span class="nav-lbl" data-i18n="nav.analyse">ANALYSE</span>
     </button>
     <button class="nav-btn" data-tab="courses" onclick="switchTab('courses')">
-      <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="courses">BANER</span>
+      <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="nav.courses">BANER</span>
     </button>
     <button class="nav-btn" data-tab="friends" onclick="switchTab('friends')">
-      <span class="nav-icon">👥<span id="meetup-badge" class="nav-count-badge hidden">0</span><span id="share-badge" class="nav-count-badge nav-count-badge-alt hidden">0</span></span><span class="nav-lbl" data-i18n="friends">VENNER</span>
+      <span class="nav-icon">👥<span id="meetup-badge" class="nav-count-badge hidden">0</span><span id="share-badge" class="nav-count-badge nav-count-badge-alt hidden">0</span></span><span class="nav-lbl" data-i18n="nav.friends">VENNER</span>
     </button>
   </nav>
 </div>
@@ -629,8 +629,8 @@
   <div class="modal-box">
     <p id="confirm-msg" class="confirm-msg-style"></p>
     <div class="confirm-btn-row">
-      <button class="btn btn-dark flex-1" onclick="window._confirmReject&&window._confirmReject()">Annuller</button>
-      <button class="btn btn-red flex-1" onclick="window._confirmAccept&&window._confirmAccept()">Bekræft</button>
+      <button class="btn btn-dark flex-1" onclick="window._confirmReject&&window._confirmReject()" data-i18n="common.cancel">Annuller</button>
+      <button class="btn btn-red flex-1" onclick="window._confirmAccept&&window._confirmAccept()" data-i18n="common.confirm">Bekræft</button>
     </div>
   </div>
 </div>
