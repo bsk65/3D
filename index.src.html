@@ -25,36 +25,36 @@
       <h1>3D Bueskydning</h1>
     </div>
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="showAuthTab('login')">Log ind</button>
-      <button class="auth-tab" onclick="showAuthTab('signup')">Opret konto</button>
+      <button class="auth-tab active" onclick="showAuthTab('login')" data-i18n="auth.loginTab">Log ind</button>
+      <button class="auth-tab" onclick="showAuthTab('signup')" data-i18n="auth.signupTab">Opret konto</button>
     </div>
     <div id="login-form" class="auth-form">
-      <input type="email" id="login-email" placeholder="Email" autocomplete="email" />
-      <input type="password" id="login-password" placeholder="Kodeord" autocomplete="current-password" />
-      <button class="btn btn-gold" onclick="doLogin()">LOG IND</button>
-      <button class="btn-link" onclick="doForgot()">Glemt kodeord?</button>
+      <input type="email" id="login-email" placeholder="Email" data-i18n-placeholder="auth.emailPlaceholder" autocomplete="email" />
+      <input type="password" id="login-password" placeholder="Kodeord" data-i18n-placeholder="auth.passwordPlaceholder" autocomplete="current-password" />
+      <button class="btn btn-gold" onclick="doLogin()" data-i18n="auth.loginBtn">LOG IND</button>
+      <button class="btn-link" onclick="doForgot()" data-i18n="auth.forgotPassword">Glemt kodeord?</button>
     </div>
     <div id="signup-form" class="auth-form hidden">
-      <input type="text" id="signup-name" placeholder="Navn" autocomplete="name" />
-      <input type="email" id="signup-email" placeholder="Email" autocomplete="email" />
-      <input type="password" id="signup-password" placeholder="Kodeord (min. 6 tegn)" autocomplete="new-password" />
+      <input type="text" id="signup-name" placeholder="Navn" data-i18n-placeholder="auth.namePlaceholder" autocomplete="name" />
+      <input type="email" id="signup-email" placeholder="Email" data-i18n-placeholder="auth.emailPlaceholder" autocomplete="email" />
+      <input type="password" id="signup-password" placeholder="Kodeord (min. 6 tegn)" data-i18n-placeholder="auth.signupPasswordPlaceholder" autocomplete="new-password" />
       <select id="signup-kon" class="select-surface2-w100">
-        <option value="">Vælg køn</option>
-        <option value="herre">Herre</option>
-        <option value="dame">Dame</option>
+        <option value="" data-i18n="auth.selectGender">Vælg køn</option>
+        <option value="herre" data-i18n="common.gender.herre">Herre</option>
+        <option value="dame" data-i18n="common.gender.dame">Dame</option>
       </select>
       <select id="signup-bueklasse" class="select-surface2-w100">
-        <option value="">Vælg bueklasse</option>
-        <option value="langbue">Langbue</option>
-        <option value="trad">Traditionel</option>
-        <option value="recurve">Recurve (olympisk)</option>
-        <option value="compound">Compound</option>
-        <option value="barbue">Barbue</option>
-        <option value="buejæger">Buejæger</option>
-        <option value="trad-buejæger">Traditionel buejæger</option>
-        <option value="rytterbue">Rytterbue</option>
+        <option value="" data-i18n="auth.selectBowClass">Vælg bueklasse</option>
+        <option value="langbue" data-i18n="common.bowClass.langbue">Langbue</option>
+        <option value="trad" data-i18n="common.bowClass.trad">Traditionel</option>
+        <option value="recurve" data-i18n="common.bowClass.recurve">Recurve (olympisk)</option>
+        <option value="compound" data-i18n="common.bowClass.compound">Compound</option>
+        <option value="barbue" data-i18n="common.bowClass.barbue">Barbue</option>
+        <option value="buejæger" data-i18n="common.bowClass.buejaeger">Buejæger</option>
+        <option value="trad-buejæger" data-i18n="common.bowClass.tradBuejaeger">Traditionel buejæger</option>
+        <option value="rytterbue" data-i18n="common.bowClass.rytterbue">Rytterbue</option>
       </select>
-      <button class="btn btn-gold" onclick="doSignup()">OPRET KONTO</button>
+      <button class="btn btn-gold" onclick="doSignup()" data-i18n="auth.signupBtn">OPRET KONTO</button>
     </div>
     <div id="auth-err" class="err hidden"></div>
   </div>
@@ -82,19 +82,19 @@
     <div id="tab-scoring" class="tab active">
       <div id="setup-panel">
         <div class="card">
-          <div class="card-title">🌲 Ny Runde</div>
-          <div class="fg"><label class="lbl">Rundenavn</label>
+          <div class="card-title" data-i18n="setup.newRoundTitle">🌲 Ny Runde</div>
+          <div class="fg"><label class="lbl" data-i18n="setup.roundName">Rundenavn</label>
             <input type="text" id="round-name" value="Min Skydning" /></div>
-          <div class="fg"><label class="lbl">Bane (valgfri)</label>
-            <select id="course-sel"><option value="">-- Ingen bane --</option></select></div>
-          <div class="fg"><label class="lbl">Antal mål</label>
+          <div class="fg"><label class="lbl" data-i18n="setup.courseLabel">Bane (valgfri)</label>
+            <select id="course-sel"><option value="" data-i18n="setup.noCourse">-- Ingen bane --</option></select></div>
+          <div class="fg"><label class="lbl" data-i18n="setup.targetCountLabel">Antal mål</label>
             <select id="target-count">
-              <option value="24" selected>24 Mål</option>
-              <option value="30">30 Mål</option>
-              <option value="custom">Andet...</option>
+              <option value="24" selected data-i18n="setup.targets24">24 Mål</option>
+              <option value="30" data-i18n="setup.targets30">30 Mål</option>
+              <option value="custom" data-i18n="setup.other">Andet...</option>
             </select>
-            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" style="display:none;" /></div>
-          <div class="fg"><label class="lbl">Forbund</label>
+            <input type="number" id="target-count-custom" min="1" max="500" placeholder="Antal mål" data-i18n-placeholder="setup.targetCountPlaceholder" class="custom-count-field" style="display:none;" /></div>
+          <div class="fg"><label class="lbl" data-i18n="setup.rulesetLabel">Forbund</label>
             <select id="ruleset-sel">
               <option value="WA" selected>WA</option>
               <option value="HDH-IAA">HDH-IAA</option>
@@ -103,50 +103,55 @@
         </div>
 
         <div class="card">
-          <div class="card-title">👥 Deltagere</div>
+          <div class="card-title" data-i18n="setup.participantsTitle">👥 Deltagere</div>
           <div id="p-list"></div>
           <div class="ac-wrap fg">
-            <input type="text" id="friend-search" placeholder="Søg ven..." autocomplete="off" oninput="searchFriends(this.value)" />
+            <input type="text" id="friend-search" placeholder="Søg ven..." data-i18n-placeholder="setup.searchFriend" autocomplete="off" oninput="searchFriends(this.value)" />
             <div id="ac-list" class="ac-list hidden"></div>
           </div>
           <div id="qfriends" class="qfriends"></div>
-          <button class="btn btn-dark btn-sm mt6" onclick="openGuestModal()">+ Tilføj gæst</button>
+          <button class="btn btn-dark btn-sm mt6" onclick="openGuestModal()" data-i18n="setup.addGuest">+ Tilføj gæst</button>
         </div>
 
         <div class="card">
-          <div class="card-title">🔴 Advarsel</div>
+          <div class="card-title" data-i18n="setup.warningTitle">🔴 Advarsel</div>
           <div class="warn-box">
             <div class="warn-enable-row">
-              <span>Aktiver advarsel</span>
+              <span data-i18n="setup.enableWarning">Aktiver advarsel</span>
               <div class="tswitch on" id="warn-enabled-sw"></div>
             </div>
-            Rød prik hvis gns. under
+            <span data-i18n="setup.warnThreshPre">Rød prik hvis gns. under</span>
             <input type="number" id="warn-thresh" value="8" min="1" max="11"
               class="warn-thresh-input" />
-            point/pil
+            <span data-i18n="setup.warnThreshPost">point/pil</span>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">📍 GPS</div>
+          <div class="card-title" data-i18n="setup.gpsTitle">📍 GPS</div>
           <div class="gps-startmaal-row">
-            <span class="gps-startmaal-lbl">Startmål</span>
+            <span class="gps-startmaal-lbl" data-i18n="setup.startTarget">Startmål</span>
             <select id="start-target" class="start-target-select"></select>
           </div>
           <div class="trow">
-            <div class="trow-left"><div class="trow-main">Auto-find nærmeste mål</div>
-              <div class="trow-sub">Brug GPS automatisk</div></div>
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.autoFindTitle">Auto-find nærmeste mål</div>
+              <div class="trow-sub" data-i18n="setup.autoFindSub">Brug GPS automatisk</div></div>
             <div class="tswitch" id="gps-auto-sw" onclick="this.classList.toggle('on')"></div>
           </div>
           <div class="trow">
-            <div class="trow-left"><div class="trow-main">Spor rute og tid</div>
-              <div class="trow-sub">Registrer rute og afstand</div></div>
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.trackRouteTitle">Spor rute og tid</div>
+              <div class="trow-sub" data-i18n="setup.trackRouteSub">Registrer rute og afstand</div></div>
             <div class="tswitch" id="gps-track-sw" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="trow">
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.showDistancesTitle">Vis afstande på mål</div>
+              <div class="trow-sub" data-i18n="setup.showDistancesSub">Kun visning — ikke redigering</div></div>
+            <div class="tswitch" id="show-distances-sw"></div>
           </div>
         </div>
 
         <div class="start-round-wrap">
-          <button class="btn btn-gold btn-start-round" onclick="startRound()">
+          <button class="btn btn-gold btn-start-round" onclick="startRound()" data-i18n="setup.startRoundBtn">
             START RUNDE →
           </button>
         </div>
@@ -157,20 +162,21 @@
         <div class="shoot-top">
           <div class="target-line">
             <div class="tnum">
-              <span class="tnum-pre">MÅL </span>
+              <span class="tnum-pre" data-i18n="active.targetPrefix">MÅL </span>
               <span class="tnum-big" id="tnum-big">1</span>
               <span class="tnum-suf" id="tnum-suf"> af 24</span>
             </div>
             <span class="tanim" id="anim-name">Dyr</span>
+            <span class="target-distance-lbl hidden" id="target-distance"></span>
             <span class="rbadge" id="round-badge">Min Skydning</span>
           </div>
           <div class="pbar-track">
             <div id="pbar" class="pbar-fill"></div>
           </div>
           <div class="stats-row">
-            <div class="sbox"><div class="sbox-lbl">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
-            <div class="sbox"><div class="sbox-lbl">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
-            <div class="sbox"><div class="sbox-lbl">Tilbage</div><div class="sbox-val" id="stat-rem">24</div><div class="sbox-sub">mål</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statAvg">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statPoint">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
+            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statRemaining">Tilbage</div><div class="sbox-val" id="stat-rem">24</div><div class="sbox-sub" data-i18n="active.statRemainingSub">mål</div></div>
           </div>
         </div>
 
@@ -180,16 +186,16 @@
         </div>
 
         <div id="edit-panel" class="edit-panel hidden">
-          <h3>Rediger mål</h3>
-          <input type="text" id="edit-tname" placeholder="Navn på dyr" class="mb8" />
+          <h3 data-i18n="active.editTitle">Rediger mål</h3>
+          <input type="text" id="edit-tname" placeholder="Navn på dyr" data-i18n-placeholder="active.editNamePlaceholder" class="mb8" />
           <div class="edit-panel-btn-row">
-            <button class="btn btn-dark flex-1" onclick="document.getElementById('photo-input').click()">📷 Tag billede</button>
-            <button class="btn btn-dark flex-1" onclick="editGps()">📍 Gem GPS</button>
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('photo-input').click()" data-i18n="active.takePhoto">📷 Tag billede</button>
+            <button class="btn btn-dark flex-1" onclick="editGps()" data-i18n="active.saveGps">📍 Gem GPS</button>
           </div>
           <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden" />
           <div class="brow">
-            <button class="btn btn-gold flex-1" onclick="saveEditTarget()">Gem</button>
-            <button class="btn btn-dark flex-1" onclick="document.getElementById('edit-panel').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold flex-1" onclick="saveEditTarget()" data-i18n="active.save">Gem</button>
+            <button class="btn btn-dark flex-1" onclick="document.getElementById('edit-panel').classList.add('hidden')" data-i18n="active.cancel">Annuller</button>
           </div>
         </div>
 
@@ -202,19 +208,19 @@
 
         <div class="shoot-bot">
           <div class="nav-big">
-            <button class="btn-back" onclick="prevTarget()">← TILBAGE</button>
+            <button class="btn-back" onclick="prevTarget()" data-i18n="active.back">← TILBAGE</button>
             <button class="btn-next" id="next-btn" onclick="nextTarget()">NÆSTE →</button>
           </div>
           <div class="act-row">
-            <button class="btn-act" onclick="skipToTarget()">⤵ SPRING</button>
-            <button class="btn-act" id="finish-btn" onclick="finishRound()">✓ AFSLUT NU</button>
-            <button class="btn-act red" id="abort-btn" onclick="abortRound()">🗑 AFBRYD</button>
+            <button class="btn-act" onclick="skipToTarget()" data-i18n="active.skip">⤵ SPRING</button>
+            <button class="btn-act" id="finish-btn" onclick="finishRound()" data-i18n="active.finishNow">✓ AFSLUT NU</button>
+            <button class="btn-act red" id="abort-btn" onclick="abortRound()" data-i18n="active.abort">🗑 AFBRYD</button>
           </div>
         </div>
         <div id="animal-fixed" class="animal-fixed-wrap">
           <div class="target-avg-row">
             <div id="target-avg" class="target-avg-lbl"></div>
-            <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()">✏️ RET</button>
+            <button id="edit-target-btn" class="btn-icon admin-only hidden" onclick="openEditTarget()" data-i18n="active.editBtn">✏️ RET</button>
           </div>
           <img id="anim-img" src="" alt="" class="hidden anim-img-style"
             onclick="document.getElementById('fullscreen').classList.remove('hidden');document.getElementById('fs-img').src=this.src;" />
@@ -227,8 +233,8 @@
         <div id="res-dist"></div>
         <div id="res-table"></div>
         <div class="results-btn-row">
-          <button class="btn btn-dark flex-1" onclick="window.sendResults(window._lastRound)">📧 Send resultater</button>
-          <button class="btn btn-gold flex-1" onclick="showSetupPanel()">Afslut</button>
+          <button class="btn btn-dark flex-1" onclick="window.sendResults(window._lastRound)" data-i18n="results.sendResultsBtn">📧 Send resultater</button>
+          <button class="btn btn-gold flex-1" onclick="showSetupPanel()" data-i18n="results.doneBtn">Afslut</button>
         </div>
       </div>
     </div>
@@ -236,8 +242,8 @@
     <!-- RESULTS TAB -->
     <div id="tab-results" class="tab">
       <div class="tab-header">
-        <span class="tab-title">Mine runder</span>
-        <button class="btn btn-gold btn-sm" onclick="document.getElementById('import-round-input').click()">⬆ Importér</button>
+        <span class="tab-title" data-i18n="results.title">Mine runder</span>
+        <button class="btn btn-gold btn-sm" onclick="document.getElementById('import-round-input').click()" data-i18n="results.import">⬆ Importér</button>
       </div>
       <input type="file" id="import-round-input" accept="application/json" class="hidden" />
       <div id="rounds-list"></div>
@@ -248,33 +254,33 @@
         
     <div id="tab-analyse" class="tab">
       <div class="tab-header">
-        <span class="tab-title">Analyse</span>
+        <span class="tab-title" data-i18n="analyse.title">Analyse</span>
       </div>
       <div id="analyse-viewer-wrap" class="analyse-viewer-wrap hidden">
         <select id="analyse-viewer" onchange="setAnalyseViewer(this.value)" class="analyse-filter-select">
-          <option value="">Mig selv</option>
+          <option value="" data-i18n="analyse.myselfOption">Mig selv</option>
         </select>
       </div>
       <div class="analyse-filters-row">
         <select id="analyse-filter" onchange="renderAnalyse()" class="analyse-filter-select">
-          <option value="all">Alle runder</option>
-          <option value="lastround">Seneste runde</option>
-          <option value="10">Seneste 10</option>
-          <option value="20">Seneste 20</option>
-          <option value="specific">Specifik runde</option>
-          <option value="compare">Sammenlign runder</option>
+          <option value="all" data-i18n="analyse.filterAll">Alle runder</option>
+          <option value="lastround" data-i18n="analyse.filterLatest">Seneste runde</option>
+          <option value="10" data-i18n="analyse.filterLast10">Seneste 10</option>
+          <option value="20" data-i18n="analyse.filterLast20">Seneste 20</option>
+          <option value="specific" data-i18n="analyse.filterSpecific">Specifik runde</option>
+          <option value="compare" data-i18n="analyse.filterCompare">Sammenlign runder</option>
         </select>
         <select id="analyse-bane" onchange="renderAnalyse()" class="analyse-filter-select">
-          <option value="all">Alle baner</option>
+          <option value="all" data-i18n="analyse.allCourses">Alle baner</option>
         </select>
         <select id="analyse-ruleset" onchange="renderAnalyse()" class="analyse-filter-select">
-          <option value="all" selected>Alle forbund</option>
+          <option value="all" selected data-i18n="analyse.allRulesets">Alle forbund</option>
           <option value="WA">WA</option>
           <option value="HDH-IAA">HDH-IAA</option>
           <option value="DGS">DGS</option>
         </select>
         <div class="analyse-antal-wrap">
-          <input type="number" id="analyse-antal" placeholder="Antal runder" min="1"
+          <input type="number" id="analyse-antal" placeholder="Antal runder" data-i18n-placeholder="analyse.numRoundsPlaceholder" min="1"
             class="analyse-antal-input"
             oninput="renderAnalyse()" />
         </div>
@@ -282,29 +288,29 @@
       <div class="analyse-checkbox-row">
         <label class="analyse-checkbox-label">
           <input type="checkbox" id="analyse-completed-only" onchange="renderAnalyse()" />
-          Kun gennemførte runder (alle mål skudt)
+          <span data-i18n="analyse.onlyCompletedLabel">Kun gennemførte runder (alle mål skudt)</span>
         </label>
         <label class="analyse-checkbox-label">
           <input type="checkbox" id="analyse-startat1-only" onchange="renderAnalyse()" />
-          Kun runder startet ved mål 1
+          <span data-i18n="analyse.onlyStartedAt1Label">Kun runder startet ved mål 1</span>
         </label>
       </div>
       <div id="analyse-runde-wrap" class="analyse-runde-panel" style="display:none;">
-        <div id="analyse-runde-lbl" class="analyse-runde-lbl-style" style="display:none;">RUNDE 1</div>
+        <div id="analyse-runde-lbl" class="analyse-runde-lbl-style" style="display:none;" data-i18n="analyse.round1Label">RUNDE 1</div>
         <select id="analyse-kilde-1" onchange="setCompareKilde(1,this.value)" class="analyse-kilde-select hidden">
-          <option value="">Mig selv</option>
+          <option value="" data-i18n="analyse.myselfOption">Mig selv</option>
         </select>
         <select id="analyse-runde" onchange="renderAnalyse()" class="analyse-runde-select">
-          <option value="">Vælg runde...</option>
+          <option value="" data-i18n="analyse.selectRoundPlaceholder">Vælg runde...</option>
         </select>
       </div>
       <div id="analyse-runde-wrap-2" class="analyse-runde-panel" style="display:none;">
-        <div class="analyse-runde2-lbl">RUNDE 2</div>
+        <div class="analyse-runde2-lbl" data-i18n="analyse.round2Label">RUNDE 2</div>
         <select id="analyse-kilde-2" onchange="setCompareKilde(2,this.value)" class="analyse-kilde-select hidden">
-          <option value="">Mig selv</option>
+          <option value="" data-i18n="analyse.myselfOption">Mig selv</option>
         </select>
         <select id="analyse-runde-2" onchange="renderAnalyse()" class="analyse-runde-select">
-          <option value="">Vælg runde 2...</option>
+          <option value="" data-i18n="analyse.selectRound2Placeholder">Vælg runde 2...</option>
         </select>
       </div>
       <div id="analyse-content" class="analyse-content-wrap"></div>
@@ -312,65 +318,66 @@
 <div id="tab-courses" class="tab">
       <div id="courses-list-view">
         <div class="tab-header">
-          <span class="tab-title">Baner</span>
-          <button class="btn btn-gold btn-sm" onclick="openCreateCourseModal()">+ Opret bane</button>
+          <span class="tab-title" data-i18n="courses.title">Baner</span>
+          <button class="btn btn-gold btn-sm" onclick="openCreateCourseModal()" data-i18n="courses.createBtn">+ Opret bane</button>
         </div>
+        <input type="search" placeholder="Søg bane..." data-i18n-placeholder="courses.searchPlaceholder" oninput="filterCourses(this.value)" class="courses-search-input" />
         <div id="courses-list"></div>
       </div>
       <div id="course-detail-view" class="hidden">
         <div class="tab-header">
-          <button class="btn-icon" onclick="document.getElementById('courses-list-view').classList.remove('hidden');document.getElementById('course-detail-view').classList.add('hidden');if(state.courseMap){state.courseMap.remove();state.courseMap=null;}">← Tilbage</button>
+          <button class="btn-icon" onclick="document.getElementById('courses-list-view').classList.remove('hidden');document.getElementById('course-detail-view').classList.add('hidden');if(state.courseMap){state.courseMap.remove();state.courseMap=null;}" data-i18n="courses.backBtn">← Tilbage</button>
           <span id="course-detail-title" class="tab-title course-detail-title-style"></span>
         </div>
         <div class="subtabs">
-          <button class="stab active" data-stab="map" onclick="switchSubtab('map')">Kort</button>
-          <button class="stab" data-stab="visits" onclick="switchSubtab('visits')">Besøg</button>
-          <button class="stab" data-stab="edit" id="course-edit-stab-btn" onclick="switchSubtab('edit')">Rediger</button>
+          <button class="stab active" data-stab="map" onclick="switchSubtab('map')" data-i18n="courses.mapTab">Kort</button>
+          <button class="stab" data-stab="visits" onclick="switchSubtab('visits')" data-i18n="courses.visitsTab">Besøg</button>
+          <button class="stab" data-stab="edit" id="course-edit-stab-btn" onclick="switchSubtab('edit')" data-i18n="courses.editTab">Rediger</button>
         </div>
         <div id="stab-map" class="stab-c active">
           <div id="course-map"></div>
           <div class="trow">
-            <div class="trow-left"><div class="trow-main">📍 Vis min position</div></div>
+            <div class="trow-left"><div class="trow-main" data-i18n="courses.showMyPosition">📍 Vis min position</div></div>
             <div class="tswitch" id="mypos-sw" onclick="toggleMyPos()"></div>
           </div>
         </div>
         <div id="stab-visits" class="stab-c hidden"><div id="visits-list"></div></div>
         <div id="stab-edit" class="stab-c hidden">
           <div id="course-edit-form"></div>
-          <button class="btn btn-red delete-course-btn" onclick="doDeleteCourse()">🗑 Slet bane</button>
+          <button class="btn btn-red delete-course-btn" onclick="doDeleteCourse()" data-i18n="courses.deleteCourseBtn">🗑 Slet bane</button>
         </div>
       </div>
 
       <!-- Create course modal -->
       <div id="create-course-modal" class="modal hidden">
         <div class="modal-box">
-          <h3>Opret bane</h3>
-          <input type="text" id="new-course-name" placeholder="Banenavn" />
+          <h3 data-i18n="courses.createModalTitle">Opret bane</h3>
+          <input type="text" id="new-course-name" placeholder="Banenavn" data-i18n-placeholder="courses.namePlaceholder" />
           <select id="new-course-targets" onchange="document.getElementById('new-course-targets-custom').style.display=this.value==='custom'?'':'none'">
-            <option value="24" selected>24 mål</option>
-            <option value="30">30 mål</option>
-            <option value="custom">Andet...</option>
+            <option value="24" selected data-i18n="courses.targets24">24 mål</option>
+            <option value="30" data-i18n="courses.targets30">30 mål</option>
+            <option value="custom" data-i18n="setup.other">Andet...</option>
           </select>
-          <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" class="custom-count-field" style="display:none;" />
-          <input type="text" id="new-course-loc" placeholder="Lokation (fx by)" />
+          <input type="number" id="new-course-targets-custom" min="1" max="500" placeholder="Antal mål" data-i18n-placeholder="setup.targetCountPlaceholder" class="custom-count-field" style="display:none;" />
+          <input type="text" id="new-course-loc" placeholder="Lokation (fx by)" data-i18n-placeholder="courses.locationPlaceholder" />
           <select id="new-course-visibility" onchange="document.getElementById('new-course-approved-wrap').style.display=this.value==='hidden'?'':'none'">
-            <option value="public" selected>Offentlig</option>
-            <option value="private">Privat</option>
-            <option value="hidden">Skjult (kun godkendte)</option>
+            <option value="public" selected data-i18n="courses.visibilityPublic">Offentlig</option>
+            <option value="private" data-i18n="courses.visibilityPrivate">Privat</option>
+            <option value="hidden" data-i18n="courses.visibilityHidden">Skjult (kun godkendte)</option>
           </select>
-          <div class="trow-sub course-visibility-hint">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
+          <div class="trow-sub course-visibility-hint" data-i18n="courses.visibilityHint">Privat: banen er stadig synlig for alle, men vises med "(Banen er kun for medlemmer)". Skjult: kun skytter du selv godkender (nedenfor) kan se banen.</div>
           <div id="new-course-approved-wrap" style="display:none;">
             <div class="ac-wrap fg">
-              <input type="text" id="new-course-approved-search" placeholder="Søg registreret bruger…" autocomplete="off" oninput="searchApprovedUsers('new',this.value)" />
+              <input type="text" id="new-course-approved-search" placeholder="Søg registreret bruger…" data-i18n-placeholder="courses.searchUserPlaceholder" autocomplete="off" oninput="searchApprovedUsers('new',this.value)" />
               <div id="new-course-approved-ac" class="ac-list hidden"></div>
             </div>
             <div id="new-course-approved-chips" class="edit-approved-chips-wrap"></div>
-            <input type="text" id="new-course-approved-manual" placeholder="…eller indtast email direkte" />
-            <button type="button" class="btn btn-dark edit-approved-add-btn" onclick="addApprovedEmailManual('new')">Tilføj</button>
+            <input type="text" id="new-course-approved-manual" placeholder="…eller indtast email direkte" data-i18n-placeholder="courses.manualEmailPlaceholder" />
+            <button type="button" class="btn btn-dark edit-approved-add-btn" onclick="addApprovedEmailManual('new')" data-i18n="common.add">Tilføj</button>
           </div>
           <div class="brow">
-            <button class="btn btn-gold" onclick="doCreateCourse()">Opret</button>
-            <button class="btn btn-dark" onclick="document.getElementById('create-course-modal').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold" onclick="doCreateCourse()" data-i18n="courses.createBtnModal">Opret</button>
+            <button class="btn btn-dark" onclick="document.getElementById('create-course-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
           </div>
         </div>
       </div>
@@ -379,15 +386,15 @@
     <!-- FRIENDS TAB -->
     <div id="tab-friends" class="tab">
       <div class="tab-header">
-        <span class="tab-title">Venner</span>
-        <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)">+ Tilføj ven</button>
+        <span class="tab-title" data-i18n="friends.title">Venner</span>
+        <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)" data-i18n="friends.addFriendBtn">+ Tilføj ven</button>
       </div>
       <div id="friends-list"></div>
 
       <!-- SHARING SECTION -->
       <div id="sharing-section" class="sharing-sec">
         <div class="tab-header">
-          <span class="tab-title">Må jeg kigge med?</span>
+          <span class="tab-title" data-i18n="sharing.title">Må jeg kigge med?</span>
         </div>
         <div id="sharing-list"></div>
       </div>
@@ -395,33 +402,33 @@
       <!-- MEETUPS SECTION -->
       <div id="meetups-section" class="meetups-sec">
         <div class="tab-header">
-          <span class="tab-title">Skal vi skyde sammen?</span>
-          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()">+ Foreslå</button>
+          <span class="tab-title" data-i18n="meetups.header">Skal vi skyde sammen?</span>
+          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()" data-i18n="meetups.sectionSuggestBtn">+ Foreslå</button>
         </div>
         <div id="meetups-list"></div>
       </div>
 
       <div id="admin-section" class="admin-sec admin-only hidden">
-        <h3>Administrator</h3>
+        <h3 data-i18n="admin.title">Administrator</h3>
         <div class="admin-add-row">
-          <input type="email" id="admin-email" placeholder="Email til ny admin" class="flex-1" />
-          <button class="btn btn-dark btn-sm" onclick="doAddAdmin()">Tilføj</button>
+          <input type="email" id="admin-email" placeholder="Email til ny admin" data-i18n-placeholder="admin.addAdminPlaceholder" class="flex-1" />
+          <button class="btn btn-dark btn-sm" onclick="doAddAdmin()" data-i18n="common.add">Tilføj</button>
         </div>
         <div id="admins-list" class="mb12"></div>
         <div id="usage-stats-section" class="mb12">
           <div class="users-section-head">
-            <h4 class="users-section-title">BRUG AF APPEN</h4>
-            <button class="btn btn-dark btn-sm" onclick="loadUsageStats()">Opdater</button>
+            <h4 class="users-section-title" data-i18n="admin.usageTitle">BRUG AF APPEN</h4>
+            <button class="btn btn-dark btn-sm" onclick="loadUsageStats()" data-i18n="admin.updateBtn">Opdater</button>
           </div>
-          <div id="usage-stats-result" class="admin-hint">Klik "Opdater" for at hente statistik</div>
+          <div id="usage-stats-result" class="admin-hint" data-i18n="admin.statsHint">Klik "Opdater" for at hente statistik</div>
         </div>
         <div id="users-section" class="hidden">
           <div class="users-section-head">
-            <h4 class="users-section-title">ALLE BRUGERE</h4>
+            <h4 class="users-section-title" data-i18n="admin.allUsersTitle">ALLE BRUGERE</h4>
             <span id="users-count" class="users-count-lbl"></span>
           </div>
           <div id="users-summary"></div>
-          <input type="search" placeholder="Søg navn eller email…" oninput="filterUsers(this.value)" class="users-search-input" />
+          <input type="search" placeholder="Søg navn eller email…" data-i18n-placeholder="admin.searchUserPlaceholder" oninput="filterUsers(this.value)" class="users-search-input" />
           <div id="users-list"></div>
         </div>
       </div>
@@ -429,31 +436,31 @@
       <!-- Meetup opret-modal -->
       <div id="meetup-modal" class="modal hidden">
         <div class="modal-box">
-          <h3>Foreslå fælles skydning</h3>
-          <div class="fg"><label class="lbl">Bane</label>
+          <h3 data-i18n="meetups.modalTitle">Foreslå fælles skydning</h3>
+          <div class="fg"><label class="lbl" data-i18n="meetups.courseLabel">Bane</label>
             <div class="ac-wrap">
-              <input type="text" id="mu-course-display" placeholder="-- Vælg bane --" readonly onclick="toggleMeetupCourseList()" />
+              <input type="text" id="mu-course-display" placeholder="-- Vælg bane --" data-i18n-placeholder="meetups.selectCoursePlaceholder" readonly onclick="toggleMeetupCourseList()" />
               <div id="mu-course-list" class="ac-list hidden"></div>
             </div>
           </div>
-          <div class="fg"><label class="lbl">Dato</label>
+          <div class="fg"><label class="lbl" data-i18n="meetups.dateLabel">Dato</label>
             <input type="date" id="mu-date" /></div>
-          <div class="fg"><label class="lbl">Tidspunkt</label>
+          <div class="fg"><label class="lbl" data-i18n="meetups.timeLabel">Tidspunkt</label>
             <input type="time" id="mu-time" /></div>
-          <div class="fg"><label class="lbl">Bemærkning (valgfrit)</label>
-            <input type="text" id="mu-comment" placeholder="Skriv en bemærkning om skydningen…" maxlength="300" /></div>
+          <div class="fg"><label class="lbl" data-i18n="meetups.noteLabel">Bemærkning (valgfrit)</label>
+            <input type="text" id="mu-comment" placeholder="Skriv en bemærkning om skydningen…" data-i18n-placeholder="meetups.notePlaceholder" maxlength="300" /></div>
           <div class="mu-pool-section">
             <div class="mu-pool-tabs">
-              <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')">Mine venner</button>
-              <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')">Alle registrerede</button>
+              <button type="button" class="mu-pool-tab active" data-pool="venner" onclick="toggleMeetupPool('venner')" data-i18n="meetups.myFriendsTab">Mine venner</button>
+              <button type="button" class="mu-pool-tab" data-pool="alle" onclick="toggleMeetupPool('alle')" data-i18n="meetups.allRegisteredTab">Alle registrerede</button>
             </div>
-            <button type="button" class="btn btn-dark btn-sm mu-select-all" onclick="toggleSelectAllMeetup()">Vælg alle</button>
+            <button type="button" class="btn btn-dark btn-sm mu-select-all" onclick="toggleSelectAllMeetup()" data-i18n="meetups.selectAllBtn">Vælg alle</button>
           </div>
           <div id="mu-invitee-list" class="mu-invitee-list"></div>
           <div id="mu-selected-chips" class="mu-chips-wrap"></div>
           <div class="brow">
-            <button class="btn btn-gold" onclick="saveMeetup()">Send forslag</button>
-            <button class="btn btn-dark" onclick="document.getElementById('meetup-modal').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold" onclick="saveMeetup()" data-i18n="meetups.sendProposalBtn">Send forslag</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
           </div>
         </div>
       </div>
@@ -461,14 +468,14 @@
       <!-- Meetup foreslå-andet-tidspunkt-modal -->
       <div id="meetup-propose-modal" class="modal hidden">
         <div class="modal-box">
-          <h3>Foreslå andet tidspunkt</h3>
-          <div class="fg"><label class="lbl">Dato</label>
+          <h3 data-i18n="meetups.proposeAnotherTitle">Foreslå andet tidspunkt</h3>
+          <div class="fg"><label class="lbl" data-i18n="meetups.dateLabel">Dato</label>
             <input type="date" id="mu-propose-date" /></div>
-          <div class="fg"><label class="lbl">Tidspunkt</label>
+          <div class="fg"><label class="lbl" data-i18n="meetups.timeLabel">Tidspunkt</label>
             <input type="time" id="mu-propose-time" /></div>
           <div class="brow">
-            <button class="btn btn-gold" onclick="saveProposeTime()">Send forslag</button>
-            <button class="btn btn-dark" onclick="document.getElementById('meetup-propose-modal').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold" onclick="saveProposeTime()" data-i18n="meetups.sendProposalBtn">Send forslag</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-propose-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
           </div>
         </div>
       </div>
@@ -476,14 +483,14 @@
       <!-- Meetup rediger-tidspunkt-modal (kun opretter) -->
       <div id="meetup-edit-modal" class="modal hidden">
         <div class="modal-box">
-          <h3>Rediger tidspunkt</h3>
-          <div class="fg"><label class="lbl">Dato</label>
+          <h3 data-i18n="meetups.editTimeTitle">Rediger tidspunkt</h3>
+          <div class="fg"><label class="lbl" data-i18n="meetups.dateLabel">Dato</label>
             <input type="date" id="mu-edit-date" /></div>
-          <div class="fg"><label class="lbl">Tidspunkt</label>
+          <div class="fg"><label class="lbl" data-i18n="meetups.timeLabel">Tidspunkt</label>
             <input type="time" id="mu-edit-time" /></div>
           <div class="brow">
-            <button class="btn btn-gold" onclick="saveEditMeetup()">Gem</button>
-            <button class="btn btn-dark" onclick="document.getElementById('meetup-edit-modal').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold" onclick="saveEditMeetup()" data-i18n="common.save">Gem</button>
+            <button class="btn btn-dark" onclick="document.getElementById('meetup-edit-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
           </div>
         </div>
       </div>
@@ -491,19 +498,19 @@
       <!-- Friend modal -->
       <div id="friend-modal" class="modal hidden">
         <div class="modal-box">
-          <h3 id="friend-modal-title">Tilføj ven</h3>
-          <input type="text" id="f-name" placeholder="Navn" />
-          <input type="email" id="f-email" placeholder="Email" />
-          <input type="tel" id="f-phone" placeholder="Telefon" />
-          <input type="text" id="f-club" placeholder="Klub" />
+          <h3 id="friend-modal-title" data-i18n="friends.addTitle">Tilføj ven</h3>
+          <input type="text" id="f-name" placeholder="Navn" data-i18n-placeholder="friends.namePlaceholder" />
+          <input type="email" id="f-email" placeholder="Email" data-i18n-placeholder="auth.emailPlaceholder" />
+          <input type="tel" id="f-phone" placeholder="Telefon" data-i18n-placeholder="friends.phonePlaceholder" />
+          <input type="text" id="f-club" placeholder="Klub" data-i18n-placeholder="friends.clubPlaceholder" />
           <select id="f-bow">
-            <option value="">Buetype...</option>
-            <option>Recurve</option><option>Compound</option>
-            <option>Longbow</option><option>Barebow</option>
+            <option value="" data-i18n="friends.bowTypeDefault">Buetype...</option>
+            <option data-i18n="friends.bowTypeRecurve">Recurve</option><option data-i18n="friends.bowTypeCompound">Compound</option>
+            <option data-i18n="friends.bowTypeLongbow">Longbow</option><option data-i18n="friends.bowTypeBarebow">Barebow</option>
           </select>
           <div class="brow">
-            <button class="btn btn-gold" onclick="saveFriendModal()">Gem</button>
-            <button class="btn btn-dark" onclick="document.getElementById('friend-modal').classList.add('hidden')">Annuller</button>
+            <button class="btn btn-gold" onclick="saveFriendModal()" data-i18n="common.save">Gem</button>
+            <button class="btn btn-dark" onclick="document.getElementById('friend-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
           </div>
         </div>
       </div>
@@ -514,19 +521,19 @@
   <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
     <button class="nav-btn active" data-tab="scoring" onclick="switchTab('scoring')">
-      <span class="nav-icon">🎯</span><span class="nav-lbl" data-i18n="scoring">POINT</span>
+      <span class="nav-icon">🎯</span><span class="nav-lbl" data-i18n="nav.scoring">POINT</span>
     </button>
     <button class="nav-btn" data-tab="results" onclick="switchTab('results')">
-      <span class="nav-icon">📊</span><span class="nav-lbl" data-i18n="results">RESULTATER</span>
+      <span class="nav-icon">📊</span><span class="nav-lbl" data-i18n="nav.results">RESULTATER</span>
     </button>
     <button class="nav-btn" data-tab="analyse" onclick="switchTab('analyse')">
-      <span class="nav-icon">📈</span><span class="nav-lbl">ANALYSE</span>
+      <span class="nav-icon">📈</span><span class="nav-lbl" data-i18n="nav.analyse">ANALYSE</span>
     </button>
     <button class="nav-btn" data-tab="courses" onclick="switchTab('courses')">
-      <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="courses">BANER</span>
+      <span class="nav-icon">🗺️</span><span class="nav-lbl" data-i18n="nav.courses">BANER</span>
     </button>
     <button class="nav-btn" data-tab="friends" onclick="switchTab('friends')">
-      <span class="nav-icon">👥<span id="meetup-badge" class="nav-count-badge hidden">0</span><span id="share-badge" class="nav-count-badge nav-count-badge-alt hidden">0</span></span><span class="nav-lbl" data-i18n="friends">VENNER</span>
+      <span class="nav-icon">👥<span id="meetup-badge" class="nav-count-badge hidden">0</span><span id="share-badge" class="nav-count-badge nav-count-badge-alt hidden">0</span></span><span class="nav-lbl" data-i18n="nav.friends">VENNER</span>
     </button>
   </nav>
 </div>
@@ -534,28 +541,28 @@
 <!-- PROFIL MODAL -->
 <div id="profil-modal" class="modal hidden">
   <div class="modal-box">
-    <h3 class="profil-modal-title">Fuldfør din profil</h3>
-    <p class="profil-modal-desc">Vælg køn og bueklasse for at aktivere sammenligning med andre skytter.</p>
+    <h3 class="profil-modal-title" data-i18n="modals.profil.title">Fuldfør din profil</h3>
+    <p class="profil-modal-desc" data-i18n="modals.profil.desc">Vælg køn og bueklasse for at aktivere sammenligning med andre skytter.</p>
     <div class="profil-modal-fields">
       <select id="profil-kon" class="select-surface2">
-        <option value="">Vælg køn</option>
-        <option value="herre">Herre</option>
-        <option value="dame">Dame</option>
+        <option value="" data-i18n="auth.selectGender">Vælg køn</option>
+        <option value="herre" data-i18n="common.gender.herre">Herre</option>
+        <option value="dame" data-i18n="common.gender.dame">Dame</option>
       </select>
       <select id="profil-bueklasse" class="select-surface2">
-        <option value="">Vælg bueklasse</option>
-        <option value="langbue">Langbue</option>
-        <option value="trad">Traditionel</option>
-        <option value="recurve">Recurve (olympisk)</option>
-        <option value="compound">Compound</option>
-        <option value="barbue">Barbue</option>
-        <option value="buejæger">Buejæger</option>
-        <option value="trad-buejæger">Traditionel buejæger</option>
-        <option value="rytterbue">Rytterbue</option>
+        <option value="" data-i18n="auth.selectBowClass">Vælg bueklasse</option>
+        <option value="langbue" data-i18n="common.bowClass.langbue">Langbue</option>
+        <option value="trad" data-i18n="common.bowClass.trad">Traditionel</option>
+        <option value="recurve" data-i18n="common.bowClass.recurve">Recurve (olympisk)</option>
+        <option value="compound" data-i18n="common.bowClass.compound">Compound</option>
+        <option value="barbue" data-i18n="common.bowClass.barbue">Barbue</option>
+        <option value="buejæger" data-i18n="common.bowClass.buejaeger">Buejæger</option>
+        <option value="trad-buejæger" data-i18n="common.bowClass.tradBuejaeger">Traditionel buejæger</option>
+        <option value="rytterbue" data-i18n="common.bowClass.rytterbue">Rytterbue</option>
       </select>
       <div id="profil-err" class="err hidden"></div>
-      <button class="btn btn-gold" onclick="saveProfilModal()">Gem</button>
-      <button class="btn btn-dark" onclick="document.getElementById('profil-modal').classList.add('hidden')">Senere</button>
+      <button class="btn btn-gold" onclick="saveProfilModal()" data-i18n="common.save">Gem</button>
+      <button class="btn btn-dark" onclick="document.getElementById('profil-modal').classList.add('hidden')" data-i18n="modals.profil.laterBtn">Senere</button>
     </div>
   </div>
 </div>
@@ -570,7 +577,7 @@
       <input type="text" id="qr-url" class="qr-url-input" readonly onclick="this.select()" />
       <button class="btn-icon" onclick="copyQrUrl()">📋</button>
     </div>
-    <button class="btn btn-dark" onclick="document.getElementById('qr-modal').classList.add('hidden')">Luk</button>
+    <button class="btn btn-dark" onclick="document.getElementById('qr-modal').classList.add('hidden')" data-i18n="modals.qr.closeBtn">Luk</button>
   </div>
 </div>
 
@@ -589,11 +596,11 @@
 <!-- SKIP MODAL -->
 <div id="skip-modal" class="modal hidden">
   <div class="modal-box">
-    <h3>Hop til mål</h3>
-    <input type="number" id="skip-input" min="1" placeholder="Målnummer" />
+    <h3 data-i18n="modals.skip.title">Hop til mål</h3>
+    <input type="number" id="skip-input" min="1" placeholder="Målnummer" data-i18n-placeholder="modals.skip.placeholder" />
     <div class="brow">
-      <button class="btn btn-gold" onclick="doSkip()">Hop</button>
-      <button class="btn btn-dark" onclick="document.getElementById('skip-modal').classList.add('hidden')">Annuller</button>
+      <button class="btn btn-gold" onclick="doSkip()" data-i18n="modals.skip.goBtn">Hop</button>
+      <button class="btn btn-dark" onclick="document.getElementById('skip-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
     </div>
   </div>
 </div>
@@ -601,11 +608,11 @@
 <!-- GUEST MODAL -->
 <div id="guest-modal" class="modal hidden">
   <div class="modal-box">
-    <h3>Tilføj gæst</h3>
-    <input type="text" id="guest-name" placeholder="Gæstens navn" />
+    <h3 data-i18n="modals.guest.title">Tilføj gæst</h3>
+    <input type="text" id="guest-name" placeholder="Gæstens navn" data-i18n-placeholder="modals.guest.placeholder" />
     <div class="brow">
-      <button class="btn btn-gold" onclick="addGuest()">Tilføj</button>
-      <button class="btn btn-dark" onclick="document.getElementById('guest-modal').classList.add('hidden')">Annuller</button>
+      <button class="btn btn-gold" onclick="addGuest()" data-i18n="modals.guest.addBtn">Tilføj</button>
+      <button class="btn btn-dark" onclick="document.getElementById('guest-modal').classList.add('hidden')" data-i18n="common.cancel">Annuller</button>
     </div>
   </div>
 </div>
@@ -615,10 +622,10 @@
      hvorsomhelst) -->
 <div id="import-player-modal" class="modal hidden">
   <div class="modal-box">
-    <h3>Hvem er du?</h3>
+    <h3 data-i18n="modals.importPlayer.title">Hvem er du?</h3>
     <div id="import-player-list"></div>
     <div class="brow">
-      <button class="btn btn-dark" onclick="cancelImportPlayer()">Annuller</button>
+      <button class="btn btn-dark" onclick="cancelImportPlayer()" data-i18n="common.cancel">Annuller</button>
     </div>
   </div>
 </div>
@@ -628,8 +635,8 @@
   <div class="modal-box">
     <p id="confirm-msg" class="confirm-msg-style"></p>
     <div class="confirm-btn-row">
-      <button class="btn btn-dark flex-1" onclick="window._confirmReject&&window._confirmReject()">Annuller</button>
-      <button class="btn btn-red flex-1" onclick="window._confirmAccept&&window._confirmAccept()">Bekræft</button>
+      <button class="btn btn-dark flex-1" onclick="window._confirmReject&&window._confirmReject()" data-i18n="common.cancel">Annuller</button>
+      <button class="btn btn-red flex-1" onclick="window._confirmAccept&&window._confirmAccept()" data-i18n="common.confirm">Bekræft</button>
     </div>
   </div>
 </div>
@@ -639,8 +646,8 @@
   <div class="pwa-banner-card">
     <button id="pwa-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
     <img src="logo.png" class="pwa-banner-logo" />
-    <div class="pwa-banner-text">Installer 3D Bueskydning på din hjemmeskærm for hurtig adgang</div>
-    <button id="pwa-install-btn" class="pwa-install-btn-style">INSTALLER APP</button>
+    <div class="pwa-banner-text" data-i18n="banners.pwa.text">Installer 3D Bueskydning på din hjemmeskærm for hurtig adgang</div>
+    <button id="pwa-install-btn" class="pwa-install-btn-style" data-i18n="banners.pwa.installBtn">INSTALLER APP</button>
   </div>
 </div>
 
@@ -649,7 +656,7 @@
   <div class="pwa-banner-card">
     <button id="ios-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
     <img src="logo.png" class="pwa-banner-logo" />
-    <div class="pwa-banner-text">Installer 3D Bueskydning på din hjemmeskærm:<br>Tryk på <span class="ios-share-icon">⬆️</span> Del-ikonet nederst i Safari, og vælg "Føj til hjemmeskærm".</div>
+    <div class="pwa-banner-text"><span data-i18n="banners.iosInstall.line1">Installer 3D Bueskydning på din hjemmeskærm:</span><br><span data-i18n="banners.iosInstall.shareStepPre">Tryk på </span><span class="ios-share-icon">⬆️</span><span data-i18n="banners.iosInstall.shareStepPost"> Del-ikonet nederst i Safari, og vælg "Føj til hjemmeskærm".</span></div>
   </div>
 </div>
 
@@ -658,8 +665,8 @@
   <div class="pwa-banner-card">
     <button id="push-dismiss-btn" class="pwa-dismiss-btn-style">✕</button>
     <img src="logo.png" class="pwa-banner-logo" />
-    <div class="pwa-banner-text">Få besked med det samme når nogen inviterer dig til en skydning – også når appen er lukket.</div>
-    <button id="push-enable-btn" class="pwa-install-btn-style">AKTIVÉR NOTIFIKATIONER</button>
+    <div class="pwa-banner-text" data-i18n="banners.push.text">Få besked med det samme når nogen inviterer dig til en skydning – også når appen er lukket.</div>
+    <button id="push-enable-btn" class="pwa-install-btn-style" data-i18n="banners.push.enableBtn">AKTIVÉR NOTIFIKATIONER</button>
   </div>
 </div>
 

@@ -48,6 +48,9 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 | `js/round-import.js` | Selvbetjent import af runder fra Bueskydning Danmark-appens JSON-eksport (se også `import_legacy_round.mjs` i repo-roden til at importere på en andens vegne via terminal) |
 | `js/admin.js` | Admin-panel: adminliste, brugerliste, tilføj/fjern admin |
 | `js/meetups.js` | "Skal vi skyde sammen": foreslå/tilmeld/afvis fælles skydninger |
+| `js/sharing.js` | "Må jeg kigge med?": anmod om/godkend adgang til en vens runder, hent delte runder on-demand |
+| `js/push.js` | Web push-notifikationer (meetup-invitationer): SW-registrering, FCM-token, foreground-toast |
+| `js/i18n.js` | DA/EN-oversættelse: `t(key,params)`, `getLang()`/`getLocale()`, `applyI18n()`, `setLang()`/`initLang()` |
 | `js/storage.js` | localStorage-persistens (`archery_v5`) |
 | `js/utils.js` | `esc`/`showToast`/`showConfirm` |
 | `js/firebase-instance.js` | Gammel Firebase-singleton — importeres IKKE af noget aktivt modul (dead code, bevaret til reference) |
@@ -56,6 +59,14 @@ The `build.bat` script is the production deployment path — it copies `index.sr
 **Vigtig note:** Vite bundler `js/main.js` og alt det transitivt importerer — dvs. alle moduler i tabellen ovenfor undtagen `firebase-instance.js` og `js/legacy/`, som intet aktivt modul importerer.
 
 **Stående regel:** al ny logik skal i det relevante eksisterende modul (eller et nyt modul, hvis ingen passer) — aldrig tilbage i `main.js`. Al ny styling skal være en navngivet klasse i `css/style.css`, aldrig inline `style="..."` (undtagen elementer hvor JS sætter `.style.display=''` for at vise dem igen — de skal beholde `display:none` inline).
+
+## i18n (DA/EN)
+
+Hele appen er oversat DA/EN via `js/i18n.js` (nøglebaseret opslag, se tabellen ovenfor). **Stående regel:** al ny brugervendt tekst SKAL tilføjes til både `translations.da` og `translations.en` i `js/i18n.js` — aldrig hardcodes direkte i HTML eller JS, heller ikke midlertidigt:
+- Statisk HTML-tekst: `data-i18n="modul.nøgle"` (eller `data-i18n-placeholder="..."` for placeholder-attributter) — læses af `applyI18n()`.
+- Dynamisk JS-bygget tekst (toasts, `showConfirm`, `innerHTML`/`textContent` bygget i JS): `t('modul.nøgle', {param})`, importeret fra `./i18n.js`. `data-i18n` overlever ikke en efterfølgende JS-overskrivning af elementet, så dynamisk indhold skal altid gå via `t()`, aldrig data-i18n.
+- Sprogvalg persisteres i sin egen localStorage-nøgle `archery_lang` (adskilt fra `archery_v5`-blob'en).
+- `window.toggleLang()` (i `js/app-init.js`) genrenderer alt synligt dynamisk indhold efter et sprogskift ved at tjekke hvilken fane der har class `active` og genkalde dens render-funktion(er). Nye faner/render-funktioner, der bygger dynamisk fane-indhold, skal tilføjes til denne liste — ellers viser en åben fane fortsat det gamle sprog indtil brugeren navigerer væk og tilbage.
 
 ## Data Storage
 

@@ -10,9 +10,10 @@
 import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
 import { db, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, serverTimestamp } from './firebase-init.js'
+import { t } from './i18n.js'
 
 const SEEN_KEY = 'archery_meetups_seen'
-const STATUS_LABELS = { afventer:'Afventer', tilmeldt:'Tilmeldt ✅', 'foreslået':'Foreslår andet tidspunkt 🕓', afvist:'Afbud ❌' }
+const STATUS_KEYS = { afventer:'statusPending', tilmeldt:'statusAccepted', 'foreslået':'statusProposing', afvist:'statusDeclined' }
 
 // Datoer gemmes/sammenlignes som ISO (yyyy-mm-dd, fra <input type="date">) — kun til visning omskrives til dansk format (dd-mm-yyyy).
 function formatDate(iso){
@@ -75,7 +76,7 @@ export function renderMeetupsList(){
   const el=document.getElementById('meetups-list');if(!el)return
   const today=new Date().toISOString().slice(0,10)
   const visible=state.meetups.filter(m=>m.date>=today)
-  if(!visible.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏹</div>Ingen planlagte skydninger endnu</div>';return}
+  if(!visible.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🏹</div>${t('meetups.empty')}</div>`;return}
   el.innerHTML=''
   visible.forEach(m=>el.appendChild(renderMeetupCard(m)))
 }
@@ -89,7 +90,7 @@ function renderMeetupCard(m){
 
   const partRows=(m.participants||[]).map(p=>{
     const proposed=p.status==='foreslået'&&p.proposedDate?` → ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')}`:''
-    return `<div class="meetup-partrow"><span>${esc(p.name)}</span><span class="meetup-status meetup-status-${esc(p.status)}">${esc(STATUS_LABELS[p.status]||p.status)}${proposed}</span></div>`
+    return `<div class="meetup-partrow"><span>${esc(p.name)}</span><span class="meetup-status meetup-status-${esc(p.status)}">${esc(STATUS_KEYS[p.status]?t('meetups.'+STATUS_KEYS[p.status]):p.status)}${proposed}</span></div>`
   }).join('')
 
   const commentRows=(m.comments||[]).map(c=>`<div class="meetup-comment"><b>${esc(c.name)}:</b> ${esc(c.text)}</div>`).join('')
@@ -97,34 +98,34 @@ function renderMeetupCard(m){
   let actions=''
   if(m.status!=='aflyst'){
     if(me){
-      if(me.status!=='tilmeldt')actions+=`<button class="btn btn-gold btn-sm" onclick="joinMeetup('${m.id}')">Tilmeld</button>`
-      actions+=`<button class="btn btn-dark btn-sm" onclick="openProposeTimeModal('${m.id}')">Foreslå andet tidspunkt</button>`
-      if(me.status!=='afvist')actions+=`<button class="btn btn-dark btn-sm" onclick="declineMeetup('${m.id}')">Afbud</button>`
+      if(me.status!=='tilmeldt')actions+=`<button class="btn btn-gold btn-sm" onclick="joinMeetup('${m.id}')">${t('meetups.joinBtn')}</button>`
+      actions+=`<button class="btn btn-dark btn-sm" onclick="openProposeTimeModal('${m.id}')">${t('meetups.proposeOtherBtn')}</button>`
+      if(me.status!=='afvist')actions+=`<button class="btn btn-dark btn-sm" onclick="declineMeetup('${m.id}')">${t('meetups.declineBtn')}</button>`
     }
     if(isCreator){
       ;(m.participants||[]).filter(p=>p.status==='foreslået'&&p.proposedDate).forEach(p=>{
-        actions+=`<button class="btn btn-gold btn-sm" onclick="acceptProposedTime('${m.id}','${p.uid}')">Accepter ${esc(formatDate(p.proposedDate))} ${esc(p.proposedTime||'')} (${esc(p.name)})</button>`
+        actions+=`<button class="btn btn-gold btn-sm" onclick="acceptProposedTime('${m.id}','${p.uid}')">${t('meetups.acceptProposalBtn',{date:esc(formatDate(p.proposedDate)),time:esc(p.proposedTime||''),name:esc(p.name)})}</button>`
       })
-      actions+=`<button class="btn btn-dark btn-sm" onclick="openEditMeetupModal('${m.id}')">Rediger tidspunkt</button>`
-      actions+=`<button class="btn btn-dark btn-sm" onclick="cancelMeetup('${m.id}')">Aflys</button>`
-      actions+=`<button class="btn btn-red btn-sm" onclick="deleteMeetup('${m.id}')">Slet</button>`
+      actions+=`<button class="btn btn-dark btn-sm" onclick="openEditMeetupModal('${m.id}')">${t('meetups.editTimeBtn')}</button>`
+      actions+=`<button class="btn btn-dark btn-sm" onclick="cancelMeetup('${m.id}')">${t('meetups.cancelMeetupBtn')}</button>`
+      actions+=`<button class="btn btn-red btn-sm" onclick="deleteMeetup('${m.id}')">${t('meetups.deleteBtn')}</button>`
     }
   }
 
   card.innerHTML=`
-    ${m.status==='aflyst'?'<div class="meetup-cancelled-banner">❌ Aflyst</div>':''}
-    ${notMine?'<div class="meetup-notinvited-banner">👁 Du er ikke inviteret — vises kun for superadmin</div>':''}
+    ${m.status==='aflyst'?`<div class="meetup-cancelled-banner">${t('meetups.cancelledBanner')}</div>`:''}
+    ${notMine?`<div class="meetup-notinvited-banner">${t('meetups.notInvitedBanner')}</div>`:''}
     <div class="meetup-head">
       <div class="meetup-title">${esc(m.courseName)}</div>
-      <div class="meetup-when">${esc(formatDate(m.date))} kl. ${esc(m.time)}</div>
-      <div class="meetup-creator">Oprettet af ${esc(m.creatorName)}</div>
+      <div class="meetup-when">${t('meetups.dateTimeLine',{date:esc(formatDate(m.date)),time:esc(m.time)})}</div>
+      <div class="meetup-creator">${t('meetups.createdBy',{name:esc(m.creatorName)})}</div>
     </div>
     <div class="meetup-participants">${partRows}</div>
     <div class="meetup-actions">${actions}</div>
     <div class="meetup-comments">${commentRows}</div>
     <div class="meetup-comment-add">
-      <input type="text" placeholder="Skriv en kommentar…" class="meetup-comment-input" maxlength="300" />
-      <button class="btn btn-dark btn-sm meetup-comment-send">Send</button>
+      <input type="text" placeholder="${t('meetups.commentPlaceholder')}" class="meetup-comment-input" maxlength="300" />
+      <button class="btn btn-dark btn-sm meetup-comment-send">${t('meetups.sendBtn')}</button>
     </div>
   `
   const input=card.querySelector('.meetup-comment-input')
@@ -137,7 +138,7 @@ function renderMeetupCard(m){
 
 // ─── OPRET-MODAL: bane/dato/tid ────────────────────────────────────────────
 window.openMeetupModal=function(){
-  if(!state.courses.length){showToast('Ingen baner tilgængelige','error');return}
+  if(!state.courses.length){showToast(t('meetups.noCoursesToast'),'error');return}
   _selectedInvitees=new Map()
   _pool='venner'
   _allUsersCache=null
@@ -210,7 +211,7 @@ async function renderInviteePool(){
   const people=await getPoolPeople()
   el.innerHTML=''
   if(!people.length){
-    el.innerHTML=`<div class="empty"><div class="empty-icon">👤</div>${_pool==='venner'?'Du har ingen venner endnu':'Ingen andre registrerede brugere'}</div>`
+    el.innerHTML=`<div class="empty"><div class="empty-icon">👤</div>${_pool==='venner'?t('meetups.noFriendsYet'):t('meetups.noOtherUsers')}</div>`
     return
   }
   people.forEach(p=>{
@@ -220,7 +221,7 @@ async function renderInviteePool(){
     row.appendChild(cb);row.appendChild(span)
     if(p.registered===false){
       cb.disabled=true
-      const note=document.createElement('span');note.className='mu-invitee-note';note.textContent='ikke registreret i appen'
+      const note=document.createElement('span');note.className='mu-invitee-note';note.textContent=t('meetups.notRegisteredNote')
       row.appendChild(note)
     }else{
       cb.addEventListener('change',()=>toggleInviteeMeetup(p.uid,p.name))
@@ -251,7 +252,7 @@ window.toggleSelectAllMeetup=async function(){
 function renderSelectedChips(){
   const el=document.getElementById('mu-selected-chips');if(!el)return
   el.innerHTML=''
-  if(!_selectedInvitees.size){el.innerHTML='<div class="mu-chips-empty">Ingen modtagere valgt endnu</div>';return}
+  if(!_selectedInvitees.size){el.innerHTML=`<div class="mu-chips-empty">${t('meetups.noRecipientsSelected')}</div>`;return}
   ;[..._selectedInvitees.values()].forEach(p=>{
     const chip=document.createElement('div');chip.className='pchip'
     const name=document.createElement('span');name.className='pchip-name';name.textContent=p.name
@@ -266,9 +267,9 @@ window.saveMeetup=async function(){
   const course=state.courses.find(c=>c.id===_selectedCourseId)
   const date=document.getElementById('mu-date').value
   const time=document.getElementById('mu-time').value
-  if(!course){showToast('Vælg en bane','error');return}
-  if(!date||!time){showToast('Vælg dato og tid','error');return}
-  if(!_selectedInvitees.size){showToast('Vælg mindst én modtager','error');return}
+  if(!course){showToast(t('meetups.selectCourseToast'),'error');return}
+  if(!date||!time){showToast(t('meetups.selectDateTimeToast'),'error');return}
+  if(!_selectedInvitees.size){showToast(t('meetups.selectRecipientToast'),'error');return}
   // Sikkerhedstjek: filtrér uregistrerede (fejlagtigt valgte) fra, selvom
   // renderInviteePool allerede forhindrer at vælge dem — undgår "usynlige"
   // invitationer der aldrig når frem, hvis _selectedInvitees skulle indeholde
@@ -277,7 +278,7 @@ window.saveMeetup=async function(){
   const invalidNames=[..._selectedInvitees.values()].filter(p=>!registeredIds.has(p.uid)).map(p=>p.name)
   if(invalidNames.length){
     invalidNames.forEach(name=>{const entry=[..._selectedInvitees.entries()].find(([,p])=>p.name===name);if(entry)_selectedInvitees.delete(entry[0])})
-    showToast(`${invalidNames.join(', ')} er ikke registreret i appen og blev ikke inviteret`,'error')
+    showToast(t('meetups.invalidNamesToast',{names:invalidNames.join(', ')}),'error')
     renderSelectedChips();renderInviteePool()
     if(!_selectedInvitees.size)return
   }
@@ -297,9 +298,9 @@ window.saveMeetup=async function(){
   try{
     await addDoc(collection(db,'meetups'),data)
     document.getElementById('meetup-modal').classList.add('hidden')
-    showToast('Forslag sendt','success')
+    showToast(t('meetups.proposalSentToast'),'success')
     await fetchMeetups();renderMeetupsList();updateMeetupBadge()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 // ─── DELTAGER-HANDLINGER (læs-modificér-skriv hele arrayet, ét updateDoc) ──
@@ -310,7 +311,7 @@ async function setParticipantStatus(meetupId,status){
     await updateDoc(doc(db,'meetups',m.id),{participants,updatedAt:serverTimestamp()})
     m.participants=participants;m.updatedAt=Date.now()
     renderMeetupsList()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 // Afbud er ikke endeligt — join virker uanset nuværende status (også fra 'afvist').
@@ -327,7 +328,7 @@ window.openProposeTimeModal=function(meetupId){
 window.saveProposeTime=async function(){
   const date=document.getElementById('mu-propose-date').value
   const time=document.getElementById('mu-propose-time').value
-  if(!date||!time){showToast('Vælg dato og tid','error');return}
+  if(!date||!time){showToast(t('meetups.selectDateTimeToast'),'error');return}
   const m=state.meetups.find(x=>x.id===_proposeMeetupId);if(!m||!state.user)return
   const participants=(m.participants||[]).map(p=>p.uid===state.user.uid?{...p,status:'foreslået',proposedDate:date,proposedTime:time}:p)
   try{
@@ -335,7 +336,7 @@ window.saveProposeTime=async function(){
     m.participants=participants;m.updatedAt=Date.now()
     document.getElementById('meetup-propose-modal').classList.add('hidden')
     renderMeetupsList()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 // Kun opretter: accepterer et foreslået tidspunkt, nulstiller alle ANDRE
@@ -352,8 +353,8 @@ window.acceptProposedTime=async function(meetupId,uid){
     await updateDoc(doc(db,'meetups',m.id),{date:newDate,time:newTime,participants,updatedAt:serverTimestamp()})
     m.date=newDate;m.time=newTime;m.participants=participants;m.updatedAt=Date.now()
     renderMeetupsList()
-    showToast('Nyt tidspunkt accepteret','success')
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+    showToast(t('meetups.newTimeAcceptedToast'),'success')
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 // Kun opretter: rediger tidspunkt direkte (fx efter en uformel besked i
@@ -372,7 +373,7 @@ window.openEditMeetupModal=function(meetupId){
 window.saveEditMeetup=async function(){
   const date=document.getElementById('mu-edit-date').value
   const time=document.getElementById('mu-edit-time').value
-  if(!date||!time){showToast('Vælg dato og tid','error');return}
+  if(!date||!time){showToast(t('meetups.selectDateTimeToast'),'error');return}
   const m=state.meetups.find(x=>x.id===_editMeetupId);if(!m||m.creatorUid!==state.user?.uid)return
   const participants=(m.participants||[]).map(p=>({...p,status:'afventer',proposedDate:null,proposedTime:null}))
   try{
@@ -380,18 +381,18 @@ window.saveEditMeetup=async function(){
     m.date=date;m.time=time;m.participants=participants;m.updatedAt=Date.now()
     document.getElementById('meetup-edit-modal').classList.add('hidden')
     renderMeetupsList()
-    showToast('Tidspunkt opdateret','success')
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+    showToast(t('meetups.timeUpdatedToast'),'success')
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }
 
 window.cancelMeetup=function(meetupId){
   const m=state.meetups.find(x=>x.id===meetupId);if(!m||m.creatorUid!==state.user?.uid)return
-  showConfirm('Aflys denne skydning?',async()=>{
+  showConfirm(t('meetups.cancelConfirm'),async()=>{
     try{
       await updateDoc(doc(db,'meetups',m.id),{status:'aflyst',updatedAt:serverTimestamp()})
       m.status='aflyst';m.updatedAt=Date.now()
       renderMeetupsList()
-    }catch(e){showToast('Fejl: '+e.message,'error')}
+    }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
   })
 }
 
@@ -400,12 +401,12 @@ window.cancelMeetup=function(meetupId){
 // datoen er passeret.
 window.deleteMeetup=function(meetupId){
   const m=state.meetups.find(x=>x.id===meetupId);if(!m||m.creatorUid!==state.user?.uid)return
-  showConfirm('Slet denne skydning permanent? Det kan ikke fortrydes.',async()=>{
+  showConfirm(t('meetups.deleteConfirm'),async()=>{
     try{
       await deleteDoc(doc(db,'meetups',m.id))
       state.meetups=state.meetups.filter(x=>x.id!==meetupId)
       renderMeetupsList();updateMeetupBadge()
-    }catch(e){showToast('Fejl: '+e.message,'error')}
+    }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
   })
 }
 
@@ -419,5 +420,5 @@ async function postMeetupComment(meetupId,text){
     await updateDoc(doc(db,'meetups',m.id),{comments,updatedAt:serverTimestamp()})
     m.comments=comments;m.updatedAt=Date.now()
     renderMeetupsList()
-  }catch(e){showToast('Fejl: '+e.message,'error')}
+  }catch(e){showToast(t('common.errorPrefix')+e.message,'error')}
 }

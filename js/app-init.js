@@ -10,7 +10,7 @@ import { showToast } from './utils.js'
 import { renderFriendsList, renderQuickFriends } from './friends.js'
 import { fetchCourses, renderCoursesList, updateTargetInFirestore, compressImage } from './courses.js'
 import { renderAdminSection } from './admin.js'
-import { renderRoundsList } from './results.js'
+import { renderRoundsList, renderResults, showRoundPopup } from './results.js'
 import { fetchMeetups, renderMeetupsList, updateMeetupBadge, markMeetupsSeen } from './meetups.js'
 import { fetchShareRequests, renderSharingSection, updateShareBadge, markShareRequestsSeen } from './sharing.js'
 import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGranted,
@@ -18,9 +18,10 @@ import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGrant
 import './analyse.js'
 import './round-import.js'
 import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
-         releaseWakeLock } from './round.js'
+         releaseWakeLock, renderShooters } from './round.js'
 import { parseRoute, haversine, toggleGpsPause } from './gps.js'
 import { lsLoad, lsSave } from './storage.js'
+import { initLang, setLang, getLang, t, translations } from './i18n.js'
 
 // auth.js registrerer sine egne window.*-handlere (login/opret/nulstil/logud)
 // ved import. Auth-state-lytteren (onAuthStateChanged) bor herunder.
@@ -35,6 +36,8 @@ const PUSH_DISMISS_KEY = 'archery_push_dismissed'
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
+  initLang()
+
   // Init warn slider
   const warnEl=document.getElementById('warn-enabled-sw')
   if(warnEl){
@@ -45,6 +48,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
       state.warnEnabled=!state.warnEnabled
       warnEl.classList.toggle('on',state.warnEnabled)
       localStorage.setItem('warnEnabled',state.warnEnabled)
+    })
+  }
+
+  // Init "vis afstande"-slider — rent visningsvalg (ikke rundedata), gælder
+  // derfor alle runder ens, ligesom advarselsgrænsen ovenfor.
+  const distEl=document.getElementById('show-distances-sw')
+  if(distEl){
+    state.showDistances=localStorage.getItem('archery_showDistances')==='true'
+    distEl.classList.toggle('on',state.showDistances)
+    distEl.addEventListener('click',()=>{
+      state.showDistances=!state.showDistances
+      distEl.classList.toggle('on',state.showDistances)
+      localStorage.setItem('archery_showDistances',state.showDistances)
+      if(state.round)updateTopBar()
     })
   }
 
@@ -99,7 +116,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('push-enable-btn')?.addEventListener('click',async()=>{
     document.getElementById('push-banner').classList.add('hidden')
     const ok=await enablePushNotifications()
-    if(ok)showToast('Notifikationer aktiveret','success')
+    if(ok)showToast(t('banners.push.enabledToast'),'success')
   })
   document.getElementById('push-dismiss-btn')?.addEventListener('click',()=>{
     document.getElementById('push-banner').classList.add('hidden')
@@ -138,7 +155,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       await updateTargetInFirestore(state.round.courseId,tIdx,{imageUrl:url})
       if(state.course?.targets)state.course.targets[tIdx].imageUrl=url
       updateTopBar()
-    }catch(e){showToast('Upload fejl: '+e.message,'error')}
+    }catch(e){showToast(t('courses.uploadErrorToast',{msg:e.message}),'error')}
   })
 
   document.querySelectorAll('.modal').forEach(m=>{
@@ -151,13 +168,13 @@ window.saveProfilModal=async function(){
   const kon=document.getElementById('profil-kon').value
   const bueklasse=document.getElementById('profil-bueklasse').value
   const errEl=document.getElementById('profil-err')
-  if(!kon||!bueklasse){errEl.textContent='Vælg både køn og bueklasse.';errEl.classList.remove('hidden');return}
+  if(!kon||!bueklasse){errEl.textContent=t('modals.profil.validationMsg');errEl.classList.remove('hidden');return}
   errEl.classList.add('hidden')
   try{
     await updateDoc(doc(db,'users',state.user.uid),{kon,bueklasse})
     state.profile.kon=kon;state.profile.bueklasse=bueklasse
     document.getElementById('profil-modal').classList.add('hidden')
-  }catch(e){errEl.textContent='Fejl ved gem. Prøv igen.';errEl.classList.remove('hidden')}
+  }catch(e){errEl.textContent=t('modals.profil.saveError');errEl.classList.remove('hidden')}
 }
 
 // ─── LOGIN/LOGOUT ─────────────────────────────────────────────────────────────
@@ -270,9 +287,33 @@ function onLogout(){
 }
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
+// Skifter sprog og genrenderer det der allerede er synligt på skærmen —
+// applyI18n() (kaldt inde i setLang) dækker kun statisk data-i18n-markup;
+// dynamisk JS-bygget indhold (aktiv runde, rundeliste, resultatpanel/-popup)
+// skal genrenderes eksplicit, ellers viser det gamle sprog indtil næste render.
 window.toggleLang=function(){
-  window.appLang=window.appLang==='da'?'en':'da'
-  document.getElementById('lang-btn').textContent=window.appLang.toUpperCase()
+  setLang(getLang()==='da'?'en':'da')
+
+  const roundNameDefaults=[translations.da.setup.roundNameDefault,translations.en.setup.roundNameDefault]
+  const roundNameInput=document.getElementById('round-name')
+  if(roundNameInput&&roundNameDefaults.includes(roundNameInput.value))roundNameInput.value=t('setup.roundNameDefault')
+  // En igangværende rundes navn er reelt rundedata (ikke UI-chrome) og skal
+  // normalt ikke ændres ved sprogskift — men beholdt brugeren standardnavnet
+  // uændret ved rundestart, forventer de stadig at det oversættes ligesom
+  // opsætningsfeltets tomme-standard ovenfor.
+  if(state.round&&roundNameDefaults.includes(state.round.name))state.round.name=t('setup.roundNameDefault')
+
+  populateCourseDropdown()
+  if(state.round){updateTopBar();renderShooters()}
+  if(document.getElementById('tab-results').classList.contains('active'))renderRoundsList()
+  if(!document.getElementById('results-panel').classList.contains('hidden')&&window._lastRound)renderResults(window._lastRound)
+  const pop=document.getElementById('round-popup')
+  if(pop&&!pop.classList.contains('hidden')&&window._lastRound)showRoundPopup(window._lastRound)
+  if(document.getElementById('tab-courses').classList.contains('active'))renderCoursesList()
+  if(document.getElementById('tab-friends').classList.contains('active')){
+    renderFriendsList();renderQuickFriends();renderAdminSection();renderMeetupsList();renderSharingSection()
+  }
+  if(document.getElementById('tab-analyse').classList.contains('active'))window.renderAnalyse()
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
@@ -307,9 +348,9 @@ function autoSelectNearestCourse(){
 function populateCourseDropdown(){
   const sel=document.getElementById('course-sel')
   const cur=sel.value
-  sel.innerHTML='<option value="">-- Ingen bane --</option>'
-  state.courses.forEach(c=>{
-    const o=document.createElement('option');o.value=c.id;o.textContent=`${c.name} (${c.numTargets} mål)`;sel.appendChild(o)
+  sel.innerHTML=`<option value="">${t('setup.noCourse')}</option>`
+  ;[...state.courses].sort((a,b)=>a.name.localeCompare(b.name,'da')).forEach(c=>{
+    const o=document.createElement('option');o.value=c.id;o.textContent=`${c.name} (${t('setup.targetsUnit',{n:c.numTargets})})`;sel.appendChild(o)
   })
   if(cur)sel.value=cur
   sel.onchange=()=>{
@@ -346,8 +387,8 @@ window.showQR=function(){
 window.copyQrUrl=function(){
   const input=document.getElementById('qr-url')
   navigator.clipboard?.writeText(input.value).then(
-    ()=>showToast('Link kopieret','success'),
-    ()=>{input.select();document.execCommand('copy');showToast('Link kopieret','success')}
+    ()=>showToast(t('common.linkCopied'),'success'),
+    ()=>{input.select();document.execCommand('copy');showToast(t('common.linkCopied'),'success')}
   )
 }
 

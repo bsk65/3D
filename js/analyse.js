@@ -11,8 +11,9 @@
 
 import { state } from './state.js'
 import { esc } from './utils.js'
+import { t, getLocale } from './i18n.js'
 import { scoreVal, calcTotal, parseScores, arrowsPerTarget, scoreValuesFor, DEFAULT_RULESET } from './scoring.js'
-import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs } from './stats.js'
+import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs, calcDistanceInsights } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
 import { getViewableUsers, fetchViewedRounds } from './sharing.js'
 
@@ -128,57 +129,57 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
   const sep='<div class="cmp-sep"></div>'
   const pilRow=(st,lbl,col)=>`<div style="font-size:11px;color:${col};margin-bottom:4px;">${esc(lbl)}</div>
     ${st.pilEligible?`<div class="cmp-pil-grid">
-      <div><div class="cmp-pil-lbl">PIL 1</div><div class="cmp-pil-val">${st.p1avg}</div></div>
+      <div><div class="cmp-pil-lbl">${t('analyse.arrow1')}</div><div class="cmp-pil-val">${st.p1avg}</div></div>
       <div class="cmp-pil-mid">
-        <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
+        <div class="cmp-pil-lbl">${t('results.summaryAvgPerArrow')}</div><div class="cmp-pil-val-mid">${st.pilAvg}</div>
       </div>
-      <div><div class="cmp-pil-lbl">PIL 2</div><div class="cmp-pil-val">${st.p2avg}</div></div>
+      <div><div class="cmp-pil-lbl">${t('analyse.arrow2')}</div><div class="cmp-pil-val">${st.p2avg}</div></div>
     </div>`:`<div class="cmp-pil-grid">
       <div></div>
       <div class="cmp-pil-mid">
-        <div class="cmp-pil-lbl">SNT/PIL</div><div class="cmp-pil-val-mid">${st.overallPilAvg}</div>
+        <div class="cmp-pil-lbl">${t('results.summaryAvgPerArrow')}</div><div class="cmp-pil-val-mid">${st.overallPilAvg}</div>
       </div>
       <div></div>
     </div>
-    <div class="pil-best-note">${st.pilRuleset?`${st.pilRuleset} skydes med 1 pil pr. mål — PIL 1/PIL 2 er derfor ikke relevant`:'Ikke relevant'}</div>`}`
+    <div class="pil-best-note">${st.pilRuleset?t('analyse.singleArrowNoteCompare',{ruleset:st.pilRuleset}):t('analyse.notRelevant')}</div>`}`
   const targetRow=(st,lbl,col)=>st.bestTarget&&st.worstTarget?`<div style="font-size:11px;color:${col};margin-bottom:6px;">${esc(lbl)}</div>
     <div class="cmp-target-grid">
       <div class="cmp-target-best">
-        <div class="cmp-pil-lbl">BEDSTE</div>
-        <div class="cmp-target-best-val">Mål ${st.bestTarget.i+1}</div>
+        <div class="cmp-pil-lbl">${t('analyse.best')}</div>
+        <div class="cmp-target-best-val">${t('active.targetFallback',{n:st.bestTarget.i+1})}</div>
         <div class="cmp-target-sub">⌀ ${st.bestTarget.v.toFixed(2)}</div>
       </div>
       <div class="cmp-target-worst">
-        <div class="cmp-pil-lbl">SVÆRESTE</div>
-        <div class="cmp-target-worst-val">Mål ${st.worstTarget.i+1}</div>
+        <div class="cmp-pil-lbl">${t('analyse.worst')}</div>
+        <div class="cmp-target-worst-val">${t('active.targetFallback',{n:st.worstTarget.i+1})}</div>
         <div class="cmp-target-sub">⌀ ${st.worstTarget.v.toFixed(2)}</div>
       </div>
     </div>`:''
   let h=''
   h+=`<div class="card card-mb16">
-    <div class="cmp-section-title">SAMMENLIGNING</div>
+    <div class="cmp-section-title">${t('analyse.comparisonTitle')}</div>
     <div class="cmp-score-grid">
       <div>
         <div class="cmp-score-lbl-a">${esc(lbl1)}</div>
         <div class="cmp-score-val-a">${sc1}</div>
-        <div class="cmp-score-unit">POINT</div>
+        <div class="cmp-score-unit">${t('results.summaryPoints')}</div>
       </div>
-      <div class="cmp-vs">VS</div>
+      <div class="cmp-vs">${t('analyse.vs')}</div>
       <div>
         <div class="cmp-score-lbl-b">${esc(lbl2)}</div>
         <div class="cmp-score-val-b">${sc2}</div>
-        <div class="cmp-score-unit">POINT</div>
+        <div class="cmp-score-unit">${t('results.summaryPoints')}</div>
       </div>
     </div>
-    <div class="cmp-winner-line">${sc1>sc2?`${esc(lbl1)} vandt med ${diff} point`:sc2>sc1?`${esc(lbl2)} vandt med ${diff} point`:'Uafgjort!'}</div>
+    <div class="cmp-winner-line">${sc1>sc2?t('analyse.wonBy',{name:esc(lbl1),diff}):sc2>sc1?t('analyse.wonBy',{name:esc(lbl2),diff}):t('analyse.tie')}</div>
   </div>`
   h+=`<div class="card card-mb16">
-    <div class="cmp-section-title">PIL STATISTIK</div>
+    <div class="cmp-section-title">${t('analyse.arrowStatsTitle')}</div>
     ${pilRow(st1,lbl1,'var(--acc)')}${sep}${pilRow(st2,lbl2,'#f0c030')}
   </div>`
   if(st1.bestTarget||st2.bestTarget){
     h+=`<div class="card card-mb16">
-      <div class="cmp-section-title">BEDSTE OG SVÆRESTE MÅL</div>
+      <div class="cmp-section-title">${t('analyse.bestWorstTargetTitle')}</div>
       ${targetRow(st1,lbl1,'var(--acc)')}${sep}${targetRow(st2,lbl2,'#f0c030')}
     </div>`
   }
@@ -189,7 +190,7 @@ function buildCompareHtml(st1,lbl1,st2,lbl2){
     ...(st2.pilRuleset?scoreValuesFor(st2.pilRuleset):Object.keys(st2.distAll))
   ])]
   h+=`<div class="card card-mb16">
-    <div class="cmp-section-title">FORDELING PR. SCOREZONE</div>
+    <div class="cmp-section-title">${t('analyse.zoneDistTitle')}</div>
     <div class="cmp-dist-grid">
       <div></div>
       ${cmpZones.map(z=>`<div style="text-align:center;font-weight:700;color:${CMP_ZONE_COLORS[z]||'var(--muted)'};">${z}</div>`).join('')}
@@ -275,32 +276,32 @@ window.renderAnalyse=function(){
   if(rundeWrap)rundeWrap.style.display=(filterVal==='specific'||isCompare)?'':'none'
   if(rundeWrap2)rundeWrap2.style.display=isCompare?'':'none'
   if(rundeLbl)rundeLbl.style.display=isCompare?'':'none'
-  const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString('da-DK'):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString('da-DK'):typeof _c==='number'?new Date(_c).toLocaleDateString('da-DK'):'—'}
+  const fmtRD=r=>{const _c=r.created;return _c?.toDate?_c.toDate().toLocaleDateString(getLocale()):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString(getLocale()):typeof _c==='number'?new Date(_c).toLocaleDateString(getLocale()):'—'}
   const rulesetFilterEarly=document.getElementById('analyse-ruleset')?.value||'all'
   const populateRundeSelect=(selectEl,placeholder,roundsSource)=>{
     let relevant=bane==='all'?roundsSource:roundsSource.filter(r=>r.courseId===bane)
     if(rulesetFilterEarly!=='all')relevant=relevant.filter(r=>(r.ruleset||'WA')===rulesetFilterEarly)
     const prevSel=selectEl.value
     selectEl.innerHTML=`<option value="">${placeholder}</option>`
-    relevant.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||'Runde'}`;selectEl.appendChild(o)})
+    relevant.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=`${fmtRD(r)} — ${r.name||t('results.roundFallback')}`;selectEl.appendChild(o)})
     if(relevant.some(r=>r.id===prevSel))selectEl.value=prevSel
   }
   if((filterVal==='specific'||isCompare)&&rundeEl){
-    populateRundeSelect(rundeEl,'Vælg runde...',isCompare?compareRounds1:sourceRounds)
+    populateRundeSelect(rundeEl,t('analyse.selectRoundPlaceholder'),isCompare?compareRounds1:sourceRounds)
     if(state.pendingAnalyseRound){rundeEl.value=state.pendingAnalyseRound;state.pendingAnalyseRound=null}
   }
   if(isCompare&&rundeEl2){
-    populateRundeSelect(rundeEl2,'Vælg runde 2...',compareRounds2)
+    populateRundeSelect(rundeEl2,t('analyse.selectRound2Placeholder'),compareRounds2)
   }
   if(isCompare){
     const sel1=rundeEl?.value,sel2=rundeEl2?.value
-    if(!sel1||!sel2){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div>Vælg to runder ovenfor</div>';return}
+    if(!sel1||!sel2){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div>${t('analyse.selectTwoRounds')}</div>`;return}
     const mapR=r=>({...r,shooters:(r.shooters||[]).map(s=>({...s,scores:parseScores(s.scores)}))})
     const r1=compareRounds1.map(mapR).find(r=>r.id===sel1),r2=compareRounds2.map(mapR).find(r=>r.id===sel2)
-    if(!r1||!r2){el.innerHTML='<div class="empty">Kunne ikke finde runderne</div>';return}
-    const name1=compareUid1?(viewableUsers.find(u=>u.uid===compareUid1)?.name||'—'):(state.profile?.name||'Mig')
-    const name2=compareUid2?(viewableUsers.find(u=>u.uid===compareUid2)?.name||'—'):(state.profile?.name||'Mig')
-    const lbl1=`${name1}: ${r1.name||'Runde'} (${fmtRD(r1)})`,lbl2=`${name2}: ${r2.name||'Runde'} (${fmtRD(r2)})`
+    if(!r1||!r2){el.innerHTML=`<div class="empty">${t('analyse.roundsNotFound')}</div>`;return}
+    const name1=compareUid1?(viewableUsers.find(u=>u.uid===compareUid1)?.name||'—'):(state.profile?.name||t('analyse.meFallback'))
+    const name2=compareUid2?(viewableUsers.find(u=>u.uid===compareUid2)?.name||'—'):(state.profile?.name||t('analyse.meFallback'))
+    const lbl1=`${name1}: ${r1.name||t('results.roundFallback')} (${fmtRD(r1)})`,lbl2=`${name2}: ${r2.name||t('results.roundFallback')} (${fmtRD(r2)})`
     el.innerHTML=buildCompareHtml(calcAnalyseStats([r1],compareUid1||state.user?.uid),lbl1,calcAnalyseStats([r2],compareUid2||state.user?.uid),lbl2)
     return
   }
@@ -337,7 +338,7 @@ window.renderAnalyse=function(){
   if(filterVal==='specific'){const sel=rundeEl?.value;filtered=sel?filtered.filter(r=>r.id===sel):[]}
   const antal=antalInput||filter
   const rounds=antal&&filterVal!=='specific'?filtered.slice(0,antal):filtered
-  if(!rounds.length){el.innerHTML='<div class="empty"><div class="empty-icon">📈</div>Ingen runder endnu</div>';return}
+  if(!rounds.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📈</div>${t('results.empty')}</div>`;return}
   const getMe=r=>r.shooters.find(x=>x.id===viewingUid)||r.shooters?.[0]
   const myScores=rounds.map(r=>{const s=getMe(r);return s?calcTotal(s.scores):null}).filter(v=>v!==null)
   const avg=myScores.length?(myScores.reduce((a,b)=>a+b,0)/myScores.length).toFixed(1):0
@@ -386,23 +387,23 @@ window.renderAnalyse=function(){
   let html=''
 
   if(state.viewingUid){
-    html+=`<div class="viewing-banner">👁 Viser resultater for ${esc(state.viewingName||'—')}</div>`
+    html+=`<div class="viewing-banner">👁 ${t('analyse.viewingResultsFor',{name:esc(state.viewingName||'—')})}</div>`
   }
 
   // Nøgletal
   html+=`<div class="stats-grid2">
-    <div class="card stat-card"><div class="stat-lbl">RUNDER</div><div class="stat-val-28">${rounds.length}</div></div>
-    <div class="card stat-card"><div class="stat-lbl">SNIT/RUNDE</div><div class="stat-val-28">${avg}</div></div>
-    <div class="card stat-card"><div class="stat-lbl">BEDSTE</div><div class="stat-val-28-good">${best}</div></div>
-    <div class="card stat-card"><div class="stat-lbl">LAVESTE</div><div class="stat-val-28-bad">${worst}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">${t('analyse.statRounds')}</div><div class="stat-val-28">${rounds.length}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">${t('analyse.statAvgPerRound')}</div><div class="stat-val-28">${avg}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">${t('analyse.statBest')}</div><div class="stat-val-28-good">${best}</div></div>
+    <div class="card stat-card"><div class="stat-lbl">${t('analyse.statLowest')}</div><div class="stat-val-28-bad">${worst}</div></div>
   </div>`
 
   // Liste over hvilke runder (med dato) der reelt indgår i analysen — så man
   // kan se præcis hvad et filter/afkrydsningsfelt inkluderer/udelukker.
   html+=`<details class="card card-mb16 rounds-included-card">
-    <summary class="section-title-mb8 rounds-included-summary">RUNDER I DENNE ANALYSE (${rounds.length})</summary>
+    <summary class="section-title-mb8 rounds-included-summary">${t('analyse.roundsIncludedTitle',{n:rounds.length})}</summary>
     <div class="rounds-included-list">
-      ${rounds.map(r=>`<div class="rounds-included-row"><span class="rounds-included-date">${fmtRD(r)}</span><span class="rounds-included-name">${esc(r.name||'Runde')}${bane==='all'?` · ${esc(r.courseName||'')}`:''}${r.ruleset&&r.ruleset!=='WA'?` · <span class="rcard-ruleset-tag">${esc(r.ruleset)}</span>`:''}</span></div>`).join('')}
+      ${rounds.map(r=>`<div class="rounds-included-row"><span class="rounds-included-date">${fmtRD(r)}</span><span class="rounds-included-name">${esc(r.name||t('results.roundFallback'))}${bane==='all'?` · ${esc(r.courseName||'')}`:''}${r.ruleset&&r.ruleset!=='WA'?` · <span class="rcard-ruleset-tag">${esc(r.ruleset)}</span>`:''}</span></div>`).join('')}
     </div>
   </details>`
 
@@ -415,24 +416,24 @@ window.renderAnalyse=function(){
   // vis det i stedet for blot at skjule hele kortet.
   const singleArrowRuleset=pilRuleset&&!pilEligible
   const pilNote=pilRuleset
-    ?`${pilRuleset} skydes med 1 pil pr. mål — PIL 1/PIL 2-sammenligning er derfor ikke relevant`
-    :`Vælg et specifikt forbund i filteret ovenfor for at se pil-fordeling (runderne i dette udvalg bruger forskellige regelsæt)`
+    ?t('analyse.singleArrowNote',{ruleset:pilRuleset})
+    :t('analyse.selectRulesetNote')
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb8">PIL STATISTIK</div>
+    <div class="section-title-mb8">${t('analyse.arrowStatsTitle')}</div>
     ${pilEligible?`<div class="cmp-pil-grid">
-      <div><div class="stat-lbl">PIL 1</div><div class="stat-val-22">${p1avg}</div></div>
+      <div><div class="stat-lbl">${t('analyse.arrow1')}</div><div class="stat-val-22">${p1avg}</div></div>
       <div class="cmp-pil-mid">
-        <div class="stat-lbl">SNT/PIL</div>
+        <div class="stat-lbl">${t('results.summaryAvgPerArrow')}</div>
         <div class="stat-val-22-mid">${pilAvg}</div>
       </div>
-      <div><div class="stat-lbl">PIL 2</div><div class="stat-val-22">${p2avg}</div></div>
+      <div><div class="stat-lbl">${t('analyse.arrow2')}</div><div class="stat-val-22">${p2avg}</div></div>
     </div>
     <div class="pil-best-note">
-      ${Number(p1avg)>Number(p2avg)?'Bedst med PIL 1 🏹':Number(p2avg)>Number(p1avg)?'Bedst med PIL 2 🏹':'Begge pile er lige gode 🎯'}
+      ${Number(p1avg)>Number(p2avg)?t('analyse.bestWithArrow1'):Number(p2avg)>Number(p1avg)?t('analyse.bestWithArrow2'):t('analyse.bothArrowsEqual')}
     </div>`:singleArrowRuleset?`<div class="cmp-pil-grid">
       <div></div>
       <div class="cmp-pil-mid">
-        <div class="stat-lbl">SNT/PIL</div>
+        <div class="stat-lbl">${t('results.summaryAvgPerArrow')}</div>
         <div class="stat-val-22-mid">${overallPilAvg}</div>
       </div>
       <div></div>
@@ -443,26 +444,64 @@ window.renderAnalyse=function(){
   // Bedste/dårligste mål
   if(bestTarget&&worstTarget&&bestTarget.i!==worstTarget.i){
     html+=`<div class="card card-mb16">
-      <div class="section-title-mb8">BEDSTE OG SVÆRESTE MÅL</div>
+      <div class="section-title-mb8">${t('analyse.bestWorstTargetTitle')}</div>
       <div class="cmp-target-grid">
         <div class="target-best-box">
-          <div class="stat-lbl">BEDSTE</div>
-          <div class="target-best-val">Skud nr. ${bestTarget.i+1}</div>
+          <div class="stat-lbl">${t('analyse.best')}</div>
+          <div class="target-best-val">${t('analyse.shotOrdinal',{n:bestTarget.i+1})}</div>
           <div class="target-sub-13">⌀ ${bestTarget.v.toFixed(2)}</div>
         </div>
         <div class="target-worst-box">
-          <div class="stat-lbl">SVÆRESTE</div>
-          <div class="target-worst-val">Skud nr. ${worstTarget.i+1}</div>
+          <div class="stat-lbl">${t('analyse.worst')}</div>
+          <div class="target-worst-val">${t('analyse.shotOrdinal',{n:worstTarget.i+1})}</div>
           <div class="target-sub-13">⌀ ${worstTarget.v.toFixed(2)}</div>
         </div>
       </div>
     </div>`
   }
 
+  // Afstands-analyse — kun mulig for skud på mål med udfyldt distance-felt
+  // (banens data, uafhængigt af skyttens eget "vis afstande"-visningsvalg).
+  // calcDistanceInsights slår selv courseId op i state.courses og springer
+  // runder uden bane/afstandsdata over — kortet udelades helt hvis intet
+  // brugbart data findes, i stedet for at vise en tom/forvirrende boks.
+  const distInsights=calcDistanceInsights(rounds,viewingUid,state.courses)
+  if(distInsights.hasData){
+    const bucketLabelKey={'0to10':'distBucket0to10','10to20':'distBucket10to20','20to30':'distBucket20to30'}
+    const killLabel=distInsights.killLabel||t('analyse.killZoneLabel')
+    html+=`<div class="card card-mb16">
+      <div class="section-title-mb8">${t('analyse.distanceInsightsTitle')}</div>
+      <div class="dist-subtitle">${t('analyse.distanceInsightsSubtitle',{label:killLabel})}</div>
+      <div class="dist-subtitle">${t('analyse.distanceInsightsCoverage',{used:distInsights.roundsUsed,total:distInsights.roundsTotal})}</div>`
+    if(distInsights.trend){
+      const pct=distInsights.trend.pctChange,weeks=distInsights.trend.weeks
+      const trendTxt=Math.abs(pct)<0.5?t('analyse.trendFlat',{weeks})
+        :pct>0?t('analyse.trendUp',{pct:pct.toFixed(1),weeks})
+        :t('analyse.trendDown',{pct:Math.abs(pct).toFixed(1),weeks})
+      html+=`<div class="dist-trend-line">${trendTxt}</div>`
+    }else{
+      html+=`<div class="dist-trend-line dist-trend-muted">${t('analyse.trendNotEnoughData',{weeks:8})}</div>`
+    }
+    html+=`<div class="dist-bucket-grid">${distInsights.buckets.map(b=>`
+      <div class="dist-bucket-cell">
+        <div class="stat-lbl">${t('analyse.'+bucketLabelKey[b.key])}</div>
+        <div class="dist-bucket-pct">${b.killPct.toFixed(0)}%</div>
+        <div class="target-sub-13">⌀ ${b.avgPerArrow.toFixed(2)}</div>
+      </div>`).join('')}</div>`
+    if(distInsights.weakest){
+      const range=t('analyse.'+bucketLabelKey[distInsights.weakest.key])
+      html+=`<div class="dist-weakest-note">${t('analyse.weakestZone',{range})}</div>`
+      if(distInsights.pointPotential!=null){
+        html+=`<div class="dist-weakest-note">${t('analyse.pointPotential',{range,n:distInsights.pointPotential})}</div>`
+      }
+    }
+    html+=`</div>`
+  }
+
   // Lagkagediagrammer — splitter pr. pil-position (PIL 1/PIL 2), samme
   // begrænsning som PIL STATISTIK-kortet ovenfor.
   html+=`<div class="card card-mb16">
-    <div class="section-title-mb12">FORDELING PR. SCOREZONE</div>`
+    <div class="section-title-mb12">${t('analyse.zoneDistTitle')}</div>`
   if(pilEligible){
     html+=`<div class="pie-grid">`
     zoneValues.forEach(z=>{
@@ -489,8 +528,8 @@ window.renderAnalyse=function(){
     })
     html+=`</div>
       <div class="pie-legend">
-        <span><span class="pie-legend-dot-1"></span>PIL 1</span>
-        <span><span class="pie-legend-dot-2"></span>PIL 2</span>
+        <span><span class="pie-legend-dot-1"></span>${t('analyse.arrow1')}</span>
+        <span><span class="pie-legend-dot-2"></span>${t('analyse.arrow2')}</span>
       </div>`
   }else{
     html+=`<div class="pil-best-note">${pilNote}</div>`
@@ -505,12 +544,12 @@ window.renderAnalyse=function(){
       return `${x},${y}`
     }).join(' ')
     html+=`<div class="card card-mb16">
-      <div class="section-title-mb8">UDVIKLING (RUNDER)</div>
+      <div class="section-title-mb8">${t('analyse.developmentTitle')}</div>
       <svg viewBox="0 0 ${w} ${h}" class="graph-svg">
         <polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
         ${myScores.slice().reverse().map((v,i)=>{const x=pad+(i/(myScores.length-1))*(w-2*pad),y=h-pad-((v-mn)/(mx-mn))*(h-2*pad);return `<circle cx="${x}" cy="${y}" r="4" fill="var(--acc)"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${v}</text>`}).join('')}
-        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">ældst</text>
-        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+        <text x="${pad}" y="${h-5}" font-size="10" fill="var(--muted)">${t('analyse.oldest')}</text>
+        <text x="${w-pad}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)">${t('analyse.newest')}</text>
       </svg>
     </div>`
   }
@@ -563,26 +602,26 @@ window.renderAnalyse=function(){
 
     html+=`<div class="card card-mb16">
       <div class="graph-header-row">
-        <span>GENNEMSNIT PR. SKUDRÆKKEFØLGE</span>
+        <span>${t('analyse.perTargetGraphTitle')}</span>
         <button class="btn-icon graph-fs-btn" onclick="window.openGraphFs()">⤢</button>
       </div>
       <svg viewBox="0 0 ${w} ${h}" class="graph-svg">${mkGraphSvg(w,h,{dotR:3})}</svg>
-      <div class="graph-caption">Skudrækkefølge — 1 = første mål skudt · stiplet linje = trend</div>
+      <div class="graph-caption">${t('analyse.perTargetCaption')}</div>
     </div>
     <div class="card card-mb16">
-      <div class="section-title-mb8">KONSISTENS (SPREDNING)</div>
+      <div class="section-title-mb8">${t('analyse.consistencyTitle')}</div>
       <div class="spredning-row">
         <div class="stat-val-28">${stdDevVal.toFixed(2)}</div>
-        <div class="spredning-note">Standardafvigelse i point (samme skala som scoren, 0-11) — ikke et 0-1-tal. Tæt på 0 = meget ensartet gennem runden; jo højere tal, jo større udsving mellem de bedste og sværeste mål.</div>
+        <div class="spredning-note">${t('analyse.consistencyNote')}</div>
       </div>
     </div>
     <div id="graph-fs" class="fs-ov hidden graph-fs-overlay" onclick="window.closeGraphFs()">
       <div class="graph-fs-box" id="graph-fs-box" onclick="event.stopPropagation()">
-        <div class="graph-fs-title">GENNEMSNIT PR. SKUDRÆKKEFØLGE · knib for zoom · dobbelttryk for reset</div>
+        <div class="graph-fs-title">${t('analyse.fullscreenGraphTitle')}</div>
         <div id="graph-fs-viewport" class="graph-fs-viewport">
           <svg id="graph-fs-svg" viewBox="0 0 ${wFS} ${h}" class="graph-fs-svg">${mkGraphSvg(wFS,h,{dotR:5,valFont:10,showVals:true})}</svg>
         </div>
-        <button class="btn btn-dark graph-fs-close-btn" onclick="window.closeGraphFs()">Luk</button>
+        <button class="btn btn-dark graph-fs-close-btn" onclick="window.closeGraphFs()">${t('modals.qr.closeBtn')}</button>
       </div>
     </div>`
 
@@ -645,14 +684,14 @@ window.renderAnalyse=function(){
       const pts2=consistencyPts.map((p,i)=>{const{x,y}=xy(p,i);return `${x},${y}`}).join(' ')
       const dots2=consistencyPts.map((p,i)=>{const{x,y}=xy(p,i);return `<circle cx="${x}" cy="${y}" r="4" fill="#f0c030"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="10" fill="var(--text)">${p.cv.toFixed(2)}</text>`}).join('')
       html+=`<div class="card card-mb16">
-        <div class="section-title-mb8">KONSISTENS OVER TID · denne bane</div>
+        <div class="section-title-mb8">${t('analyse.consistencyOverTimeTitle')}</div>
         <svg viewBox="0 0 ${w2} ${h2}" class="graph-svg">
           <polyline points="${pts2}" fill="none" stroke="#f0c030" stroke-width="2.5" stroke-linejoin="round"/>
           ${dots2}
-          <text x="${pad2}" y="${h2-5}" font-size="10" fill="var(--muted)">ældst</text>
-          <text x="${w2-pad2}" y="${h2-5}" text-anchor="end" font-size="10" fill="var(--muted)">nyest</text>
+          <text x="${pad2}" y="${h2-5}" font-size="10" fill="var(--muted)">${t('analyse.oldest')}</text>
+          <text x="${w2-pad2}" y="${h2-5}" text-anchor="end" font-size="10" fill="var(--muted)">${t('analyse.newest')}</text>
         </svg>
-        <div class="graph-caption">Spredning pr. runde (samme point-skala som ovenfor) — faldende kurve = mere ensartet skydning over tid</div>
+        <div class="graph-caption">${t('analyse.consistencyOverTimeCaption')}</div>
       </div>`
     }
   }
@@ -662,10 +701,12 @@ window.renderAnalyse=function(){
   // Sammenligning med andre skytter på samme bane — kun relevant for mine egne
   // runder, da den er bundet til mit eget køn/bueklasse (state.profile).
   if(!state.viewingUid&&bane!=='all'&&state.profile?.kon&&state.profile?.bueklasse){
-    const konNavn=state.profile.kon==='herre'?'Herre':'Dame'
-    const klasseNavn={langbue:'Langbue',trad:'Traditionel',recurve:'Recurve',compound:'Compound',barbue:'Barbue','buejæger':'Buejæger','trad-buejæger':'Trad. buejæger',rytterbue:'Rytterbue'}[state.profile.bueklasse]||state.profile.bueklasse
+    const konNavn=state.profile.kon==='herre'?t('common.gender.herre'):t('common.gender.dame')
+    const bowClassShortKeys={langbue:'langbue',trad:'trad',recurve:'recurve',compound:'compound',barbue:'barbue','buejæger':'buejaeger','trad-buejæger':'tradBuejaeger',rytterbue:'rytterbue'}
+    const klasseKey=bowClassShortKeys[state.profile.bueklasse]
+    const klasseNavn=klasseKey?t('common.bowClassShort.'+klasseKey):state.profile.bueklasse
     const compEl=document.createElement('div')
-    compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div class="comp-loading-msg">Henter...</div></div>`
+    compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">${t('analyse.comparisonSectionTitle',{gender:konNavn,bowClass:klasseNavn})}</div><div class="comp-loading-msg">${t('analyse.loadingComparison')}</div></div>`
     el.appendChild(compEl)
     getDocs(collection(db,'bane_stats',bane,'runder')).then(snap=>{
       const alle=snap.docs.map(d=>d.data())
@@ -677,7 +718,7 @@ window.renderAnalyse=function(){
       let sammeKlasse=alle.filter(d=>d.kon===state.profile.kon&&d.bueklasse===state.profile.bueklasse)
       if(rulesetFilter!=='all')sammeKlasse=sammeKlasse.filter(d=>(d.ruleset||DEFAULT_RULESET)===rulesetFilter)
       if(!sammeKlasse.length){
-        compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div><div class="comp-loading-msg">Ingen andre ${konNavn} ${klasseNavn}-skytter har skudt denne bane endnu.</div></div>`
+        compEl.innerHTML=`<div class="card card-mb16"><div class="section-title-mb8">${t('analyse.comparisonSectionTitle',{gender:konNavn,bowClass:klasseNavn})}</div><div class="comp-loading-msg">${t('analyse.noOtherShootersYet',{gender:konNavn,bowClass:klasseNavn})}</div></div>`
         return
       }
       const validEntries=sammeKlasse.filter(d=>(d.arrowsShot||d.numTargets*2)>0)
@@ -686,16 +727,16 @@ window.renderAnalyse=function(){
       const diffStr=diff!==null?(diff>0?'+':'')+diff.toFixed(2):'—'
       const diffColor=diff===null?'var(--muted)':diff>0?'#2aaa5a':diff<0?'var(--danger)':'var(--muted)'
       compEl.innerHTML=`<div class="card card-mb16">
-        <div class="section-title-mb12">SAMMENLIGNING · ${konNavn} ${klasseNavn}</div>
+        <div class="section-title-mb12">${t('analyse.comparisonSectionTitle',{gender:konNavn,bowClass:klasseNavn})}</div>
         <div class="cmp-pil-grid">
-          <div><div class="stat-lbl">DIT SNT/PIL</div><div class="stat-val-22">${overallPilAvg}</div></div>
+          <div><div class="stat-lbl">${t('analyse.yourAvgPerArrow')}</div><div class="stat-val-22">${overallPilAvg}</div></div>
           <div class="cmp-pil-mid">
-            <div class="stat-lbl">DIFFERENCE</div>
+            <div class="stat-lbl">${t('analyse.difference')}</div>
             <div style="font-size:22px;font-weight:700;color:${diffColor};">${diffStr}</div>
           </div>
-          <div><div class="stat-lbl">ANDRES SNT/PIL</div><div class="stat-val-22-txt">${andresSnit}</div></div>
+          <div><div class="stat-lbl">${t('analyse.othersAvgPerArrow')}</div><div class="stat-val-22-txt">${andresSnit}</div></div>
         </div>
-        <div class="pil-best-note">Baseret på ${sammeKlasse.length} runde${sammeKlasse.length!==1?'r':''} fra andre skytter</div>
+        <div class="pil-best-note">${sammeKlasse.length===1?t('analyse.basedOnRoundsSingular',{n:sammeKlasse.length}):t('analyse.basedOnRoundsPlural',{n:sammeKlasse.length})}</div>
       </div>`
     }).catch(()=>{compEl.remove()})
   }

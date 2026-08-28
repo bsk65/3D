@@ -7,6 +7,7 @@ import { db, doc, updateDoc, messaging, messagingReady, getToken, onMessage } fr
 import { state } from './state.js'
 import { showToast } from './utils.js'
 import { fetchMeetups, renderMeetupsList, updateMeetupBadge } from './meetups.js'
+import { t } from './i18n.js'
 
 // Offentlig VAPID-nøgle fra Firebase Console → Project Settings → Cloud
 // Messaging → Web configuration → Generate key pair. Ikke hemmelig.
@@ -32,19 +33,19 @@ export async function enablePushNotifications(){
   let perm
   try{
     perm=await Notification.requestPermission()
-  }catch(e){console.warn('Notification.requestPermission fejlede',e);showToast('Kunne ikke bede om tilladelse: '+e.message,'error');return false}
-  if(perm==='denied'){showToast('Notifikationer blokeret i browseren — skal ændres i browserens side-indstillinger','error');return false}
+  }catch(e){console.warn('Notification.requestPermission fejlede',e);showToast(t('push.permissionError',{msg:e.message}),'error');return false}
+  if(perm==='denied'){showToast(t('push.blocked'),'error');return false}
   if(perm!=='granted')return false
   try{
     const supported=await messagingReady
-    if(!supported||!messaging){showToast('Push-notifikationer understøttes ikke i denne browser','error');return false}
+    if(!supported||!messaging){showToast(t('push.unsupported'),'error');return false}
     const reg=await registerServiceWorker()
-    if(!reg){showToast('Kunne ikke registrere service worker','error');return false}
+    if(!reg){showToast(t('push.swError'),'error');return false}
     const token=await getToken(messaging,{vapidKey:VAPID_KEY,serviceWorkerRegistration:reg})
-    if(!token){showToast('Kunne ikke hente push-token','error');return false}
+    if(!token){showToast(t('push.tokenError'),'error');return false}
     await updateDoc(doc(db,'users',state.user.uid),{fcmToken:token})
     return true
-  }catch(e){console.warn('Push-opsætning fejlede',e);showToast('Push-fejl: '+e.message,'error');return false}
+  }catch(e){console.warn('Push-opsætning fejlede',e);showToast(t('push.genericError',{msg:e.message}),'error');return false}
 }
 
 // Kaldes ved hver login — fornyer/gemmer token stille hvis tilladelse allerede er givet
@@ -58,7 +59,7 @@ export function listenForegroundPush(){
     if(!supported||!messaging)return
     onMessage(messaging,payload=>{
       const d=payload.data||{}
-      showToast(d.body||'Ny besked','info')
+      showToast(d.body||t('push.newMessageFallback'),'info')
       fetchMeetups().then(()=>{renderMeetupsList();updateMeetupBadge()}).catch(()=>{})
     })
   })
