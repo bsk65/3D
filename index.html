@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-Cm8B1L69.js"></script>
+    <script type="module" crossorigin src="/3D/assets/index-BMIAeVmd.js"></script>
     <link rel="stylesheet" crossorigin href="/3D/assets/index-C9knvl3V.css">
   </head>
 <body>
@@ -99,7 +99,8 @@
             <select id="ruleset-sel">
               <option value="WA" selected>WA</option>
               <option value="HDH-IAA">HDH-IAA</option>
-              <option value="DGS">DGS</option>
+              <option value="DGS-1" data-i18n="setup.rulesetDgs1">DGS (1 pil)</option>
+              <option value="DGS" data-i18n="setup.rulesetDgs2">DGS (2 pile)</option>
             </select></div>
         </div>
 
@@ -278,7 +279,8 @@
           <option value="all" selected data-i18n="analyse.allRulesets">Alle forbund</option>
           <option value="WA">WA</option>
           <option value="HDH-IAA">HDH-IAA</option>
-          <option value="DGS">DGS</option>
+          <option value="DGS-1" data-i18n="setup.rulesetDgs1">DGS (1 pil)</option>
+          <option value="DGS" data-i18n="setup.rulesetDgs2">DGS (2 pile)</option>
         </select>
         <div class="analyse-antal-wrap">
           <input type="number" id="analyse-antal" placeholder="Antal runder" data-i18n-placeholder="analyse.numRoundsPlaceholder" min="1"
