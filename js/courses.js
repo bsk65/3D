@@ -219,7 +219,10 @@ window.saveCourseEdit=async function(){
 
 window.updateTargetField=function(idx,field,value){
   if(!state.currentCourse?.targets)return
-  state.currentCourse.targets[idx][field]=value
+  // distance-feltet kommer som rå streng fra et <input type="number"> — gemmes
+  // som tal (eller null hvis tomt), ellers ville en tømt afstand blive gemt
+  // som "" i stedet for at fjerne målet fra afstands-analysen i stats.js.
+  state.currentCourse.targets[idx][field]=field==='distance'?(value===''?null:Number(value)):value
 }
 
 window.addTargetToCurrentCourse=async function(){
