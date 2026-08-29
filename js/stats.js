@@ -137,7 +137,7 @@ export function calcDistanceInsights(rounds,userId,courses){
     const kill=killZoneValuesFor(r.ruleset||DEFAULT_RULESET)
     s.scores.forEach((row,tIdx)=>{
       const dist=course.targets[tIdx]?.distance
-      if(dist==null)return
+      if(dist==null||dist==='')return
       const b=bucketFor(dist);if(!b)return
       row.forEach(v=>{
         if(v==null)return

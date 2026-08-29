@@ -18,7 +18,11 @@ export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 export const RULESETS = {
   WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
   'HDH-IAA': { label: 'HDH-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
-  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
+  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 },
+  // Nøglen holdes sprogneutral (som WA/HDH-IAA/DGS) da den gemmes direkte som
+  // round.ruleset og vises rå som rundekort-tag — selve "1 pil"-forklaringen
+  // findes kun i opsætnings-dropdown'ens data-i18n-tekst (index.src.html).
+  'DGS-1':   { label: 'DGS-1',    arrowsPerTarget: 1, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
 }
 export const DEFAULT_RULESET = 'WA'
 export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
