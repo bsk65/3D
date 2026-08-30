@@ -22,6 +22,7 @@ import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
 import { parseRoute, haversine, toggleGpsPause } from './gps.js'
 import { lsLoad, lsSave } from './storage.js'
 import { initLang, setLang, getLang, t, translations } from './i18n.js'
+import { PRIVACY_VERSION, hasAcceptedCurrentPolicy, initNewsletterToggle } from './privacy.js'
 
 // auth.js registrerer sine egne window.*-handlere (login/opret/nulstil/logud)
 // ved import. Auth-state-lytteren (onAuthStateChanged) bor herunder.
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           else{ state.profile={name:user.email,email:user.email}; state.isAdmin=false }
         }
       }
-      if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email,kon:d.kon||null,bueklasse:d.bueklasse||null}}
+      if(profileSnap?.exists()){const d=profileSnap.data();state.profile={name:d.name||d.yam||user.email,email:d.email||d['e-mail']||user.email,kon:d.kon||null,bueklasse:d.bueklasse||null,privacyAcceptedVersion:d.privacyAcceptedVersion||null,newsletterConsent:d.newsletterConsent||false}}
       else if(!state.profile) state.profile={name:user.email,email:user.email}
       state.isAdmin=adminSnap?.exists()||false
       state.isSuperAdmin=state.isAdmin&&user.email==='bsklausen@proton.me'
@@ -177,16 +178,49 @@ window.saveProfilModal=async function(){
   }catch(e){errEl.textContent=t('modals.profil.saveError');errEl.classList.remove('hidden')}
 }
 
+// ─── PRIVATLIVS-GATE ──────────────────────────────────────────────────────────
+// Ikke-lukbar boks for eksisterende brugere der endnu ikke har godkendt den
+// nyeste version af privatlivspolitikken (PRIVACY_VERSION). Nyhedsbrevs-
+// feltet er altid valgfrit og blokerer aldrig — kun politik-checkboxen gør.
+window.savePrivacyConsent=async function(){
+  const errEl=document.getElementById('privacy-gate-err')
+  if(!document.getElementById('privacy-gate-accept').checked){
+    errEl.textContent=t('auth.errPrivacyRequired');errEl.classList.remove('hidden');return
+  }
+  errEl.classList.add('hidden')
+  const newsletterConsent=document.getElementById('privacy-gate-newsletter').checked
+  try{
+    await updateDoc(doc(db,'users',state.user.uid),{
+      privacyAcceptedVersion:PRIVACY_VERSION,privacyAcceptedAt:serverTimestamp(),
+      newsletterConsent,newsletterConsentAt:newsletterConsent?serverTimestamp():null
+    })
+    state.profile.privacyAcceptedVersion=PRIVACY_VERSION
+    state.profile.newsletterConsent=newsletterConsent
+    initNewsletterToggle() // synkroniser Venner-fanens kontakt med det nye valg
+    document.getElementById('privacy-gate-modal').classList.add('hidden')
+    // Efter privatlivsgodkendelse: vis evt. profil-modal (køn/bueklasse),
+    // som ellers ikke må stables oven på privatlivs-boksen (se onLogin).
+    if(!state.profile.kon||!state.profile.bueklasse){
+      setTimeout(()=>document.getElementById('profil-modal').classList.remove('hidden'),300)
+    }
+  }catch(e){errEl.textContent=t('common.errorPrefix')+e.message;errEl.classList.remove('hidden')}
+}
+
 // ─── LOGIN/LOGOUT ─────────────────────────────────────────────────────────────
 function onLogin(){
   document.getElementById('hdr-name').textContent=state.profile.name
   document.getElementById('auth-screen').classList.remove('active')
   document.getElementById('app-screen').classList.add('active')
 
-  // Prompt eksisterende brugere der mangler køn/bueklasse
-  if(!state.profile.kon||!state.profile.bueklasse){
+  // Privatlivspolitik-godkendelse går forud for profil-udfyldelse — de to
+  // bokse må aldrig vises oven i hinanden (savePrivacyConsent viser evt.
+  // profil-modal bagefter, hvis relevant).
+  if(!hasAcceptedCurrentPolicy(state.profile)){
+    setTimeout(()=>document.getElementById('privacy-gate-modal').classList.remove('hidden'),800)
+  }else if(!state.profile.kon||!state.profile.bueklasse){
     setTimeout(()=>document.getElementById('profil-modal').classList.remove('hidden'),800)
   }
+  initNewsletterToggle()
 
   // Admin badge — allerede hentet i Promise.all
   document.getElementById('admin-badge').classList.toggle('hidden',!state.isAdmin)

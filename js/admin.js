@@ -90,11 +90,30 @@ function renderUsersList(filter=''){
     const row=document.createElement('div');row.className='urow'
     const date=d.created?.toDate?d.created.toDate().toLocaleDateString(getLocale()):'—'
     const bow=d.bueklasse||'';const kon=d.kon==='m'?'♂':d.kon==='k'?'♀':''
-    row.innerHTML=`<span class="un">${esc(d.name||d.yam||'—')}</span><span class="ue">${esc(d.email||d['e-mail']||'')}</span><span class="ubow">${esc(bow)}${kon?` ${esc(kon)}`:''}</span><span class="ud">${esc(date)}</span>`
+    const newsletterBadge=d.newsletterConsent?`<span class="unl" title="${t('admin.newsletterBadgeTitle')}">✉️</span>`:''
+    row.innerHTML=`<span class="un">${esc(d.name||d.yam||'—')}${newsletterBadge}</span><span class="ue">${esc(d.email||d['e-mail']||'')}</span><span class="ubow">${esc(bow)}${kon?` ${esc(kon)}`:''}</span><span class="ud">${esc(date)}</span>`
     el.appendChild(row)
   })
 }
 window.filterUsers=function(v){renderUsersList(v)}
+
+// CSV-eksport af navn+email for brugere med newsletterConsent===true — hele
+// listen bygges lokalt fra det allerede hentede _allUsers, ingen ny Firestore-
+// forespørgsel nødvendig. UTF-8 BOM foran sikrer at Excel viser æ/ø/å korrekt.
+window.exportNewsletterList=function(){
+  const subscribers=_allUsers.filter(d=>d.newsletterConsent)
+  if(!subscribers.length){showToast(t('admin.noNewsletterSubscribers'),'error');return}
+  const escCsv=v=>`"${String(v||'').replace(/"/g,'""')}"`
+  const rows=[[t('admin.csvNameHeader'),t('admin.csvEmailHeader')],
+    ...subscribers.map(d=>[d.name||d.yam||'',d.email||d['e-mail']||''])]
+  const csv=rows.map(r=>r.map(escCsv).join(',')).join('\r\n')
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a')
+  a.href=url;a.download='nyhedsbrev-tilmeldinger.csv'
+  document.body.appendChild(a);a.click();document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 window.doAddAdmin=async function(){
   if(!state.isSuperAdmin)return

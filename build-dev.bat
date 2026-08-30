@@ -56,6 +56,11 @@ del "%TMPWT%\3D-dev\assets\manifest-*.json" >nul 2>&1
 xcopy "%PROJ%\3D-dev\assets\*" "%TMPWT%\3D-dev\assets\" /E /Y /Q
 if exist "%PROJ%\3D-dev\icons" xcopy "%PROJ%\3D-dev\icons\*" "%TMPWT%\3D-dev\icons\" /E /Y /Q
 
+REM Statiske rod-sider fra public/ (fx privatliv.html) kopieres uendret med -
+REM disse er IKKE en del af assets/-mappen og skal derfor kopieres eksplicit,
+REM ligesom index.html herunder.
+if exist "%PROJ%\3D-dev\privatliv.html" copy "%PROJ%\3D-dev\privatliv.html" "%TMPWT%\3D-dev\privatliv.html" /Y
+
 REM index.html kopieres for sig med "copy" (ikke xcopy) og et eksplicit
 REM fejltjek lige efter - samme moenster som build.bat, da det er praecis
 REM denne ene, gentagne fil OneDrive-synkroniseringen kan naa at forstyrre.

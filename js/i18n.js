@@ -86,7 +86,10 @@ export const translations = {
       errNetwork:'Netværksfejl. Tjek din forbindelse.',
       errGeneric:'Der opstod en fejl. Prøv igen.', errFillAllFields:'Udfyld alle felter.',
       errPasswordTooShort:'Adgangskoden skal være mindst 6 tegn.',
-      errEnterEmailFirst:'Indtast din email først.', resetEmailSent:'Nulstillingsmail sendt!'
+      errEnterEmailFirst:'Indtast din email først.', resetEmailSent:'Nulstillingsmail sendt!',
+      privacyAcceptLabel:'Jeg accepterer privatlivspolitikken',
+      newsletterOptLabel:'Jeg vil gerne modtage nyhedsbreve',
+      errPrivacyRequired:'Du skal acceptere privatlivspolitikken for at oprette en konto.'
     },
     roundImport: {
       importedToast:'Runde importeret: {name}', importError:'Fejl ved import: {msg}',
@@ -101,6 +104,12 @@ export const translations = {
         desc:'Vælg køn og bueklasse for at aktivere sammenligning med andre skytter.',
         laterBtn:'Senere', validationMsg:'Vælg både køn og bueklasse.',
         saveError:'Fejl ved gem. Prøv igen.'
+      },
+      privacy: {
+        title:'Opdateret privatlivspolitik',
+        desc:'Vi har opdateret vores privatlivspolitik. Læs den, og bekræft at du accepterer den, for at fortsætte.',
+        readLink:'Læs privatlivspolitikken',
+        continueBtn:'Fortsæt'
       },
       qr: { closeBtn:'Luk' },
       skip: { title:'Hop til mål', placeholder:'Målnummer', goBtn:'Hop' },
@@ -127,6 +136,7 @@ export const translations = {
     },
     friends: {
       title:'Venner', addFriendBtn:'+ Tilføj ven',
+      newsletterTitle:'Nyhedsbrev',
       requestAccessBtn:'🔎 Må jeg kigge med?', statusPending:'Afventer',
       cancelRequestTitle:'Fortryd anmodning', statusApproved:'Kan se resultater ✅',
       statusRejected:'Afvist', retryBtn:'Prøv igen', empty:'Ingen venner endnu',
@@ -145,7 +155,11 @@ export const translations = {
       title:'Administrator', addAdminPlaceholder:'Email til ny admin',
       usageTitle:'BRUG AF APPEN', updateBtn:'Opdater',
       statsHint:'Klik "Opdater" for at hente statistik', allUsersTitle:'ALLE BRUGERE',
-      searchUserPlaceholder:'Søg navn eller email…', usersCount:'{n} brugere'
+      searchUserPlaceholder:'Søg navn eller email…', usersCount:'{n} brugere',
+      exportNewsletterBtn:'⬇ Eksportér nyhedsbrevs-liste',
+      newsletterBadgeTitle:'Tilmeldt nyhedsbrev',
+      noNewsletterSubscribers:'Ingen har tilmeldt sig nyhedsbrevet endnu',
+      csvNameHeader:'Navn', csvEmailHeader:'Email'
     },
     meetups: {
       header:'Skal vi skyde sammen?', sectionSuggestBtn:'+ Foreslå',
@@ -346,7 +360,10 @@ export const translations = {
       errNetwork:'Network error. Check your connection.',
       errGeneric:'An error occurred. Try again.', errFillAllFields:'Fill in all fields.',
       errPasswordTooShort:'The password must be at least 6 characters.',
-      errEnterEmailFirst:'Enter your email first.', resetEmailSent:'Reset email sent!'
+      errEnterEmailFirst:'Enter your email first.', resetEmailSent:'Reset email sent!',
+      privacyAcceptLabel:'I accept the privacy policy',
+      newsletterOptLabel:'I would like to receive newsletters',
+      errPrivacyRequired:'You must accept the privacy policy to create an account.'
     },
     roundImport: {
       importedToast:'Round imported: {name}', importError:'Import error: {msg}',
@@ -361,6 +378,12 @@ export const translations = {
         desc:'Select gender and bow class to enable comparison with other archers.',
         laterBtn:'Later', validationMsg:'Select both gender and bow class.',
         saveError:'Error saving. Try again.'
+      },
+      privacy: {
+        title:'Updated privacy policy',
+        desc:'We have updated our privacy policy. Please read it and confirm you accept it to continue.',
+        readLink:'Read the privacy policy',
+        continueBtn:'Continue'
       },
       qr: { closeBtn:'Close' },
       skip: { title:'Jump to target', placeholder:'Target number', goBtn:'Go' },
@@ -387,6 +410,7 @@ export const translations = {
     },
     friends: {
       title:'Friends', addFriendBtn:'+ Add friend',
+      newsletterTitle:'Newsletter',
       requestAccessBtn:'🔎 May I follow along?', statusPending:'Pending',
       cancelRequestTitle:'Cancel request', statusApproved:'Can see results ✅',
       statusRejected:'Rejected', retryBtn:'Try again', empty:'No friends yet',
@@ -405,7 +429,11 @@ export const translations = {
       title:'Administrator', addAdminPlaceholder:'Email for new admin',
       usageTitle:'APP USAGE', updateBtn:'Update',
       statsHint:'Click "Update" to fetch statistics', allUsersTitle:'ALL USERS',
-      searchUserPlaceholder:'Search name or email…', usersCount:'{n} users'
+      searchUserPlaceholder:'Search name or email…', usersCount:'{n} users',
+      exportNewsletterBtn:'⬇ Export newsletter list',
+      newsletterBadgeTitle:'Subscribed to newsletter',
+      noNewsletterSubscribers:'No one has subscribed to the newsletter yet',
+      csvNameHeader:'Name', csvEmailHeader:'Email'
     },
     meetups: {
       header:'Shall we shoot together?', sectionSuggestBtn:'+ Suggest',
