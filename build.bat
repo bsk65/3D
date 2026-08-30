@@ -49,10 +49,14 @@ REM Kopier byggede filer til worktree
 xcopy "%PROJ%\dist\assets\*" "%TMPWT%\assets\" /E /Y /Q
 if exist "%PROJ%\dist\icons" xcopy "%PROJ%\dist\icons\*" "%TMPWT%\icons\" /E /Y /Q
 
-REM Statiske rod-sider fra public/ (fx privatliv.html) kopieres uendret med -
-REM disse er IKKE en del af assets/-mappen og skal derfor kopieres eksplicit,
-REM ligesom index.html herunder (samme mønster som build-dev.bat).
-if exist "%PROJ%\dist\privatliv.html" copy "%PROJ%\dist\privatliv.html" "%TMPWT%\privatliv.html" /Y
+REM Statiske rod-sider fra public/ (fx privatliv.html, privacy.html) kopieres
+REM uaendret med - disse er IKKE en del af assets/-mappen og skal derfor
+REM kopieres eksplicit, ligesom index.html herunder. Generisk (*.html minus
+REM index.html) saa en fremtidig ny statisk side ikke kraever endnu en linje
+REM her - noejagtig det vi glemte foerste gang med privatliv.html.
+for %%F in ("%PROJ%\dist\*.html") do (
+  if /I not "%%~nxF"=="index.html" copy "%%F" "%TMPWT%\%%~nxF" /Y >nul
+)
 
 copy "%PROJ%\dist\index.html" "%TMPWT%\index.html" /Y
 if errorlevel 1 (
@@ -82,7 +86,7 @@ REM index.html committes med GAMLE asset-referencer selvom filen paa disk er
 REM korrekt - fanget gentagne gange 2026-08-08, se ogsaa build-dev.bat.
 git rm --cached --quiet index.html >nul 2>&1
 
-git add index.html assets/ css/style.css icons/ privatliv.html
+git add *.html assets/ css/style.css icons/
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Prod-build opdatering"
