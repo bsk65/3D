@@ -5,7 +5,7 @@ import './firebase-mock.js'
 import { describe, it, expect } from 'vitest'
 import {
   esc, scoreVal, parseScores, serializeScores, calcTotal, calcAverage,
-  calcTargetAverage, calcDistribution, findWinner, isBelowThreshold,
+  calcTargetAverage, calcDistribution, findWinner, isAtOrAboveThreshold,
   makeShooter, normalizeScores, countScored, serializeRound, deserializeRound,
   parseRoute, haversine, formatDuration, formatDistance, findNearestTarget,
   buildOrder, calcAnalyseStats
@@ -101,13 +101,14 @@ describe('findWinner', () => {
   })
 })
 
-describe('isBelowThreshold', () => {
-  it('sammenligner snit mod grænse', () => {
-    expect(isBelowThreshold([[5, 5]], 8)).toBe(true)
-    expect(isBelowThreshold([[11, 11]], 8)).toBe(false)
+describe('isAtOrAboveThreshold', () => {
+  it('sammenligner snit mod grænse (lig med tæller også)', () => {
+    expect(isAtOrAboveThreshold([[5, 5]], 8)).toBe(false)
+    expect(isAtOrAboveThreshold([[11, 11]], 8)).toBe(true)
+    expect(isAtOrAboveThreshold([[8, 8]], 8)).toBe(true)
   })
   it('giver false hvis intet er skudt', () => {
-    expect(isBelowThreshold([[null, null]], 8)).toBe(false)
+    expect(isAtOrAboveThreshold([[null, null]], 8)).toBe(false)
   })
 })
 

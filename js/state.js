@@ -7,7 +7,7 @@ export const state = {
   user:null, profile:null, isAdmin:false, isSuperAdmin:false,
   friends:[], courses:[], rounds:[], round:null, course:null, meetups:[],
   currentCourse:null, courseMap:null, courseMapLayer:null, approvedDraft:{new:[],edit:[]},
-  gpsTracking:false, warnThreshold:8,
+  gpsTracking:false, boostThreshold:8,
   deleteConfirm:{}, editFriendId:null, finishTap:0, abortTap:0,
   shareRequests:[], viewingUid:null, viewingName:null, viewedRounds:{},
   compareUid1:undefined, compareUid2:undefined

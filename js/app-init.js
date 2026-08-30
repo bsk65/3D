@@ -40,16 +40,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initLang()
   updatePrivacyLinks()
 
-  // Init warn slider
-  const warnEl=document.getElementById('warn-enabled-sw')
-  if(warnEl){
-    const sv=localStorage.getItem('warnEnabled')
-    state.warnEnabled=sv===null?true:sv==='true'
-    warnEl.classList.toggle('on',state.warnEnabled)
-    warnEl.addEventListener('click',()=>{
-      state.warnEnabled=!state.warnEnabled
-      warnEl.classList.toggle('on',state.warnEnabled)
-      localStorage.setItem('warnEnabled',state.warnEnabled)
+  // Init "positiv forstærkning"-slider
+  const boostEl=document.getElementById('boost-enabled-sw')
+  if(boostEl){
+    const sv=localStorage.getItem('boostEnabled')
+    state.boostEnabled=sv===null?true:sv==='true'
+    boostEl.classList.toggle('on',state.boostEnabled)
+    boostEl.addEventListener('click',()=>{
+      state.boostEnabled=!state.boostEnabled
+      boostEl.classList.toggle('on',state.boostEnabled)
+      localStorage.setItem('boostEnabled',state.boostEnabled)
     })
   }
 

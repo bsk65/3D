@@ -153,7 +153,7 @@ select option{background:var(--surf);}
 .sh-mini-val-acc{font-size:18px;color:var(--acc);}
 .sh-mini-acc{border:1px solid var(--acc);}
 .sh-mini-group{display:flex;gap:4px;}
-.warn-dot{width:36px;height:36px;background:var(--danger);border-radius:50%;animation:blink 1s infinite;flex-shrink:0;}
+.boost-dot{width:36px;height:36px;background:#2aaa5a;border-radius:50%;animation:blink 1s infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 .arrows-row{display:flex;gap:9px;}
 .arrow-grp{flex:1;}

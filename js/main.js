@@ -13,10 +13,10 @@ export { esc }
 
 import { scoreVal, parseScores, serializeScores, calcTotal,
          calcAverage, calcTargetAverage, calcDistribution, findWinner,
-         isBelowThreshold, makeShooter, normalizeScores, countScored,
+         isAtOrAboveThreshold, makeShooter, normalizeScores, countScored,
          serializeRound, deserializeRound, buildOrder } from './scoring.js'
 export { scoreVal, parseScores, serializeScores, calcTotal, calcAverage,
-         calcTargetAverage, calcDistribution, findWinner, isBelowThreshold,
+         calcTargetAverage, calcDistribution, findWinner, isAtOrAboveThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
          deserializeRound, buildOrder }
 

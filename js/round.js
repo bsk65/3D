@@ -11,10 +11,10 @@ import { state } from './state.js'
 import { esc, showToast, showConfirm } from './utils.js'
 import { t } from './i18n.js'
 import { lsSave } from './storage.js'
-import { scoreVal, calcTotal, calcTargetAverage, isBelowThreshold,
+import { scoreVal, calcTotal, calcTargetAverage, isAtOrAboveThreshold,
          makeShooter, normalizeScores, countScored, serializeRound,
          deserializeRound, buildOrder, parseScores, arrowsPerTarget, scoreValuesFor,
-         warnThresholdFor, DEFAULT_RULESET } from './scoring.js'
+         boostThresholdFor, DEFAULT_RULESET } from './scoring.js'
 import { findNearestTarget, getCurrentPosition, startTracking, stopTracking,
          formatDuration, formatDistance } from './gps.js'
 import { db, doc, setDoc, getDoc, deleteDoc, serverTimestamp, arrayUnion } from './firebase-init.js'
@@ -51,13 +51,12 @@ window.addParticipant=function(id,name){
   document.getElementById('p-list').appendChild(div)
 }
 
-// Skift af forbund ved rundeoprettelse sætter advarselsgrænsens standardværdi
+// Skift af forbund ved rundeoprettelse sætter boost-grænsens standardværdi
 // til det nye regelsæts egen skala (fx WA:8 → DGS:4) — ellers arver DGS/andre
-// fremtidige regelsæt en urealistisk WA-standard, som konstant ville udløse
-// advarsel for alle skytter.
+// fremtidige regelsæt en urealistisk WA-standard, som aldrig ville kunne nås.
 document.getElementById('ruleset-sel')?.addEventListener('change',e=>{
-  const el=document.getElementById('warn-thresh')
-  if(el)el.value=warnThresholdFor(e.target.value)
+  const el=document.getElementById('boost-thresh')
+  if(el)el.value=boostThresholdFor(e.target.value)
 })
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
@@ -69,7 +68,7 @@ window.startRound=async function(){
   const startAt=Number(document.getElementById('start-target').value)-1
   const gpsAuto=document.getElementById('gps-auto-sw').classList.contains('on')
   const gpsTrack=document.getElementById('gps-track-sw').classList.contains('on')
-  state.warnThreshold=Number(document.getElementById('warn-thresh').value)||8
+  state.boostThreshold=Number(document.getElementById('boost-thresh').value)||8
   const ruleset=document.getElementById('ruleset-sel')?.value||DEFAULT_RULESET
   const apt=arrowsPerTarget(ruleset)
 
@@ -145,7 +144,7 @@ export function renderShooters(){
   const apt=arrowsPerTarget(state.round.ruleset)
   const zoneValues=scoreValuesFor(state.round.ruleset)
   state.round.shooters.forEach((s,si)=>{
-    const total=calcTotal(s.scores),warn=isBelowThreshold(s.scores,state.warnThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
+    const total=calcTotal(s.scores),boosted=state.boostEnabled&&isAtOrAboveThreshold(s.scores,state.boostThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
     const card=document.createElement('div');card.className='shooter-card'
     const allArr=s.scores.flat().filter(v=>v!=null)
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
@@ -162,7 +161,7 @@ export function renderShooters(){
       miniGroup+=`<div class="sh-mini sh-mini-acc"><div class="sh-mini-lbl">${t('active.snt')}</div><div class="sh-mini-val sh-mini-val-acc">${allAvg}</div></div>`
     }
     card.innerHTML=`
-      <div class="sh-head">${warn?'<span class="warn-dot"></span>':''}
+      <div class="sh-head">${boosted?'<span class="boost-dot"></span>':''}
         <span class="sh-name">${esc(s.name)}</span>
         <div class="sh-mini-group">${miniGroup}</div>
       </div>
