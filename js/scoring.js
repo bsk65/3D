@@ -12,22 +12,23 @@ export const SCORE_VALUES = [11, 10, 8, 5, 'M']
 // egne scorezoner (værdier faldende, 'M' for miss). Et nyt forbund tilføjes
 // ved at lægge én linje til her — resten af koden er skrevet mod
 // arrowsPerTarget()/scoreValuesFor(), ikke mod hardkodede tal/zoner.
-// warnThreshold: fornuftig standard-advarselsgrænse ("Aktiver advarsel")
-// for regelsættets skala — forhindrer at fx DGS' 5-3-(-1)-skala arver WA's
+// boostThreshold: fornuftig standard-grænse for "Positiv forstærkning"
+// (den grønne, blinkende prik der vises når snittet når grænsen) for
+// regelsættets skala — forhindrer at fx DGS' 5-3-(-1)-skala arver WA's
 // urealistiske standard på 8 (som DGS aldrig kan nå).
 export const RULESETS = {
-  WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
-  'HDH-IAA': { label: 'HDH-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], warnThreshold: 8 },
-  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 },
+  WA:        { label: 'WA',       arrowsPerTarget: 2, scoreValues: [11, 10, 8, 5, 'M'], boostThreshold: 8 },
+  'HDH-IAA': { label: 'HDH-IAA',  arrowsPerTarget: 1, scoreValues: [11, 10, 8, 5, 'M'], boostThreshold: 8 },
+  DGS:       { label: 'DGS',      arrowsPerTarget: 2, scoreValues: [5, 3, -1, 'M'],      boostThreshold: 4 },
   // Nøglen holdes sprogneutral (som WA/HDH-IAA/DGS) da den gemmes direkte som
   // round.ruleset og vises rå som rundekort-tag — selve "1 pil"-forklaringen
   // findes kun i opsætnings-dropdown'ens data-i18n-tekst (index.src.html).
-  'DGS-1':   { label: 'DGS-1',    arrowsPerTarget: 1, scoreValues: [5, 3, -1, 'M'],      warnThreshold: 4 }
+  'DGS-1':   { label: 'DGS-1',    arrowsPerTarget: 1, scoreValues: [5, 3, -1, 'M'],      boostThreshold: 4 }
 }
 export const DEFAULT_RULESET = 'WA'
 export function arrowsPerTarget(ruleset) { return RULESETS[ruleset]?.arrowsPerTarget ?? 2 }
 export function scoreValuesFor(ruleset) { return RULESETS[ruleset]?.scoreValues ?? SCORE_VALUES }
-export function warnThresholdFor(ruleset) { return RULESETS[ruleset]?.warnThreshold ?? 8 }
+export function boostThresholdFor(ruleset) { return RULESETS[ruleset]?.boostThreshold ?? 8 }
 // "Kill zone" = de to højeste scorezoner for regelsættet (11+10 for WA/HDH-IAA,
 // 5+3 for DGS) — bruges af afstands-analysen i stats.js til at vurdere
 // træfsikkerhed pr. afstandsgruppe. Ét sted at justere definitionen senere.
@@ -80,11 +81,12 @@ export function findWinner(shooters) {
   return shooters.reduce((b, s) => calcTotal(s.scores) > calcTotal(b.scores) ? s : b, shooters[0])
 }
 
-// Er skyttens snit under en grænse? false hvis intet er skudt.
-export function isBelowThreshold(scores, threshold) {
+// Er skyttens snit lig med eller over en grænse ("Positiv forstærkning")?
+// false hvis intet er skudt endnu.
+export function isAtOrAboveThreshold(scores, threshold) {
   const all = scores.flat().filter(v => v != null)
   if (!all.length) return false
-  return (all.reduce((s,v) => s + scoreVal(v), 0) / all.length) < threshold
+  return (all.reduce((s,v) => s + scoreVal(v), 0) / all.length) >= threshold
 }
 
 // Opretter et tomt skytte-objekt.

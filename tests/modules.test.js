@@ -7,7 +7,7 @@ import './firebase-mock.js'
 import { describe, it, expect } from 'vitest'
 import {
   SCORE_VALUES, scoreVal, parseScores, serializeScores, calcTotal, calcAverage,
-  calcTargetAverage, calcDistribution, findWinner, isBelowThreshold, makeShooter,
+  calcTargetAverage, calcDistribution, findWinner, isAtOrAboveThreshold, makeShooter,
   normalizeScores, countScored, serializeRound, deserializeRound, buildOrder,
   killZoneValuesFor
 } from '../js/scoring.js'
@@ -43,8 +43,9 @@ describe('scoring.js modul', () => {
     expect(calcTargetAverage([{ scores: [[null, null]] }], 0)).toBeNull()
   })
 
-  it('isBelowThreshold og findWinner', () => {
-    expect(isBelowThreshold([[5, 5]], 8)).toBe(true)
+  it('isAtOrAboveThreshold og findWinner', () => {
+    expect(isAtOrAboveThreshold([[5, 5]], 8)).toBe(false)
+    expect(isAtOrAboveThreshold([[11, 11]], 8)).toBe(true)
     const a = { scores: [[5, 5]] }, b = { scores: [[11, 11]] }
     expect(findWinner([a, b])).toBe(b)
   })
