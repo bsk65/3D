@@ -7,6 +7,7 @@ import { auth, db, doc, setDoc, serverTimestamp,
          signInWithEmailAndPassword, createUserWithEmailAndPassword,
          sendPasswordResetEmail, signOut } from './firebase-init.js'
 import { t } from './i18n.js'
+import { PRIVACY_VERSION } from './privacy.js'
 
 const AUTH_ERROR_KEYS = {
   'auth/user-not-found':       'auth.errUserNotFound',
@@ -49,14 +50,22 @@ window.doSignup = async function(){
   const pw=document.getElementById('signup-password').value
   const kon=document.getElementById('signup-kon').value
   const bueklasse=document.getElementById('signup-bueklasse').value
+  const privacyAccepted=document.getElementById('signup-privacy-accept').checked
+  const newsletterConsent=document.getElementById('signup-newsletter-opt').checked
   if(!name||!email||!pw||!kon||!bueklasse){showAuthErr(t('auth.errFillAllFields'));return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr(t('auth.errInvalidEmail'));return}
   if(pw.length<6){showAuthErr(t('auth.errPasswordTooShort'));return}
+  // Nyhedsbrevs-samtykke er bevidst IKKE en del af dette tjek — det skal
+  // altid være frivilligt og må aldrig blokere kontooprettelse (GDPR-krav
+  // om "frit givet" markedsføringssamtykke, bekræftet eksplicit med bruger).
+  if(!privacyAccepted){showAuthErr(t('auth.errPrivacyRequired'));return}
   const btn=document.querySelector('#signup-form .btn')
   btn.disabled=true; btn.textContent='...'
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pw)
-    await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp()})
+    await setDoc(doc(db,'users',cred.user.uid),{name,email,yam:name,'e-mail':email,kon,bueklasse,created:serverTimestamp(),
+      privacyAcceptedVersion:PRIVACY_VERSION,privacyAcceptedAt:serverTimestamp(),
+      newsletterConsent,newsletterConsentAt:newsletterConsent?serverTimestamp():null})
   }catch(err){showAuthErr(authErrMsg(err.code))}
   finally{btn.disabled=false;btn.textContent=t('auth.signupBtn')}
 }
