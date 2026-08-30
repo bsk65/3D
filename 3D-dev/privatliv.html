@@ -15,13 +15,20 @@
   p,li{font-size:15px;}
   ul{padding-left:20px;}
   a{color:var(--acc);}
-  .back{display:inline-block;margin-bottom:24px;font-size:14px;}
+  .back{display:inline-block;font-size:14px;background:none;border:none;color:var(--acc);cursor:pointer;padding:0;font-family:inherit;}
+  .back.top{margin-bottom:24px;}
+  .back.bottom{margin-top:32px;}
   address{font-style:normal;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="./">&larr; Tilbage til appen</a>
+  <!-- Denne side åbnes altid i en ny fane fra appen (target="_blank") — for
+       ikke at miste evt. udfyldte felter i den oprindelige fane, lukker
+       linket denne fane igen i stedet for at navigere til appens forside.
+       Falder tilbage til href="./" hvis browseren ikke tillader script-
+       lukning af fanen (fx genskabt fra historik). -->
+  <a class="back top" href="./" onclick="window.close()">&larr; Tilbage til appen</a>
   <h1>Privatlivspolitik</h1>
   <div class="updated">Sidst opdateret: 30. august 2026</div>
 
@@ -122,6 +129,8 @@
     Bjarne Klausen<br />
     E-mail: <a href="mailto:bsklausen@proton.me">bsklausen@proton.me</a>
   </address>
+
+  <a class="back bottom" href="./" onclick="window.close()">&larr; Tilbage til appen</a>
 </div>
 </body>
 </html>
