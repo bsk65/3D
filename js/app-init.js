@@ -22,7 +22,7 @@ import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
 import { parseRoute, haversine, toggleGpsPause } from './gps.js'
 import { lsLoad, lsSave } from './storage.js'
 import { initLang, setLang, getLang, t, translations } from './i18n.js'
-import { PRIVACY_VERSION, hasAcceptedCurrentPolicy, initNewsletterToggle } from './privacy.js'
+import { PRIVACY_VERSION, hasAcceptedCurrentPolicy, initNewsletterToggle, updatePrivacyLinks } from './privacy.js'
 
 // auth.js registrerer sine egne window.*-handlere (login/opret/nulstil/logud)
 // ved import. Auth-state-lytteren (onAuthStateChanged) bor herunder.
@@ -38,6 +38,7 @@ const PUSH_DISMISS_KEY = 'archery_push_dismissed'
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
   initLang()
+  updatePrivacyLinks()
 
   // Init warn slider
   const warnEl=document.getElementById('warn-enabled-sw')
@@ -327,6 +328,7 @@ function onLogout(){
 // skal genrenderes eksplicit, ellers viser det gamle sprog indtil næste render.
 window.toggleLang=function(){
   setLang(getLang()==='da'?'en':'da')
+  updatePrivacyLinks()
 
   const roundNameDefaults=[translations.da.setup.roundNameDefault,translations.en.setup.roundNameDefault]
   const roundNameInput=document.getElementById('round-name')

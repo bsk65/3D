@@ -16,7 +16,18 @@ export function hasAcceptedCurrentPolicy(profile){
 import { state } from './state.js'
 import { db, doc, updateDoc, serverTimestamp } from './firebase-init.js'
 import { showToast } from './utils.js'
-import { t } from './i18n.js'
+import { t, getLang } from './i18n.js'
+
+// ─── SPROGBEVIDST LINK TIL POLITIKKEN ─────────────────────────────────────────
+// To selvstændige statiske sider (public/privatliv.html + public/privacy.html,
+// begge kopieret uændret af Vite) — ikke ét i18n-drevet dokument, da det er en
+// juridisk tekst hvor hele sætninger (ikke enkeltord) skal oversættes samlet.
+// Alle links med data-privacy-link får deres href opdateret her i stedet for
+// hardcodet i HTML, så de altid matcher det aktuelle appsprog.
+export function privacyPolicyUrl(){ return getLang()==='da' ? 'privatliv.html' : 'privacy.html' }
+export function updatePrivacyLinks(){
+  document.querySelectorAll('[data-privacy-link]').forEach(a=>{ a.href = privacyPolicyUrl() })
+}
 
 export function initNewsletterToggle(){
   const sw=document.getElementById('newsletter-sw')
