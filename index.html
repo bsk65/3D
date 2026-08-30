@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-BMIAeVmd.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/assets/index-C9knvl3V.css">
+    <script type="module" crossorigin src="/3D/assets/index-BSUE8g_Q.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-DC3F_IWY.css">
   </head>
 <body>
 
@@ -55,6 +55,8 @@
         <option value="trad-buejæger" data-i18n="common.bowClass.tradBuejaeger">Traditionel buejæger</option>
         <option value="rytterbue" data-i18n="common.bowClass.rytterbue">Rytterbue</option>
       </select>
+      <label class="consent-row"><input type="checkbox" id="signup-privacy-accept" /><span data-i18n="auth.privacyAcceptLabel">Jeg accepterer privatlivspolitikken</span> — <a href="privatliv.html" target="_blank" rel="noopener" data-i18n="modals.privacy.readLink">Læs privatlivspolitikken</a></label>
+      <label class="consent-row"><input type="checkbox" id="signup-newsletter-opt" /><span data-i18n="auth.newsletterOptLabel">Jeg vil gerne modtage nyhedsbreve</span></label>
       <button class="btn btn-gold" onclick="doSignup()" data-i18n="auth.signupBtn">OPRET KONTO</button>
     </div>
     <div id="auth-err" class="err hidden"></div>
@@ -392,6 +394,15 @@
         <span class="tab-title" data-i18n="friends.title">Venner</span>
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)" data-i18n="friends.addFriendBtn">+ Tilføj ven</button>
       </div>
+
+      <!-- NYHEDSBREV — synlig for alle brugere, kan til/frameldes når som helst -->
+      <div class="card">
+        <div class="trow">
+          <div class="trow-left"><div class="trow-main" data-i18n="friends.newsletterTitle">Nyhedsbrev</div></div>
+          <div class="tswitch" id="newsletter-sw"></div>
+        </div>
+      </div>
+
       <div id="friends-list"></div>
 
       <!-- SHARING SECTION -->
@@ -432,6 +443,7 @@
           </div>
           <div id="users-summary"></div>
           <input type="search" placeholder="Søg navn eller email…" data-i18n-placeholder="admin.searchUserPlaceholder" oninput="filterUsers(this.value)" class="users-search-input" />
+          <button class="btn btn-dark btn-sm mb8" onclick="exportNewsletterList()" data-i18n="admin.exportNewsletterBtn">⬇ Eksportér nyhedsbrevs-liste</button>
           <div id="users-list"></div>
         </div>
       </div>
@@ -567,6 +579,20 @@
       <button class="btn btn-gold" onclick="saveProfilModal()" data-i18n="common.save">Gem</button>
       <button class="btn btn-dark" onclick="document.getElementById('profil-modal').classList.add('hidden')" data-i18n="modals.profil.laterBtn">Senere</button>
     </div>
+  </div>
+</div>
+
+<!-- PRIVATLIVS-GATE — bevidst IKKE class="modal": må ikke kunne lukkes ved
+     klik på baggrunden (se app-init.js' generiske .modal-klik-luk-handler) -->
+<div id="privacy-gate-modal" class="privacy-gate-overlay hidden">
+  <div class="modal-box">
+    <h3 data-i18n="modals.privacy.title">Opdateret privatlivspolitik</h3>
+    <p data-i18n="modals.privacy.desc">Vi har opdateret vores privatlivspolitik. Læs den, og bekræft at du accepterer den, for at fortsætte.</p>
+    <a href="privatliv.html" target="_blank" rel="noopener" data-i18n="modals.privacy.readLink">Læs privatlivspolitikken</a>
+    <label class="consent-row"><input type="checkbox" id="privacy-gate-accept" /><span data-i18n="auth.privacyAcceptLabel">Jeg accepterer privatlivspolitikken</span></label>
+    <label class="consent-row"><input type="checkbox" id="privacy-gate-newsletter" /><span data-i18n="auth.newsletterOptLabel">Jeg vil gerne modtage nyhedsbreve</span></label>
+    <div id="privacy-gate-err" class="err hidden"></div>
+    <button class="btn btn-gold" onclick="savePrivacyConsent()" data-i18n="modals.privacy.continueBtn">Fortsæt</button>
   </div>
 </div>
 
