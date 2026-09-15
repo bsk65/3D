@@ -98,13 +98,13 @@ export function calcRoundPositionAvgs(round,userId){
 }
 
 // Faste afstandsbånd (meter) til afstands-analysen herunder — banernes
-// maks-afstand er 30 m, så bånd i 10-meter-spring op til 30 m er dækkende.
+// afstande går fra 5 til 30 m. Begge grænser i hvert bånd er inklusive.
 const DISTANCE_BUCKETS=[
-  {key:'0to10',min:0,max:10},
-  {key:'10to20',min:10,max:20},
-  {key:'20to30',min:20}
+  {key:'5to15',min:5,max:15},
+  {key:'16to25',min:16,max:25},
+  {key:'26to30',min:26,max:30}
 ]
-function bucketFor(d){return DISTANCE_BUCKETS.find(b=>(b.min==null||d>=b.min)&&(b.max==null||d<b.max))}
+function bucketFor(d){return DISTANCE_BUCKETS.find(b=>(b.min==null||d>=b.min)&&(b.max==null||d<=b.max))}
 
 // Round-timestamp (Firestore Timestamp/{seconds}/number) → ms. Samme mønster
 // som bruges inline flere steder (results.js/analyse.js) — samlet her da

@@ -69,18 +69,21 @@ export function renderResults(round){
 function buildResultsTable(round){
   const startT=(round.startTarget||1)-1
   const apt=arrowsPerTarget(round.ruleset)
-  let h=`<div class="tbl-wrap"><table class="rtbl"><tr><th>${t('results.tableTargetHeader')}</th>${round.shooters.map(s=>`<th>${s.name}</th>`).join('')}</tr>`
+  const runSum=round.shooters.map(()=>0),runCount=round.shooters.map(()=>0)
+  let h=`<div class="tbl-wrap"><table class="rtbl"><tr><th>${t('results.tableTargetHeader')}</th>${round.shooters.map(s=>`<th>${s.name}</th><th>${t('results.tableAvgHeader')}</th>`).join('')}</tr>`
   for(let t=0;t<round.numTargets;t++){
     const isStart=t===startT
     h+=`<tr><td class="tc">${isStart?`<span class="start-target-dot"></span>`:''}${t+1}</td>`
-    round.shooters.forEach(s=>{
+    round.shooters.forEach((s,i)=>{
       const r=s.scores[t]||Array(apt).fill(null)
       const sum=r.reduce((a,v)=>a+(v!=null&&v!=='M'?Number(v):0),0)
-      h+=`<td>${r.map(v=>v==null?'—':v).join('/')}<br><small>${sum}</small></td>`
+      r.forEach(v=>{if(v!=null){runSum[i]+=scoreVal(v);runCount[i]++}})
+      const runAvg=runCount[i]?(runSum[i]/runCount[i]).toFixed(2):'—'
+      h+=`<td>${r.map(v=>v==null?'—':v).join('/')}<br><small>${sum}</small></td><td class="tc-avg">${runAvg}</td>`
     })
     h+='</tr>'
   }
-  h+=`<tr class="tr-tot"><td class="tc">${t('results.totalLabel')}</td>${round.shooters.map(s=>`<td>${calcTotal(s.scores)}</td>`).join('')}</tr></table></div>`
+  h+=`<tr class="tr-tot"><td class="tc">${t('results.totalLabel')}</td>${round.shooters.map(s=>`<td colspan="2">${calcTotal(s.scores)}</td>`).join('')}</tr></table></div>`
   return h
 }
 

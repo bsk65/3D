@@ -142,34 +142,34 @@ describe('stats.js modul', () => {
 })
 
 describe('calcDistanceInsights (stats.js)', () => {
-  // 5 mål ved 5 m (bånd 0-10) + 5 mål ved 15 m (bånd 10-20) — 10 skud pr.
+  // 5 mål ved 10 m (bånd 5-15) + 5 mål ved 20 m (bånd 16-25) — 10 skud pr.
   // bånd, nok til at overskride MIN_BUCKET_SHOTS-grænsen i stats.js.
   const courses = [{
     id: 'c1',
     targets: [
-      { distance: 5 }, { distance: 5 }, { distance: 5 }, { distance: 5 }, { distance: 5 },
-      { distance: 15 }, { distance: 15 }, { distance: 15 }, { distance: 15 }, { distance: 15 }
+      { distance: 10 }, { distance: 10 }, { distance: 10 }, { distance: 10 }, { distance: 10 },
+      { distance: 20 }, { distance: 20 }, { distance: 20 }, { distance: 20 }, { distance: 20 }
     ]
   }]
   const roundAllKillsThenMisses = {
     id: 'r1', courseId: 'c1', ruleset: 'WA',
     shooters: [{ id: 'u1', scores: [
-      [11, 11], [11, 11], [11, 11], [11, 11], [11, 11], // 0-10 m: alle kills
-      [5, 5], [5, 5], [5, 5], [5, 5], [5, 5]             // 10-20 m: ingen kills
+      [11, 11], [11, 11], [11, 11], [11, 11], [11, 11], // 5-15 m: alle kills
+      [5, 5], [5, 5], [5, 5], [5, 5], [5, 5]             // 16-25 m: ingen kills
     ] }]
   }
 
   it('grupperer skud i afstandsbånd og tæller kill-zone-ramte (top 2 scorezoner)', () => {
     const r = calcDistanceInsights([roundAllKillsThenMisses], 'u1', courses)
     expect(r.hasData).toBe(true)
-    expect(r.buckets.find(b => b.key === '0to10')).toMatchObject({ shots: 10, kills: 10, killPct: 100, avgPerArrow: 11 })
-    expect(r.buckets.find(b => b.key === '10to20')).toMatchObject({ shots: 10, kills: 0, killPct: 0, avgPerArrow: 5 })
+    expect(r.buckets.find(b => b.key === '5to15')).toMatchObject({ shots: 10, kills: 10, killPct: 100, avgPerArrow: 11 })
+    expect(r.buckets.find(b => b.key === '16to25')).toMatchObject({ shots: 10, kills: 0, killPct: 0, avgPerArrow: 5 })
     expect(r.killLabel).toBe('11/10')
   })
 
   it('finder svageste gruppe og beregner et pointpotentiale når snittet er lavere end gennemsnittet', () => {
     const r = calcDistanceInsights([roundAllKillsThenMisses], 'u1', courses)
-    expect(r.weakest.key).toBe('10to20')
+    expect(r.weakest.key).toBe('16to25')
     expect(r.overall.avgPerArrow).toBe(8) // (10*11 + 10*5) / 20
     expect(r.pointPotential).toBe(30)     // (8-5) snit-forskel × 10 skud i gruppen / 1 runde
   })
@@ -182,11 +182,11 @@ describe('calcDistanceInsights (stats.js)', () => {
   })
 
   it('behandler tom streng som mål-afstand ligesom manglende (null)', () => {
-    const coursesWithEmpty = [{ id: 'c1', targets: [{ distance: '' }, { distance: 15 }] }]
+    const coursesWithEmpty = [{ id: 'c1', targets: [{ distance: '' }, { distance: 20 }] }]
     const round = { id: 'r3', courseId: 'c1', ruleset: 'WA', shooters: [{ id: 'u1', scores: [[11, 10], [5, 5]] }] }
     const r = calcDistanceInsights([round], 'u1', coursesWithEmpty)
-    expect(r.buckets.some(b => b.key === '0to10')).toBe(false)
-    expect(r.buckets.find(b => b.key === '10to20').shots).toBe(2)
+    expect(r.buckets.some(b => b.key === '5to15')).toBe(false)
+    expect(r.buckets.find(b => b.key === '16to25').shots).toBe(2)
   })
 
   it('kræver mindst 4 runder inden for de seneste 8 uger for at vise en udviklingstendens', () => {
