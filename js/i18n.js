@@ -280,7 +280,7 @@ export const translations = {
       trendFlat:'Din score har ligget stabilt de seneste {weeks} uger',
       trendNotEnoughData:'Ikke nok runder de seneste {weeks} uger til at vise en udvikling endnu',
       weakestZone:'Din største svaghed er mål på {range}',
-      pointPotential:'Hvis din træfprocent på {range} kom op på dit snit, svarer det til ca. +{n} point pr. runde'
+      pointPotential:'Hvis dit snit pr. pil på {range} kom op på dit samlede snit, svarer det til ca. +{n} point pr. runde'
     }
   },
   en: {
@@ -555,7 +555,7 @@ export const translations = {
       trendFlat:'Your score has been stable over the last {weeks} weeks',
       trendNotEnoughData:'Not enough rounds in the last {weeks} weeks to show a trend yet',
       weakestZone:'Your biggest weakness is targets at {range}',
-      pointPotential:'If your hit rate at {range} matched your average, that would be roughly +{n} points per round'
+      pointPotential:'If your average per arrow at {range} matched your overall average, that would be roughly +{n} points per round'
     }
   }
 }

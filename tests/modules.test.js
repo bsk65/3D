@@ -201,6 +201,27 @@ describe('calcDistanceInsights (stats.js)', () => {
     expect(r.pointPotential).toBeNull()
   })
 
+  it('vælger svageste gruppe ud fra snit pr. pil, ikke ud fra killPct alene', () => {
+    // 5-15 m: lavere killPct (20%) men højt snit (8,6) - misserne er kun 8'ere.
+    // 16-25 m: højere killPct (60%) men lavt snit (6,6) - misserne er nuller.
+    // Den fejl brugeren rapporterede: 16-25 m så "bedst" ud på killPct, men
+    // kostede reelt flere point end 5-15 m gjorde. Svageste skal derfor blive
+    // 16-25 m (lavest snit), ikke 5-15 m (lavest killPct).
+    const round = {
+      id: 'r5', courseId: 'c1', ruleset: 'WA',
+      shooters: [{ id: 'u1', scores: [
+        [11, 11], [8, 8], [8, 8], [8, 8], [8, 8],   // 5-15 m: 2 kills, 8 ottetaller
+        [11, 11], [11, 11], [11, 11], ['M', 'M'], ['M', 'M'] // 16-25 m: 6 kills, 4 nuller
+      ] }]
+    }
+    const r = calcDistanceInsights([round], 'u1', courses)
+    const near = r.buckets.find(b => b.key === '5to15')
+    const far = r.buckets.find(b => b.key === '16to25')
+    expect(near).toMatchObject({ killPct: 20, avgPerArrow: 8.6 })
+    expect(far).toMatchObject({ killPct: 60, avgPerArrow: 6.6 })
+    expect(r.weakest.key).toBe('16to25')
+  })
+
   it('springer runder uden kendt bane eller mål-afstande over', () => {
     const round = { id: 'r2', courseId: 'ukendt-bane', ruleset: 'WA', shooters: [{ id: 'u1', scores: [[11, 10]] }] }
     const r = calcDistanceInsights([round], 'u1', courses)
