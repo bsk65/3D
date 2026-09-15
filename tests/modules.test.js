@@ -174,6 +174,33 @@ describe('calcDistanceInsights (stats.js)', () => {
     expect(r.pointPotential).toBe(30)     // (8-5) snit-forskel × 10 skud i gruppen / 1 runde
   })
 
+  it('viser ikke en "svageste gruppe" når kun én afstandsgruppe har nok skud til at være sammenlignelig', () => {
+    // Kun 16-25 m-bånd har >= MIN_BUCKET_SHOTS (10) skud - 5-15 m har blot 2,
+    // så selvom det båndet har lavere killPct, kan det ikke bruges til
+    // sammenligning, og 16-25 m må derfor heller ikke udråbes til "svageste"
+    // (den fejl brugeren rapporterede: en enkelt gruppe med nok data blev
+    // udråbt til "svageste" alene fordi de andre grupper manglede data).
+    const coursesUneven = [{
+      id: 'c2',
+      targets: [
+        { distance: 10 },
+        { distance: 20 }, { distance: 20 }, { distance: 20 }, { distance: 20 }, { distance: 20 }
+      ]
+    }]
+    const round = {
+      id: 'r4', courseId: 'c2', ruleset: 'WA',
+      shooters: [{ id: 'u1', scores: [
+        [5, 5],                                                       // 10 m: 2 skud, ingen kills
+        [5, 5], [5, 5], [5, 5], [11, 11], [11, 11]                    // 20 m: 10 skud
+      ] }]
+    }
+    const r = calcDistanceInsights([round], 'u1', coursesUneven)
+    expect(r.buckets.find(b => b.key === '5to15').shots).toBe(2)
+    expect(r.buckets.find(b => b.key === '16to25').shots).toBe(10)
+    expect(r.weakest).toBeNull()
+    expect(r.pointPotential).toBeNull()
+  })
+
   it('springer runder uden kendt bane eller mål-afstande over', () => {
     const round = { id: 'r2', courseId: 'ukendt-bane', ruleset: 'WA', shooters: [{ id: 'u1', scores: [[11, 10]] }] }
     const r = calcDistanceInsights([round], 'u1', courses)
