@@ -413,15 +413,32 @@ function updateStartTargetDropdown(n){
 }
 
 // ─── QR ───────────────────────────────────────────────────────────────────────
+// Video-søsterappens URL er hardcodet her, ligesom 3D's URL er hardcodet i
+// video-appens js/qr.js — hvis en af appernes hosting-adresse nogensinde
+// ændres, skal begge steder opdateres.
+const VIDEO_APP_URL='https://bsk65.github.io/video/'
+
 window.showQR=function(){
   document.getElementById('qr-modal').classList.remove('hidden')
   const el=document.getElementById('qr-canvas');el.innerHTML=''
-  if(typeof window.QRCode!=='undefined')new window.QRCode(el,{text:window.location.href,width:200,height:200,colorDark:'#1a3a1a',colorLight:'#fff'})
+  if(typeof window.QRCode!=='undefined')new window.QRCode(el,{text:window.location.href,width:160,height:160,colorDark:'#1a3a1a',colorLight:'#fff'})
   document.getElementById('qr-url').value=window.location.href
+
+  const elOther=document.getElementById('qr-canvas-other');elOther.innerHTML=''
+  if(typeof window.QRCode!=='undefined')new window.QRCode(elOther,{text:VIDEO_APP_URL,width:160,height:160,colorDark:'#1a3a1a',colorLight:'#fff'})
+  document.getElementById('qr-url-other').value=VIDEO_APP_URL
 }
 
 window.copyQrUrl=function(){
   const input=document.getElementById('qr-url')
+  navigator.clipboard?.writeText(input.value).then(
+    ()=>showToast(t('common.linkCopied'),'success'),
+    ()=>{input.select();document.execCommand('copy');showToast(t('common.linkCopied'),'success')}
+  )
+}
+
+window.copyQrUrlOther=function(){
+  const input=document.getElementById('qr-url-other')
   navigator.clipboard?.writeText(input.value).then(
     ()=>showToast(t('common.linkCopied'),'success'),
     ()=>{input.select();document.execCommand('copy');showToast(t('common.linkCopied'),'success')}

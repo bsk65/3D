@@ -507,6 +507,8 @@ select option{background:var(--surf);}
 .profil-modal-fields{display:flex;flex-direction:column;gap:10px;}
 .select-surface2{background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:10px 12px;font-size:15px;}
 .qr-phone-txt{color:var(--text-muted);font-size:14px;}
+.qr-app-heading{margin:0 0 2px;font-size:15px;color:var(--acc);}
+.qr-divider{height:1px;background:var(--bord);margin:16px 0;}
 .qr-canvas-wrap{margin:10px 0;}
 .qr-url-row{display:flex;gap:6px;align-items:center;margin-bottom:10px;}
 .qr-url-input{flex:1;background:var(--surf2);color:var(--txt);border:1px solid var(--bord);border-radius:8px;padding:8px 10px;font-size:13px;min-width:0;}

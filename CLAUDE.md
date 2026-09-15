@@ -107,6 +107,10 @@ Hele appen er oversat DA/EN via `js/i18n.js` (nøglebaseret opslag, se tabellen 
 | `users/{uid}/aktiv/runde` | Igangværende runde — slettes ved finish/abort |
 | `meetups` | "Skal vi skyde sammen"-aftaler — læsbar/skrivbar af opretter + `invitedUids`. TTL-policy på `expireAt`-feltet sat op manuelt i Firebase Console (ikke i denne repo) |
 
+## Søsterapp: Bue videotræning
+
+Separat repo/hosting (`/video/`) til video-optagelse/gennemsyn. De to apper krydslinker via QR-koder i QR-modalen (`showQR()`/`copyQrUrlOther()` i `js/app-init.js`, markup i `index.src.html`) — hver app viser sin egen QR øverst og søsterappens nederst, begge med en overskrift. Video-appens URL er hardcodet som `VIDEO_APP_URL` i `js/app-init.js`; hvis en af appernes hosting-adresse ændres, skal begge sider (denne konstant, og `OTHER_APP_URL` i video-appens `js/qr.js`) opdateres.
+
 ## fix_*.mjs Scripts
 
 The repo root contains one-off Firestore migration/fix scripts (`fix_rounds_firestore.mjs`, `fix_analyse2.mjs`, etc.). These are standalone Node scripts for data migrations — not part of the app build.
