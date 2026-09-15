@@ -467,7 +467,7 @@ window.renderAnalyse=function(){
   // brugbart data findes, i stedet for at vise en tom/forvirrende boks.
   const distInsights=calcDistanceInsights(rounds,viewingUid,state.courses)
   if(distInsights.hasData){
-    const bucketLabelKey={'0to10':'distBucket0to10','10to20':'distBucket10to20','20to30':'distBucket20to30'}
+    const bucketLabelKey={'5to15':'distBucket5to15','16to25':'distBucket16to25','26to30':'distBucket26to30'}
     const killLabel=distInsights.killLabel||t('analyse.killZoneLabel')
     html+=`<div class="card card-mb16">
       <div class="section-title-mb8">${t('analyse.distanceInsightsTitle')}</div>

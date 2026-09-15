@@ -199,6 +199,7 @@ select option{background:var(--surf);}
 .rtbl td{padding:5px 7px;border:1px solid var(--bord);text-align:center;}
 .rtbl tr:nth-child(even) td{background:var(--surf2);}
 .rtbl .tc{text-align:left;color:var(--muted);font-size:10px;}
+.rtbl .tc-avg{color:#fff;font-size:11px;}
 .rtbl .tr-tot td{font-weight:700;color:var(--acc);}
 .dist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:0 12px 14px;}
 .dist-card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--rs);padding:10px;cursor:zoom-in;}
