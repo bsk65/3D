@@ -158,7 +158,17 @@ export function calcDistanceInsights(rounds,userId,courses){
   const totalScore=activeBuckets.reduce((a,b)=>a+b.scoreSum,0)
   const overall=totalShots?{killPct:totalKills/totalShots*100,avgPerArrow:totalScore/totalShots}:null
   const eligible=activeBuckets.filter(b=>b.shots>=MIN_BUCKET_SHOTS)
-  const weakest=eligible.length?eligible.reduce((a,b)=>b.killPct<a.killPct?b:a):null
+  // Kræver mindst 2 sammenlignelige grupper - med kun én gruppe der har nok
+  // skud, ville den blive udråbt til "svageste" uden reelt at være
+  // sammenlignet med noget.
+  //
+  // Vælges ud fra avgPerArrow (point pr. pil), ikke killPct (andel 10'ere/
+  // 11'ere): en gruppe kan sagtens have en høj killPct men et lavere snit,
+  // hvis dens misser til gengæld er dyrere (flere 0'ere/lave scorer) end i en
+  // gruppe med lavere killPct men jævnt gode scorer uden for kill-zonen.
+  // avgPerArrow er det tal der reelt afgør pointtabet, og er samtidig det
+  // samme tal pointPotential herunder regner videre på.
+  const weakest=eligible.length>=2?eligible.reduce((a,b)=>b.avgPerArrow<a.avgPerArrow?b:a):null
 
   let pointPotential=null
   if(weakest&&overall&&weakest.avgPerArrow<overall.avgPerArrow&&bucketedRoundIds.size){
