@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-X2CwR9PN.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/assets/index-BKYqYfez.css">
+    <script type="module" crossorigin src="/3D/assets/index-zV5t7PXc.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-B-lvDmfQ.css">
   </head>
 <body>
 
@@ -599,6 +599,7 @@
 <!-- QR MODAL -->
 <div id="qr-modal" class="modal hidden">
   <div class="modal-box">
+    <h3 class="qr-app-heading">3D Bueskydning</h3>
     <h3>Bjarne Klausen</h3>
     <p class="qr-phone-txt">+45 91 89 17 00</p>
     <div id="qr-canvas" class="qr-canvas-wrap"></div>
@@ -606,6 +607,16 @@
       <input type="text" id="qr-url" class="qr-url-input" readonly onclick="this.select()" />
       <button class="btn-icon" onclick="copyQrUrl()">📋</button>
     </div>
+
+    <div class="qr-divider"></div>
+
+    <h3 class="qr-app-heading">Bue videotræning</h3>
+    <div id="qr-canvas-other" class="qr-canvas-wrap"></div>
+    <div class="qr-url-row">
+      <input type="text" id="qr-url-other" class="qr-url-input" readonly onclick="this.select()" />
+      <button class="btn-icon" onclick="copyQrUrlOther()">📋</button>
+    </div>
+
     <button class="btn btn-dark" onclick="document.getElementById('qr-modal').classList.add('hidden')" data-i18n="modals.qr.closeBtn">Luk</button>
   </div>
 </div>
