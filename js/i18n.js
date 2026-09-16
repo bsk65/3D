@@ -272,14 +272,14 @@ export const translations = {
       basedOnRoundsPlural:'Baseret på {n} runder fra andre skytter',
       distanceInsightsTitle:'AFSTANDS-ANALYSE',
       distanceInsightsSubtitle:'Andel skud der rammer {label} pr. afstandsgruppe',
-      distanceInsightsCoverage:'Baseret på {used} af {total} runder — kun runder spillet på baner med kendte mål-afstande tæller med',
+      distanceInsightsCoverage:'Baseret på {used} af {total} runder — kun runder gået på baner med kendte mål-afstande tæller med',
       distBucket5to15:'5-15 m', distBucket16to25:'16-25 m', distBucket26to30:'26-30 m',
       killZoneLabel:'kill-zonen',
       trendUp:'📈 Din score er steget {pct}% de seneste {weeks} uger',
       trendDown:'📉 Din score er faldet {pct}% de seneste {weeks} uger',
       trendFlat:'Din score har ligget stabilt de seneste {weeks} uger',
       trendNotEnoughData:'Ikke nok runder de seneste {weeks} uger til at vise en udvikling endnu',
-      weakestZone:'Din største svaghed er mål på {range}',
+      weakestZone:'Din største svaghed, målt på pilegennemsnit, er mål på {range}',
       pointPotential:'Hvis dit snit pr. pil på {range} kom op på dit samlede snit, svarer det til ca. +{n} point pr. runde'
     }
   },
@@ -554,7 +554,7 @@ export const translations = {
       trendDown:'📉 Your score has dropped {pct}% over the last {weeks} weeks',
       trendFlat:'Your score has been stable over the last {weeks} weeks',
       trendNotEnoughData:'Not enough rounds in the last {weeks} weeks to show a trend yet',
-      weakestZone:'Your biggest weakness is targets at {range}',
+      weakestZone:'Your biggest weakness, measured by average score per arrow, is targets at {range}',
       pointPotential:'If your average per arrow at {range} matched your overall average, that would be roughly +{n} points per round'
     }
   }
