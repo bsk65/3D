@@ -17,6 +17,7 @@ import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores, arrowsP
 import { parseRoute, formatDuration, formatDistance } from './gps.js'
 import { db, doc, deleteDoc } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
+import { playBurnEffect } from './burn.js'
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
 // Selve kort-indholdet (bruges både i det lille grid og i den forstørrede
@@ -155,6 +156,14 @@ function buildActualResults(round){
 }
 
 // ─── ROUNDS LIST ──────────────────────────────────────────────────────────────
+// Fælles sletning (krydset på rundelisten og "Afbrænd" i runde-popup'en).
+function deleteRound(r){
+  state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
+  if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
+  if(state.user&&r.courseId)deleteDoc(doc(db,'bane_stats',r.courseId,'runder',r.id)).catch(e=>console.warn(e))
+  if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
+}
+
 export function renderRoundsList(){
   const el=document.getElementById('rounds-list')
   if(!state.rounds.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div>${t('results.empty')}</div>`;return}
@@ -175,10 +184,7 @@ export function renderRoundsList(){
         setTimeout(()=>{delete state.deleteConfirm[key];btn.classList.remove('conf');btn.textContent='✕'},3000)
       }else{
         delete state.deleteConfirm[key]
-        state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
-        if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
-        if(state.user&&r.courseId)deleteDoc(doc(db,'bane_stats',r.courseId,'runder',r.id)).catch(e=>console.warn(e))
-        if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
+        deleteRound(r)
       }
     }
     el.appendChild(card)
@@ -200,8 +206,30 @@ export function showRoundPopup(round){window._lastRound=round;
   const durStr=gpsDuration?formatDuration(gpsDuration):null
   const distStr=gpsDistance?formatDistance(gpsDistance):null
   const gpsHtml=(distStr||durStr)?`<div class="rpop-gps-row">${distStr?`<div class="rpop-gps-box"><div class="rpop-gps-val">${distStr}</div><div class="rpop-gps-lbl">${t('results.popupDistance')}</div></div>`:''}${durStr?`<div class="rpop-gps-box"><div class="rpop-gps-val">${durStr}</div><div class="rpop-gps-lbl">${t('results.popupTime')}</div></div>`:''}</div>${gpsRoute?`<div id="rpop-map"></div>`:''}`:'';
-  document.getElementById('rpop-body').innerHTML=`<h3 class="rpop-title">${esc(round.name)}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<button class="btn btn-gold rpop-send-btn" onclick="window.sendResults(window._lastRound)">${t('results.sendResultsBtn')}</button>`
+  // Kun egne, gemte runder kan afbrændes.
+  const canBurn=!!round.id&&state.rounds.some(x=>x.id===round.id)
+  document.getElementById('rpop-body').innerHTML=`<h3 class="rpop-title">${esc(round.name)}</h3>${gpsHtml}`+buildSummaryCards(round)+buildResultsTable(round)+buildActualResults(round)+`<div class="rpop-actions"><button class="btn btn-gold rpop-send-btn" onclick="window.sendResults(window._lastRound)">${t('results.sendResultsBtn')}</button>${canBurn?`<button class="btn btn-red rpop-burn-btn" onclick="window.burnRound(this)">${t('results.burnBtn')}</button>`:''}</div>`
   if(gpsRoute){const pts=parseRoute(gpsRoute);if(pts.length)setTimeout(()=>{const mapEl=document.getElementById('rpop-map');if(!mapEl)return;state.rpopMap=window.L.map(mapEl);window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19}).addTo(state.rpopMap);const poly=window.L.polyline(pts.map(p=>[p.lat,p.lng]),{color:'#e8a020',weight:3}).addTo(state.rpopMap);state.rpopMap.fitBounds(poly.getBounds(),{padding:[20,20]})},50)}
+}
+
+// "Afbrænd": første tryk beder om bekræftelse (som krydset på listen), andet
+// tryk sætter ild til runden — den slettes når ilden dækker skærmen.
+window.burnRound=function(btn){
+  const round=window._lastRound
+  const r=round?.id&&state.rounds.find(x=>x.id===round.id)
+  if(!r||btn.disabled)return
+  if(!btn.classList.contains('conf')){
+    btn.classList.add('conf');btn.textContent=t('results.burnConfirm')
+    clearTimeout(btn._burnT)
+    btn._burnT=setTimeout(()=>{btn.classList.remove('conf');btn.textContent=t('results.burnBtn')},3000)
+    return
+  }
+  clearTimeout(btn._burnT);btn.disabled=true
+  const pop=document.getElementById('round-popup')
+  playBurnEffect(pop?.querySelector('.rpop-box'),{
+    shakeEl:pop,
+    onPeak:()=>{pop?.classList.add('hidden');deleteRound(r)}
+  }).then(()=>showToast(t('results.burned')))
 }
 
 window.sendResults=async function(round){
