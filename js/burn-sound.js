@@ -3,8 +3,6 @@
 //   • et "woosh" når ilden antændes
 //   • brølende ild (filtreret støj), der vokser mod toppen og dør ud
 //   • knitren/knald med stigende tæthed
-//   • en dyb, dæmonisk latter ("MWAA-HA-HA-HA-HA-HAAAA") med ekko, når
-//     ilden topper — formant-syntese af vokalerne med sub-oktav og knurren.
 //
 // playBurnSound() skal kaldes direkte fra et klik (browsere — især iOS —
 // tillader kun lyd startet af en brugerhandling). På iPhone er Web Audio
@@ -71,9 +69,6 @@ export function buildBurnSound(ac,dest,{start=0,peakAt=2.9,fadeAt=3.6,fadeDur=1.
       t+=-Math.log(1-Math.random())/(6+39*k)
     }
   }
-
-  // ── Dæmonisk latter ──
-  laugh(ac,master,tPeak-0.35)
 }
 
 export function playBurnSound(opts){
@@ -84,7 +79,7 @@ export function playBurnSound(opts){
   try{ac.resume?.()}catch(e){}
   buildBurnSound(ac,ac.destination,{...opts,start:ac.currentTime+0.03})
   // Luk konteksten når alt har spillet færdigt (frigiver lydhardwaren).
-  setTimeout(()=>{try{ac.close()}catch(e){}},((opts?.fadeAt??3.6)+5)*1000)
+  setTimeout(()=>{try{ac.close()}catch(e){}},((opts?.fadeAt??3.6)+(opts?.fadeDur??1.3)+1)*1000)
 }
 
 // ─── hjælpere ───────────────────────────────────────────────────────────────
@@ -105,100 +100,4 @@ function envelope(param,t0,tPeak,tFade,tEnd,peak){
   param.linearRampToValueAtTime(peak,tPeak)
   param.setValueAtTime(peak,tFade)
   param.linearRampToValueAtTime(0.0001,tEnd)
-}
-function distCurve(k){
-  const n=1024,c=new Float32Array(n)
-  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(1+k)*x/(1+k*Math.abs(x))}
-  return c
-}
-
-// Formanter (Hz) for en dyb mandestemme — sænket ~15% for et "større" svælg.
-const VOWEL={
-  u:[260,700,2100],
-  a:[620,930,2100],
-  o:[480,720,2050]
-}
-
-function laugh(ac,out,start){
-  // Efterbehandling: let forvrængning + mørkt ekko ("hule")
-  const pre=ac.createGain();pre.gain.value=2.2
-  const shaper=ac.createWaveShaper();shaper.curve=distCurve(6);shaper.oversample='2x'
-  const post=ac.createGain();post.gain.value=0.9
-  const delay=ac.createDelay(1);delay.delayTime.value=0.26
-  const fb=ac.createGain();fb.gain.value=0.42
-  const dark=ac.createBiquadFilter();dark.type='lowpass';dark.frequency.value=1800
-  const wet=ac.createGain();wet.gain.value=0.55
-  pre.connect(shaper);shaper.connect(post);post.connect(out)
-  post.connect(delay);delay.connect(dark);dark.connect(fb);fb.connect(delay);dark.connect(wet);wet.connect(out)
-
-  // Formantbank (3 parallelle båndpas), som vokalen glider imellem
-  const forms=[0,1,2].map(i=>{
-    const f=ac.createBiquadFilter();f.type='bandpass';f.Q.value=[7,9,11][i]
-    const g=ac.createGain();g.gain.value=[3.2,2.0,0.9][i]
-    f.connect(g);g.connect(pre)
-    return f
-  })
-  const setVowel=(v,t,glide=0.05)=>forms.forEach((f,i)=>{
-    f.frequency.setTargetAtTime(VOWEL[v][i],t,glide)
-  })
-
-  // Stemmekilde: to let forstemte savtakker + sub-oktav-firkant
-  const voice=ac.createGain();voice.gain.value=0
-  const fry=ac.createGain();fry.gain.value=1          // knurren (amplitudemod.)
-  const oscs=[['sawtooth',1,0],['sawtooth',1,14],['square',0.5,0]].map(([type,mul,det])=>{
-    const o=ac.createOscillator();o.type=type;o.detune.value=det
-    const g=ac.createGain();g.gain.value=type==='square'?0.45:0.5
-    o.connect(g);g.connect(fry);o._mul=mul
-    return o
-  })
-  fry.connect(voice);forms.forEach(f=>voice.connect(f))
-  const growl=ac.createOscillator();growl.frequency.value=31
-  const growlG=ac.createGain();growlG.gain.value=0.45
-  growl.connect(growlG);growlG.connect(fry.gain)
-
-  // Aspiration ("h") — støj gennem samme formanter
-  const hSrc=loopNoise(ac,makeNoise(ac,1))
-  const hGain=ac.createGain();hGain.gain.value=0
-  hSrc.connect(hGain);forms.forEach(f=>hGain.connect(f))
-
-  const setF0=(f,t,glideTo,dur)=>oscs.forEach(o=>{
-    o.frequency.setValueAtTime(f*o._mul,t)
-    o.frequency.exponentialRampToValueAtTime(glideTo*o._mul,t+dur)
-  })
-
-  // Stavelser: [vokal, start-vokal, varighed, pause efter, f0 start, f0 slut, h?]
-  const syl=[
-    ['a','u',0.55,0.10,92,84,false],   // "MWAA"
-    ['a','a',0.17,0.06,118,104,true],  // HA
-    ['a','a',0.17,0.06,114,100,true],  // HA
-    ['a','a',0.17,0.06,108,95,true],   // HA
-    ['a','a',0.17,0.06,102,90,true],   // HA
-    ['a','a',0.17,0.07,96,84,true],    // HA
-    ['o','a',1.10,0,   90,58,true]     // HAAAOOO
-  ]
-  let t=start
-  setVowel('u',t,0.001)
-  for(const [v,v0,dur,gap,f0,f1,h] of syl){
-    const on=h?0.05:0.02
-    if(h){
-      hGain.gain.setValueAtTime(0,t)
-      hGain.gain.linearRampToValueAtTime(0.5,t+0.012)
-      hGain.gain.linearRampToValueAtTime(0,t+on+0.02)
-    }
-    setVowel(v0,t,0.005);setVowel(v,t+on,dur*0.25)
-    setF0(f0,t+on,f1,dur)
-    voice.gain.setValueAtTime(0,t+on*0.6)
-    voice.gain.linearRampToValueAtTime(1,t+on+0.03)
-    voice.gain.setValueAtTime(1,t+on+dur*0.55)
-    voice.gain.exponentialRampToValueAtTime(0.001,t+on+dur)
-    t+=on+dur+gap
-  }
-  // Langsom vibrato på det sidste lange "HAAAOOO"
-  const vib=ac.createOscillator();vib.frequency.value=5.5
-  const vibG=ac.createGain();vibG.gain.setValueAtTime(0,start);vibG.gain.setValueAtTime(40,t-1.0)
-  vib.connect(vibG);oscs.forEach(o=>vibG.connect(o.detune))
-
-  const end=t+0.1
-  ;[...oscs,growl,vib].forEach(o=>{o.start(start);o.stop(end)})
-  hSrc.start(start);hSrc.stop(end)
 }
