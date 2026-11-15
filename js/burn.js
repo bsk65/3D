@@ -33,7 +33,7 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
     const W=cv.width=window.innerWidth, H=cv.height=window.innerHeight
     const scale=Math.max(0.7,H/800)
     const ctx=cv.getContext('2d')
-    const fire=[makeSprite(255,250,220),makeSprite(255,205,70),makeSprite(255,120,20),makeSprite(200,40,10)]
+    const fire=[makeSprite(255,200,80),makeSprite(255,130,20),makeSprite(230,60,5),makeSprite(140,20,0)]
     const smoke=makeSprite(35,28,24)
     const rect=targetEl?.getBoundingClientRect()
     const parts=[]
@@ -54,19 +54,33 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
       if(Math.random()<0.5)parts.push({k:'s',x:Math.random()*W,y:front,vx:(Math.random()-.5),vy:-(1+Math.random()*1.5)*scale,life:0,max:90,size:(90+Math.random()*90)*scale})
     }
 
+    function finish(){
+      if(ending)return
+      ending=true
+      if(!peaked){peaked=true;try{onPeak?.()}catch(e){console.warn(e)}}
+      ov.classList.add('out')
+      setTimeout(()=>{
+        ov.remove();targetEl?.classList.remove('burning');shakeEl?.classList.remove('burn-shake')
+        resolve()
+      },FADE)
+    }
+    // Sikkerhedsnet: uanset hvad der sker i tegne-loopet, slutter effekten.
+    setTimeout(finish,DUR+500)
+
     function frame(now){
+      try{draw(now)}catch(e){console.warn(e);finish();return}
+      if(ov.isConnected)requestAnimationFrame(frame)
+    }
+
+    function draw(now){
+      // rAF's tidsstempel kan ligge FØR t0 (frame-start) — clamp, ellers bliver
+      // dt/levetid negativ og sprite-opslaget fire[-1] fejler.
+      now=Math.max(now,t0,last)
       const p=(now-t0)/DUR
       const dt=Math.min(3,(now-last)/16.7);last=now
       if(p<1)spawn(p)
       if(!peaked&&p>=0.8){peaked=true;try{onPeak?.()}catch(e){console.warn(e)}}
-      if(!ending&&p>=1){
-        ending=true
-        ov.classList.add('out')
-        setTimeout(()=>{
-          ov.remove();targetEl?.classList.remove('burning');shakeEl?.classList.remove('burn-shake')
-          resolve()
-        },FADE)
-      }
+      if(p>=1)finish()
       ctx.clearRect(0,0,W,H)
       // Røg under ilden (normal blanding), flammer/gløder additivt ovenpå.
       ctx.globalCompositeOperation='source-over'
@@ -86,9 +100,11 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
           ctx.drawImage(fire[1],q.x-q.size/2,q.y-q.size/2,q.size,q.size)
           continue
         }
-        ctx.globalAlpha=(1-r)*0.8
-        const s=q.size*(1-r*0.5)
-        ctx.drawImage(fire[Math.min(3,Math.floor(r*4))],q.x-s/2,q.y-s/2,s,s)
+        // Lavere alpha så overlap ikke mætter til hvidt; strakt i højden
+        // (tunge-form) så det ligner flammer frem for runde lyskugler.
+        ctx.globalAlpha=(1-r)*0.42
+        const s=q.size*(1-r*0.5), h=s*1.8
+        ctx.drawImage(fire[Math.max(0,Math.min(3,Math.floor(r*4)))],q.x-s/2,q.y-h*0.7,s,h)
       }
       ctx.globalAlpha=1
       for(let i=parts.length-1;i>=0;i--){
@@ -97,7 +113,6 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
         if(q.k==='e')q.vx+=(Math.random()-.5)*0.6*dt
         if(q.life>=q.max)parts.splice(i,1)
       }
-      if(!ending||ov.isConnected)requestAnimationFrame(frame)
     }
     requestAnimationFrame(frame)
   })
