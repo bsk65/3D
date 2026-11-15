@@ -63,7 +63,8 @@ export const translations = {
       actualAvgPerArrow:'SNT/PIL', actualAvgPerTarget:'SNT/MÅL',
       popupDistance:'DISTANCE', popupTime:'TID',
       sendResultsBtn:'📧 Send resultater', doneBtn:'Afslut',
-      noRoundToSend:'Ingen runde at sende'
+      noRoundToSend:'Ingen runde at sende',
+      burnBtn:'🔥 Afbrænd', burnConfirm:'Sikker? 🔥', burned:'Resultatet er brændt til aske 🔥'
     },
     email: {
       header:'3D Bueskydning - Resultater', subjectPrefix:'3D Bueskydning - ',
@@ -338,7 +339,8 @@ export const translations = {
       actualAvgPerArrow:'AVG/ARROW', actualAvgPerTarget:'AVG/TARGET',
       popupDistance:'DISTANCE', popupTime:'TIME',
       sendResultsBtn:'📧 Send results', doneBtn:'Done',
-      noRoundToSend:'No round to send'
+      noRoundToSend:'No round to send',
+      burnBtn:'🔥 Burn', burnConfirm:'Sure? 🔥', burned:'The result has been burned to ashes 🔥'
     },
     email: {
       header:'3D Archery - Results', subjectPrefix:'3D Archery - ',
