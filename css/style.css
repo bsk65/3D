@@ -266,8 +266,11 @@ select option{background:var(--surf);}
 @keyframes burn-glow{0%{opacity:0}55%{opacity:.6}100%{opacity:1}}
 .burning{animation:burn-char 2.9s ease-in forwards;transform-origin:50% 100%;}
 @keyframes burn-char{0%{filter:none}25%{filter:sepia(1) saturate(3) brightness(1.25)}60%{filter:sepia(1) brightness(.45) contrast(1.5);transform:scale(.97) rotate(-.6deg)}100%{filter:brightness(0) blur(4px);transform:scale(.55) translateY(60px) rotate(4deg);opacity:0}}
-.burn-shake{animation:burn-shake .09s linear infinite;}
-@keyframes burn-shake{0%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}50%{transform:translate(2px,-3px)}75%{transform:translate(-2px,-1px)}100%{transform:translate(3px,1px)}}
+.burn-shake{animation:burn-shake .08s linear infinite;}
+@keyframes burn-shake{0%{transform:translate(0,0)}25%{transform:translate(-6px,4px) rotate(-.4deg)}50%{transform:translate(5px,-5px)}75%{transform:translate(-4px,-2px) rotate(.4deg)}100%{transform:translate(6px,2px)}}
+.burn-flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 60%,rgba(255,255,230,.95),rgba(255,190,60,.7) 40%,rgba(255,90,0,0) 80%);}
+.burn-flash.on{animation:burn-flash .7s ease-out forwards;}
+@keyframes burn-flash{0%{opacity:0}12%{opacity:.9}100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){.burn-glow{animation-duration:1.2s}.burning{animation-duration:1s}.burn-ov{transition-duration:.4s}}
 .del-btn{background:none;border:none;color:var(--danger);font-size:19px;cursor:pointer;padding:4px 6px;}
 .del-btn.conf{background:var(--danger);color:#fff;font-size:11px;padding:5px 8px;border-radius:5px;}

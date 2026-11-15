@@ -8,6 +8,8 @@
 // skaleres blødt op til fuld skærm. Varmetabet sænkes over tid, så flammerne
 // vokser fra bunden og op over hele skærmen. Gnister tegnes ovenpå.
 
+import { playBurnSound } from './burn-sound.js'
+
 const CELL=5            // pixels pr. varmecelle (lavere = skarpere, men tungere)
 
 // Farveskala varme 0..255 → RGBA (gennemsigtig → mørkerød → orange → gul → hvid)
@@ -53,7 +55,9 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
     const ov=document.createElement('div');ov.className='burn-ov'
     const glow=document.createElement('div');glow.className='burn-glow'
     const cv=document.createElement('canvas');cv.className='burn-canvas'
-    ov.append(glow,cv);document.body.appendChild(ov)
+    const flash=document.createElement('div');flash.className='burn-flash'
+    ov.append(glow,cv,flash);document.body.appendChild(ov)
+    try{playBurnSound({peakAt:DUR*0.8/1000,fadeAt:DUR/1000,fadeDur:FADE/1000})}catch(e){console.warn(e)}
     targetEl?.classList.add('burning')
     if(!reduce)shakeEl?.classList.add('burn-shake')
     try{navigator.vibrate?.([80,40,160,60,300,80,500])}catch(e){}
@@ -69,6 +73,10 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
     const pal=buildPalette()
     const spark=makeSpark()
     const sparks=[]
+    // Pr. kolonne: hvor let varmen slipper (lav = høj flammetunge). Driver
+    // tilfældigt og udglattes, så der opstår høje, vilde tunger hist og her.
+    const colMul=new Float32Array(cw).fill(1)
+    let gust=0
     const rect=targetEl?.getBoundingClientRect()
     const box=rect&&{x0:Math.max(0,rect.left/CELL|0),x1:Math.min(cw-1,rect.right/CELL|0),y0:Math.max(0,rect.top/CELL|0),y1:Math.min(ch-1,rect.bottom/CELL|0)}
 
@@ -99,6 +107,19 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
         const lvl=Math.min(255,(p-0.1)*900), row=box.y1*cw
         for(let x=box.x0;x<=box.x1;x++){const v=Math.max(0,lvl-(Math.random()*60|0));if(v>heat[row+x])heat[row+x]=v}
       }
+      // Kolonne-variation: tilfældig drift + udglatning
+      for(let x=0;x<cw;x++){let m=colMul[x]+(Math.random()-0.5)*0.18;colMul[x]=m<0.3?0.3:m>1.5?1.5:m}
+      for(let x=1;x<cw-1;x++)colMul[x]=(colMul[x-1]+colMul[x]*2+colMul[x+1])*0.25
+      // Ildkugler: pludselige opblus der stiger op og brænder ud
+      if(!ending&&p>0.25&&Math.random()<0.12+p*0.2){
+        const cx=Math.random()*cw|0, cy=(ch*(0.35+Math.random()*0.6))|0, rad=3+(Math.random()*5|0)
+        for(let yy=-rad;yy<=rad;yy++)for(let xx=-rad;xx<=rad;xx++){
+          if(xx*xx+yy*yy>rad*rad)continue
+          const X=cx+xx,Y=cy+yy;if(X<0||X>=cw||Y<0||Y>=ch)continue
+          const i=Y*cw+X;heat[i]=Math.max(heat[i],230+(Math.random()*25|0))
+        }
+      }
+      const gAbs=Math.abs(gust), gDir=gust<0?-1:1
       for(let y=1;y<ch;y++){
         const row=y*cw, up=row-cw
         for(let x=0;x<cw;x++){
@@ -108,8 +129,9 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
           }
           const r=Math.random()
           let dx=x+((r*3|0)-1)            // tilfældigt sidevind −1..1
+          if(Math.random()<gAbs)dx+=gDir   // + vindstød
           if(dx<0)dx=0;else if(dx>=cw)dx=cw-1
-          const d=(r*decay)|0
+          const d=(r*decay*colMul[x])|0
           heat[up+dx]=v>d?v-d:0
         }
       }
@@ -141,14 +163,20 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
       now=Math.max(now,t0,last)
       const p=(now-t0)/DUR
       const dtMs=Math.min(50,now-last);last=now
-      if(!peaked&&p>=0.8){peaked=true;try{onPeak?.()}catch(e){console.warn(e)}}
+      if(!peaked&&p>=0.8){
+        peaked=true;flash.classList.add('on')
+        try{navigator.vibrate?.([250,60,500])}catch(e){}
+        try{onPeak?.()}catch(e){console.warn(e)}
+      }
       if(p>=1)finish()
+      // Vindstød: to overlejrede bølger → ilden svajer frem og tilbage
+      gust=Math.sin(now/380)*0.45+Math.sin(now/137)*0.25
 
       // Flammehøjde: gennemsnitligt varmetab pr. række er ≈ decay/2, så
       // flammerne når ≈ 510/decay rækker op. Start med lave bundflammer og
-      // nå forbi toppen af skærmen efter 65% af tiden.
-      const k=Math.min(1,p/0.65), e=k*k*(3-2*k)
-      const dMin=380/ch, dMax=Math.max(dMin,40)
+      // nå et godt stykke forbi toppen af skærmen efter 55% af tiden.
+      const k=Math.min(1,p/0.55), e=k*k*(3-2*k)
+      const dMin=300/ch, dMax=Math.max(dMin,40)
       const decay=dMax-(dMax-dMin)*e
 
       acc+=dtMs
@@ -157,7 +185,7 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
       while(acc>=8&&n<6){step(decay,p);acc-=8;n++}
       if(n===6)acc=0
 
-      if(!ending&&p<1)for(let i=0;i<4;i++)sparks.push({x:Math.random()*W,y:H*(0.4+Math.random()*0.6),vx:(Math.random()-.5)*3,vy:-(4+Math.random()*8),life:0,max:40+Math.random()*50,size:3+Math.random()*5})
+      if(!ending&&p<1)for(let i=0;i<4+p*10;i++)sparks.push({x:Math.random()*W,y:H*(0.3+Math.random()*0.7),vx:(Math.random()-.5)*4+gust*4,vy:-(5+Math.random()*12),life:0,max:40+Math.random()*60,size:3+Math.random()*7})
       const dt=dtMs/16.7
       for(let i=sparks.length-1;i>=0;i--){
         const s=sparks[i]
