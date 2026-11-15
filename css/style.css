@@ -261,7 +261,7 @@ select option{background:var(--surf);}
 /* Afbrænd-effekt (js/burn.js) */
 .burn-ov{position:fixed;inset:0;z-index:9000;pointer-events:auto;transition:opacity 1.1s ease;}
 .burn-ov.out{opacity:0;}
-.burn-canvas{position:absolute;inset:0;width:100%;height:100%;}
+.burn-canvas{position:absolute;inset:0;width:100%;height:100%;filter:blur(2.5px) saturate(1.15);}
 .burn-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 115%,rgba(255,150,30,.9),rgba(190,35,0,.75) 50%,rgba(25,0,0,.95) 100%);opacity:0;animation:burn-glow 3.6s ease-in forwards;}
 @keyframes burn-glow{0%{opacity:0}55%{opacity:.6}100%{opacity:1}}
 .burning{animation:burn-char 2.9s ease-in forwards;transform-origin:50% 100%;}

@@ -1,18 +1,46 @@
-// js/burn.js — "Afbrænd"-effekten: en fuldskærms-brand tegnet med canvas-
-// partikler (flammer, gløder, røg), mens det brændende element forkuller og
-// smuldrer. Ren visuel effekt — ingen data/Firebase her; kalderen sletter selv
-// (typisk i onPeak, når ilden dækker hele skærmen).
+// js/burn.js — "Afbrænd"-effekten: en fuldskærms-brand, mens det brændende
+// element forkuller og smuldrer. Ren visuel effekt — ingen data/Firebase her;
+// kalderen sletter selv (typisk i onPeak, når ilden dækker hele skærmen).
+//
+// Ilden er et lav-opløst "varmefelt" (klassisk demoscene-ild): bundrækken er
+// glødende, og hver celle løfter sin varme én række op med lidt tilfældigt
+// sidevind og tilfældigt varmetab. Det giver flakkende flammetunger, som
+// skaleres blødt op til fuld skærm. Varmetabet sænkes over tid, så flammerne
+// vokser fra bunden og op over hele skærmen. Gnister tegnes ovenpå.
 
-// Forhåndstegnede bløde "klatter" i flammens farver — drawImage af små
-// sprites er langt billigere end at lave gradienter pr. partikel pr. frame.
-function makeSprite(r,g,b){
-  const c=document.createElement('canvas');c.width=c.height=64
+const CELL=5            // pixels pr. varmecelle (lavere = skarpere, men tungere)
+
+// Farveskala varme 0..255 → RGBA (gennemsigtig → mørkerød → orange → gul → hvid)
+function buildPalette(){
+  const pal=new Uint32Array(256)
+  const stops=[
+    [0,   0,  0,  0,  0],
+    [0.12,60, 0,  0,  90],
+    [0.30,170,20, 0,  210],
+    [0.50,235,80, 5,  245],
+    [0.70,255,150,20, 255],
+    [0.88,255,215,90, 255],
+    [1,   255,250,220,255]
+  ]
+  for(let i=0;i<256;i++){
+    const t=i/255
+    let k=0;while(k<stops.length-2&&t>stops[k+1][0])k++
+    const a=stops[k],b=stops[k+1],f=(t-a[0])/(b[0]-a[0])
+    const c=j=>Math.round(a[j]+(b[j]-a[j])*f)
+    // ImageData er RGBA i hukommelsen = ABGR som little-endian Uint32
+    pal[i]=(c(4)<<24|c(3)<<16|c(2)<<8|c(1))>>>0
+  }
+  return pal
+}
+
+function makeSpark(){
+  const c=document.createElement('canvas');c.width=c.height=32
   const x=c.getContext('2d')
-  const gr=x.createRadialGradient(32,32,0,32,32,32)
-  gr.addColorStop(0,`rgba(${r},${g},${b},1)`)
-  gr.addColorStop(0.4,`rgba(${r},${g},${b},0.55)`)
-  gr.addColorStop(1,`rgba(${r},${g},${b},0)`)
-  x.fillStyle=gr;x.fillRect(0,0,64,64)
+  const gr=x.createRadialGradient(16,16,0,16,16,16)
+  gr.addColorStop(0,'rgba(255,240,180,1)')
+  gr.addColorStop(0.3,'rgba(255,160,40,0.8)')
+  gr.addColorStop(1,'rgba(255,80,0,0)')
+  x.fillStyle=gr;x.fillRect(0,0,32,32)
   return c
 }
 
@@ -21,7 +49,7 @@ function makeSprite(r,g,b){
 export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
   return new Promise(resolve=>{
     const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const DUR=reduce?1200:3600, FADE=reduce?400:1100
+    const DUR=reduce?1200:3600, FADE=reduce?400:1300
     const ov=document.createElement('div');ov.className='burn-ov'
     const glow=document.createElement('div');glow.className='burn-glow'
     const cv=document.createElement('canvas');cv.className='burn-canvas'
@@ -31,33 +59,27 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
     try{navigator.vibrate?.([80,40,160,60,300,80,500])}catch(e){}
 
     const W=cv.width=window.innerWidth, H=cv.height=window.innerHeight
-    const scale=Math.max(0.7,H/800)
     const ctx=cv.getContext('2d')
-    const fire=[makeSprite(255,200,80),makeSprite(255,130,20),makeSprite(230,60,5),makeSprite(140,20,0)]
-    const smoke=makeSprite(35,28,24)
+    const cw=Math.ceil(W/CELL), ch=Math.ceil(H/CELL)+2
+    const heat=new Uint8Array(cw*ch)
+    const fireCv=document.createElement('canvas');fireCv.width=cw;fireCv.height=ch
+    const fctx=fireCv.getContext('2d')
+    const img=fctx.createImageData(cw,ch)
+    const px=new Uint32Array(img.data.buffer)
+    const pal=buildPalette()
+    const spark=makeSpark()
+    const sparks=[]
     const rect=targetEl?.getBoundingClientRect()
-    const parts=[]
-    const t0=performance.now()
-    let peaked=false, ending=false, last=t0
+    const box=rect&&{x0:Math.max(0,rect.left/CELL|0),x1:Math.min(cw-1,rect.right/CELL|0),y0:Math.max(0,rect.top/CELL|0),y1:Math.min(ch-1,rect.bottom/CELL|0)}
 
-    function spawn(p){
-      // Ildfronten kravler fra bunden op over hele skærmen.
-      const front=H*(1-Math.min(1,p*1.35))
-      const n=Math.round(6+p*30)
-      for(let i=0;i<n&&parts.length<900;i++){
-        let x,y
-        if(rect&&Math.random()<0.3){x=rect.left+Math.random()*rect.width;y=rect.top+Math.random()*rect.height}
-        else{x=Math.random()*W;y=front+Math.random()*(H-front+60)}
-        parts.push({k:'f',x,y,vx:(Math.random()-.5)*1.4,vy:-(2+Math.random()*4)*scale,life:0,max:35+Math.random()*40,size:(40+Math.random()*70)*(0.6+p)*scale})
-      }
-      for(let i=0;i<3;i++)parts.push({k:'e',x:Math.random()*W,y:H+10,vx:(Math.random()-.5)*4,vy:-(6+Math.random()*9)*scale,life:0,max:50+Math.random()*50,size:4+Math.random()*4})
-      if(Math.random()<0.5)parts.push({k:'s',x:Math.random()*W,y:front,vx:(Math.random()-.5),vy:-(1+Math.random()*1.5)*scale,life:0,max:90,size:(90+Math.random()*90)*scale})
-    }
+    const t0=performance.now()
+    let peaked=false, ending=false, last=t0, acc=0, source=255
 
     function finish(){
       if(ending)return
       ending=true
       if(!peaked){peaked=true;try{onPeak?.()}catch(e){console.warn(e)}}
+      source=0   // sluk bundglød — flammerne løfter sig og dør ud af sig selv
       ov.classList.add('out')
       setTimeout(()=>{
         ov.remove();targetEl?.classList.remove('burning');shakeEl?.classList.remove('burn-shake')
@@ -67,6 +89,47 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
     // Sikkerhedsnet: uanset hvad der sker i tegne-loopet, slutter effekten.
     setTimeout(finish,DUR+500)
 
+    // Ét simuleringsskridt. decay = maks. varmetab pr. række (styrer højden).
+    function step(decay,p){
+      const base=(ch-1)*cw
+      for(let x=0;x<cw;x++)heat[base+x]=source?Math.max(0,source-(Math.random()*40|0)):0
+      // Det brændende kort: dets underkant bliver en ekstra glødelinje, så
+      // flammer slikker op gennem kortet (det forkuller samtidig via CSS).
+      if(box&&!ending&&p>0.1){
+        const lvl=Math.min(255,(p-0.1)*900), row=box.y1*cw
+        for(let x=box.x0;x<=box.x1;x++){const v=Math.max(0,lvl-(Math.random()*60|0));if(v>heat[row+x])heat[row+x]=v}
+      }
+      for(let y=1;y<ch;y++){
+        const row=y*cw, up=row-cw
+        for(let x=0;x<cw;x++){
+          const v=heat[row+x]
+          if(!v){ // kold celle: køl blot cellen over lidt af
+            const u=up+x; if(heat[u])heat[u]=heat[u]>8?heat[u]-8:0; continue
+          }
+          const r=Math.random()
+          let dx=x+((r*3|0)-1)            // tilfældigt sidevind −1..1
+          if(dx<0)dx=0;else if(dx>=cw)dx=cw-1
+          const d=(r*decay)|0
+          heat[up+dx]=v>d?v-d:0
+        }
+      }
+    }
+
+    function render(){
+      for(let i=0;i<px.length;i++)px[i]=pal[heat[i]]
+      fctx.putImageData(img,0,0)
+      ctx.clearRect(0,0,W,H)
+      ctx.imageSmoothingEnabled=true
+      ctx.globalCompositeOperation='source-over'
+      ctx.drawImage(fireCv,0,0,cw,ch,0,0,cw*CELL,ch*CELL)
+      ctx.globalCompositeOperation='lighter'
+      for(const s of sparks){
+        ctx.globalAlpha=Math.max(0,1-s.life/s.max)
+        ctx.drawImage(spark,s.x-s.size/2,s.y-s.size/2,s.size,s.size)
+      }
+      ctx.globalAlpha=1
+    }
+
     function frame(now){
       try{draw(now)}catch(e){console.warn(e);finish();return}
       if(ov.isConnected)requestAnimationFrame(frame)
@@ -74,45 +137,34 @@ export function playBurnEffect(targetEl,{shakeEl=null,onPeak=null}={}){
 
     function draw(now){
       // rAF's tidsstempel kan ligge FØR t0 (frame-start) — clamp, ellers bliver
-      // dt/levetid negativ og sprite-opslaget fire[-1] fejler.
+      // tiden negativ.
       now=Math.max(now,t0,last)
       const p=(now-t0)/DUR
-      const dt=Math.min(3,(now-last)/16.7);last=now
-      if(p<1)spawn(p)
+      const dtMs=Math.min(50,now-last);last=now
       if(!peaked&&p>=0.8){peaked=true;try{onPeak?.()}catch(e){console.warn(e)}}
       if(p>=1)finish()
-      ctx.clearRect(0,0,W,H)
-      // Røg under ilden (normal blanding), flammer/gløder additivt ovenpå.
-      ctx.globalCompositeOperation='source-over'
-      for(const q of parts){
-        if(q.k!=='s')continue
-        const r=q.life/q.max
-        ctx.globalAlpha=0.35*Math.sin(Math.PI*r)
-        const s=q.size*(1+r)
-        ctx.drawImage(smoke,q.x-s/2,q.y-s/2,s,s)
+
+      // Flammehøjde: gennemsnitligt varmetab pr. række er ≈ decay/2, så
+      // flammerne når ≈ 510/decay rækker op. Start med lave bundflammer og
+      // nå forbi toppen af skærmen efter 65% af tiden.
+      const k=Math.min(1,p/0.65), e=k*k*(3-2*k)
+      const dMin=380/ch, dMax=Math.max(dMin,40)
+      const decay=dMax-(dMax-dMin)*e
+
+      acc+=dtMs
+      let n=0
+      // ~2 skridt pr. 60Hz-frame: flammerne stiger ~2 rækker pr. frame.
+      while(acc>=8&&n<6){step(decay,p);acc-=8;n++}
+      if(n===6)acc=0
+
+      if(!ending&&p<1)for(let i=0;i<4;i++)sparks.push({x:Math.random()*W,y:H*(0.4+Math.random()*0.6),vx:(Math.random()-.5)*3,vy:-(4+Math.random()*8),life:0,max:40+Math.random()*50,size:3+Math.random()*5})
+      const dt=dtMs/16.7
+      for(let i=sparks.length-1;i>=0;i--){
+        const s=sparks[i]
+        s.life+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.vx+=(Math.random()-.5)*0.8*dt
+        if(s.life>=s.max||s.y<-20)sparks.splice(i,1)
       }
-      ctx.globalCompositeOperation='lighter'
-      for(const q of parts){
-        if(q.k==='s')continue
-        const r=q.life/q.max
-        if(q.k==='e'){
-          ctx.globalAlpha=1-r
-          ctx.drawImage(fire[1],q.x-q.size/2,q.y-q.size/2,q.size,q.size)
-          continue
-        }
-        // Lavere alpha så overlap ikke mætter til hvidt; strakt i højden
-        // (tunge-form) så det ligner flammer frem for runde lyskugler.
-        ctx.globalAlpha=(1-r)*0.42
-        const s=q.size*(1-r*0.5), h=s*1.8
-        ctx.drawImage(fire[Math.max(0,Math.min(3,Math.floor(r*4)))],q.x-s/2,q.y-h*0.7,s,h)
-      }
-      ctx.globalAlpha=1
-      for(let i=parts.length-1;i>=0;i--){
-        const q=parts[i]
-        q.life+=dt;q.x+=(q.vx+Math.sin((q.y+q.life)*0.05)*0.6)*dt;q.y+=q.vy*dt
-        if(q.k==='e')q.vx+=(Math.random()-.5)*0.6*dt
-        if(q.life>=q.max)parts.splice(i,1)
-      }
+      render()
     }
     requestAnimationFrame(frame)
   })
