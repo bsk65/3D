@@ -131,6 +131,15 @@
         </div>
 
         <div class="card">
+          <div class="card-title" data-i18n="setup.liveResultsTitle">📊 Resultater</div>
+          <div class="trow">
+            <div class="trow-left"><div class="trow-main" data-i18n="setup.liveResultsMain">Vis resultater løbende</div>
+              <div class="trow-sub" data-i18n="setup.liveResultsSub">Slå fra for først at se resultater, når runden er afsluttet</div></div>
+            <div class="tswitch on" id="live-results-sw" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-title" data-i18n="setup.gpsTitle">📍 GPS</div>
           <div class="gps-startmaal-row">
             <span class="gps-startmaal-lbl" data-i18n="setup.startTarget">Startmål</span>
@@ -177,8 +186,8 @@
             <div id="pbar" class="pbar-fill"></div>
           </div>
           <div class="stats-row">
-            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statAvg">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
-            <div class="sbox"><div class="sbox-lbl" data-i18n="active.statPoint">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
+            <div class="sbox live-result"><div class="sbox-lbl" data-i18n="active.statAvg">GNS.</div><div class="sbox-val" id="stat-avg">—</div></div>
+            <div class="sbox live-result"><div class="sbox-lbl" data-i18n="active.statPoint">POINT</div><div class="sbox-val" id="stat-tot">0</div></div>
             <div class="sbox"><div class="sbox-lbl" data-i18n="active.statRemaining">Tilbage</div><div class="sbox-val" id="stat-rem">24</div><div class="sbox-sub" data-i18n="active.statRemainingSub">mål</div></div>
           </div>
         </div>

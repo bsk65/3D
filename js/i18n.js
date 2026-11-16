@@ -32,6 +32,7 @@ export const translations = {
       autoFindTitle:'Auto-find nærmeste mål', autoFindSub:'Brug GPS automatisk',
       trackRouteTitle:'Spor rute og tid', trackRouteSub:'Registrer rute og afstand',
       showDistancesTitle:'Vis afstande på mål', showDistancesSub:'Kun visning — ikke redigering',
+      liveResultsTitle:'📊 Resultater', liveResultsMain:'Vis resultater løbende', liveResultsSub:'Slå fra for først at se resultater, når runden er afsluttet',
       startRoundBtn:'START RUNDE →'
     },
     active: {
@@ -308,6 +309,7 @@ export const translations = {
       autoFindTitle:'Auto-find nearest target', autoFindSub:'Use GPS automatically',
       trackRouteTitle:'Track route and time', trackRouteSub:'Record route and distance',
       showDistancesTitle:'Show target distances', showDistancesSub:'View only — not editable',
+      liveResultsTitle:'📊 Results', liveResultsMain:'Show results during the round', liveResultsSub:'Turn off to only see results once the round is finished',
       startRoundBtn:'START ROUND →'
     },
     active: {
