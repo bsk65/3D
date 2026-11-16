@@ -68,6 +68,7 @@ window.startRound=async function(){
   const startAt=Number(document.getElementById('start-target').value)-1
   const gpsAuto=document.getElementById('gps-auto-sw').classList.contains('on')
   const gpsTrack=document.getElementById('gps-track-sw').classList.contains('on')
+  const hideLiveResults=!document.getElementById('live-results-sw').classList.contains('on')
   state.boostThreshold=Number(document.getElementById('boost-thresh').value)||8
   const ruleset=document.getElementById('ruleset-sel')?.value||DEFAULT_RULESET
   const apt=arrowsPerTarget(ruleset)
@@ -80,7 +81,7 @@ window.startRound=async function(){
   if(gpsAuto&&state.course?.targets){try{startIdx=findNearestTarget(state.course.targets,await getCurrentPosition())}catch(e){}}
 
   state.round={id:'r_'+Date.now(),name,courseId:courseId||null,courseName:state.course?.name||null,numTargets,startTarget:startIdx+1,ruleset,
-    shooters,created:Date.now(),traversalOrder:buildOrder(startIdx,numTargets),traversalPos:0}
+    shooters,created:Date.now(),traversalOrder:buildOrder(startIdx,numTargets),traversalPos:0,hideLiveResults}
 
   if(gpsTrack){
     state.gpsTracking=startTracking(updateGpsBar)
@@ -101,6 +102,8 @@ window.showSetupPanel=function showSetupPanel(){
   // stiltiende medskytterne fra sidste opsætning (#p-list nulstilles ikke
   // andre steder, og SPA'en genindlæser aldrig DOM'en mellem runder).
   const pList=document.getElementById('p-list');if(pList)pList.innerHTML=''
+  // "Vis resultater løbende" er som udgangspunkt slået til for hver ny runde.
+  document.getElementById('live-results-sw')?.classList.add('on')
 }
 window.showActivePanel=function showActivePanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.remove('hidden');document.getElementById('results-panel').classList.add('hidden')}
 window.showResultsPanel=function showResultsPanel(){document.getElementById('setup-panel').classList.add('hidden');document.getElementById('active-panel').classList.add('hidden');document.getElementById('results-panel').classList.remove('hidden')}
@@ -112,6 +115,10 @@ export function updateTopBar(){
   document.getElementById('tnum-big').textContent=tIdx+1
   document.getElementById('tnum-suf').textContent=t('active.ofN',{n})
   document.getElementById('round-badge').textContent=state.round.name
+  // Skjul løbende resultater (point/gennemsnit) hvis valgt fra ved opsætning —
+  // de vises først på resultatsiden, når runden er afsluttet.
+  const hideLive=!!state.round.hideLiveResults
+  document.getElementById('active-panel').classList.toggle('hide-live-results',hideLive)
   const target=state.course?.targets?.[tIdx]
   document.getElementById('anim-name').textContent=target?.name||t('active.targetFallback',{n:tIdx+1})
   const distEl=document.getElementById('target-distance')
@@ -135,7 +142,7 @@ export function updateTopBar(){
   document.getElementById('edit-target-btn').classList.toggle('hidden',!(state.isAdmin&&state.round.courseId))
   document.getElementById('next-btn').textContent=state.round.traversalPos===n-1?t('active.finish'):t('active.next')
   const tAvg=calcTargetAverage(state.round.shooters,tIdx)
-  document.getElementById('target-avg').textContent=tAvg!==null?t('active.targetAvg',{v:tAvg}):''
+  document.getElementById('target-avg').textContent=tAvg!==null&&!hideLive?t('active.targetAvg',{v:tAvg}):''
 }
 
 export function renderShooters(){
@@ -143,8 +150,9 @@ export function renderShooters(){
   const tIdx=curTargetIdx(),el=document.getElementById('shooters-list');el.innerHTML=''
   const apt=arrowsPerTarget(state.round.ruleset)
   const zoneValues=scoreValuesFor(state.round.ruleset)
+  const hideLive=!!state.round.hideLiveResults
   state.round.shooters.forEach((s,si)=>{
-    const total=calcTotal(s.scores),boosted=state.boostEnabled&&isAtOrAboveThreshold(s.scores,state.boostThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
+    const total=calcTotal(s.scores),boosted=!hideLive&&state.boostEnabled&&isAtOrAboveThreshold(s.scores,state.boostThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
     const card=document.createElement('div');card.className='shooter-card'
     const allArr=s.scores.flat().filter(v=>v!=null)
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
@@ -163,7 +171,7 @@ export function renderShooters(){
     card.innerHTML=`
       <div class="sh-head">${boosted?'<span class="boost-dot"></span>':''}
         <span class="sh-name">${esc(s.name)}</span>
-        <div class="sh-mini-group">${miniGroup}</div>
+        ${hideLive?'':`<div class="sh-mini-group">${miniGroup}</div>`}
       </div>
       <div class="arrows-row">${Array.from({length:apt},(_,ai)=>`
         <div class="arrow-grp">${apt>=2?`<div class="arrow-lbl">${t('active.pilLabel',{n:ai+1})}</div>`:''}

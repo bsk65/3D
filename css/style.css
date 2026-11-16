@@ -139,6 +139,7 @@ select option{background:var(--surf);}
 .rbadge{background:var(--acc2);color:#fff;font-size:10px;padding:3px 7px;border-radius:5px;}
 .target-distance-lbl{background:var(--surf2);color:var(--muted);font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--bord);}
 .stats-row{display:flex;gap:7px;}
+.hide-live-results .live-result{display:none;}
 .sbox{flex:1;background:var(--surf2);border:1px solid var(--bord);border-radius:var(--rs);padding:7px 8px;text-align:center;}
 .sbox-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 .sbox-val{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--acc);line-height:1.1;}

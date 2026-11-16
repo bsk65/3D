@@ -116,6 +116,7 @@ export function serializeRound(round) {
     created: round.created, completed: round.completed||null,
     gpsRoute: round.gpsRoute||null, gpsDuration: round.gpsDuration||null, gpsDistance: round.gpsDistance||null,
     traversalOrder: round.traversalOrder, traversalPos: round.traversalPos||0,
+    hideLiveResults: round.hideLiveResults||false,
     shooters: round.shooters.map(s => ({ id:s.id, name:s.name, isGuest:s.isGuest||false,
       scores: serializeScores(s.scores) }))
   }
