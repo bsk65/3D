@@ -514,6 +514,8 @@ select option{background:var(--surf);}
 .analyse-kilde-select{width:100%;background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:6px 10px;font-size:13px;margin-bottom:6px;}
 .analyse-content-wrap{padding:12px;}
 .analyse-viewer-wrap{padding:8px 12px 0;}
+.excuse-banner{background:var(--surf);border:1px solid var(--bord);border-left:3px solid var(--acc);color:var(--acc);font-style:italic;font-weight:600;font-size:14px;padding:8px 12px;margin:10px 12px 0;border-radius:var(--rs);}
+.excuse-banner-lbl{display:block;font-style:normal;font-weight:400;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
 .viewing-banner{background:var(--surf2);border:1px solid var(--acc);color:var(--acc);font-family:var(--fd);font-size:12px;text-align:center;padding:8px;margin:10px 12px 0;border-radius:var(--rs);}
 .course-detail-title-style{font-size:17px;margin:0;}
 .delete-course-btn{margin-top:8px;}

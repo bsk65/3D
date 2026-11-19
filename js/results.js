@@ -18,6 +18,7 @@ import { parseRoute, formatDuration, formatDistance } from './gps.js'
 import { db, doc, deleteDoc, setDoc, arrayUnion } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
 import { playBurnEffect } from './burn.js'
+import { EXCUSE_KEYS } from './excuses.js'
 
 // ─── RESULTS ──────────────────────────────────────────────────────────────────
 // Selve kort-indholdet (bruges både i det lille grid og i den forstørrede
@@ -175,7 +176,6 @@ function deleteRound(r){
 // "Undskyldning": en af faste nøgler (oversættes via results.excuses.*), gemt
 // som excuse-felt på runden — lokalt og på egen Firestore-kopi. Deltagernes
 // egne kopier af en fælles runde påvirkes ikke.
-const EXCUSE_KEYS=['crooked','wind','arrows','cold','shoulder','paces','nature','mercy','sun','sick']
 function setRoundExcuse(id,excuse){
   const r=state.rounds.find(x=>x.id===id);if(!r)return
   r.excuse=excuse;lsSave();renderRoundsList()
