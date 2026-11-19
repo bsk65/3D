@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/3D-dev/assets/index-CHqznwpM.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-COE2G41y.css">
+    <script type="module" crossorigin src="/3D/3D-dev/assets/index-BIzi56D7.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/3D-dev/assets/index-Ds6VxRm-.css">
   </head>
 <body>
 
@@ -404,6 +404,15 @@
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)" data-i18n="friends.addFriendBtn">+ Tilføj ven</button>
       </div>
 
+      <!-- MEETUPS SECTION — øverst, så aftaler ses med det samme -->
+      <div id="meetups-section" class="meetups-sec">
+        <div class="tab-header">
+          <span class="tab-title" data-i18n="meetups.header">Skal vi skyde sammen?</span>
+          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()" data-i18n="meetups.sectionSuggestBtn">+ Foreslå</button>
+        </div>
+        <div id="meetups-list"></div>
+      </div>
+
       <!-- NYHEDSBREV — synlig for alle brugere, kan til/frameldes når som helst -->
       <div class="card">
         <div class="trow">
@@ -420,15 +429,6 @@
           <span class="tab-title" data-i18n="sharing.title">Må jeg kigge med?</span>
         </div>
         <div id="sharing-list"></div>
-      </div>
-
-      <!-- MEETUPS SECTION -->
-      <div id="meetups-section" class="meetups-sec">
-        <div class="tab-header">
-          <span class="tab-title" data-i18n="meetups.header">Skal vi skyde sammen?</span>
-          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()" data-i18n="meetups.sectionSuggestBtn">+ Foreslå</button>
-        </div>
-        <div id="meetups-list"></div>
       </div>
 
       <div id="admin-section" class="admin-sec admin-only hidden">
