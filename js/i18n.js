@@ -65,7 +65,17 @@ export const translations = {
       popupDistance:'DISTANCE', popupTime:'TID',
       sendResultsBtn:'📧 Send resultater', doneBtn:'Afslut',
       noRoundToSend:'Ingen runde at sende',
-      burnBtn:'🔥 Afbrænd', burnConfirm:'Sikker? 🔥', burned:'Resultatet er brændt til aske 🔥'
+      burnBtn:'🔥 Afbrænd', burnConfirm:'Sikker? 🔥', burned:'Resultatet er brændt til aske 🔥',
+      excuseBtn:'Undskyldning', excuseRemove:'✕ Fjern undskyldning',
+      excuses:{
+        crooked:'Pilen(e) var tydeligvis krum.', wind:'Vinden tog den',
+        arrows:'Nye pile, ikke skudt ind', cold:'Fingrene var kolde',
+        shoulder:'Min skulder husker stadig sidste runde.',
+        paces:'Jeg havde regnet afstanden i meter, men banen er åbenbart bygget i skridt.',
+        nature:'Man kan ikke både nyde naturen og ramme noget i den.',
+        mercy:'Lod de andre vinde', sun:'Solen stod lavt. Den har stået lavt hele dagen.',
+        sick:'Jeg har lige været syg.'
+      }
     },
     email: {
       header:'3D Bueskydning - Resultater', subjectPrefix:'3D Bueskydning - ',
@@ -342,7 +352,17 @@ export const translations = {
       popupDistance:'DISTANCE', popupTime:'TIME',
       sendResultsBtn:'📧 Send results', doneBtn:'Done',
       noRoundToSend:'No round to send',
-      burnBtn:'🔥 Burn', burnConfirm:'Sure? 🔥', burned:'The result has been burned to ashes 🔥'
+      burnBtn:'🔥 Burn', burnConfirm:'Sure? 🔥', burned:'The result has been burned to ashes 🔥',
+      excuseBtn:'Excuse', excuseRemove:'✕ Remove excuse',
+      excuses:{
+        crooked:'The arrow(s) were clearly bent.', wind:'The wind took it',
+        arrows:'New arrows, not tuned in', cold:'My fingers were cold',
+        shoulder:'My shoulder still remembers the last round.',
+        paces:'I calculated the distance in metres, but the course is apparently built in paces.',
+        nature:'You can\'t both enjoy nature and hit something in it.',
+        mercy:'Let the others win', sun:'The sun was low. It has been low all day.',
+        sick:'I\'ve just been ill.'
+      }
     },
     email: {
       header:'3D Archery - Results', subjectPrefix:'3D Archery - ',

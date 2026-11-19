@@ -172,6 +172,16 @@ function deleteRound(r){
   if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
 }
 
+// "Undskyldning": en af faste nøgler (oversættes via results.excuses.*), gemt
+// som excuse-felt på runden — lokalt og på egen Firestore-kopi. Deltagernes
+// egne kopier af en fælles runde påvirkes ikke.
+const EXCUSE_KEYS=['crooked','wind','arrows','cold','shoulder','paces','nature','mercy','sun','sick']
+function setRoundExcuse(id,excuse){
+  const r=state.rounds.find(x=>x.id===id);if(!r)return
+  r.excuse=excuse;lsSave();renderRoundsList()
+  if(state.user)setDoc(doc(db,'users',state.user.uid,'rounds',id),{excuse},{merge:true}).catch(e=>console.warn(e))
+}
+
 export function renderRoundsList(){
   const el=document.getElementById('rounds-list')
   if(!state.rounds.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div>${t('results.empty')}</div>`;return}
@@ -182,8 +192,13 @@ export function renderRoundsList(){
     const _c=r.created,date=_c?.toDate?_c.toDate().toLocaleDateString(getLocale()):_c?.seconds?new Date(_c.seconds*1000).toLocaleDateString(getLocale()):typeof _c==='number'?new Date(_c).toLocaleDateString(getLocale()):'—'
     const card=document.createElement('div');card.className='rcard'
     const rulesetTag=r.ruleset&&r.ruleset!=='WA'?` · <span class="rcard-ruleset-tag">${esc(r.ruleset)}</span>`:''
-    card.innerHTML=`<div class="rcard-info"><div class="rcard-name">${esc(r.name||t('results.roundFallback'))}</div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||t('results.targetsUnit',{n:r.numTargets}))}${rulesetTag}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
+    const excuseTxt=r.excuse&&EXCUSE_KEYS.includes(r.excuse)?`<span class="rcard-excuse">${esc(t('results.excuses.'+r.excuse))}</span>`:''
+    const excuseOpts=`<option value="" disabled selected>${esc(t('results.excuseBtn'))} ▾</option>`+EXCUSE_KEYS.map(k=>`<option value="${k}">${esc(t('results.excuses.'+k))}</option>`).join('')+(r.excuse?`<option value="__none">${esc(t('results.excuseRemove'))}</option>`:'')
+    card.innerHTML=`<div class="rcard-info"><div class="rcard-head"><div class="rcard-name">${esc(r.name||t('results.roundFallback'))}${excuseTxt}</div><select class="rcard-excuse-sel" aria-label="${esc(t('results.excuseBtn'))}">${excuseOpts}</select></div><div class="rcard-meta"><span class="rcard-date">${esc(date)}</span> · ${esc(r.courseName||t('results.targetsUnit',{n:r.numTargets}))}${rulesetTag}</div><div class="rcard-win">🏆 ${esc(winner?.name||'—')} (${winner?calcTotal(winner.scores):0} pt)</div></div><button class="btn-icon rcard-analyse" title="Analyser">📈</button><button class="del-btn" data-id="${esc(r.id)}">✕</button>`
     card.querySelector('.rcard-info').onclick=()=>showRoundPopup({...r,shooters})
+    const sel=card.querySelector('.rcard-excuse-sel')
+    sel.onclick=e=>e.stopPropagation()
+    sel.onchange=()=>setRoundExcuse(r.id,sel.value==='__none'?null:sel.value)
     card.querySelector('.rcard-analyse').onclick=()=>window.analyseRound(r.id)
     card.querySelector('.del-btn').onclick=e=>{
       const btn=e.currentTarget,key=`r-${r.id}`
