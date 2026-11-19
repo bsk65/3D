@@ -270,6 +270,15 @@ function onLogin(){
     const liveDocs=snap.docs.filter(d=>!deleted.has(d.id))
     const fsIds=new Set(liveDocs.map(d=>d.id))
     const fsRounds=liveDocs.map(d=>({...d.data(),id:d.id}))
+    // "Undskyldning" kan sættes på en anden enhed efter runden allerede ligger
+    // lokalt — tag serverens værdi for runder der findes begge steder.
+    const fsById=new Map(fsRounds.map(r=>[r.id,r]))
+    let excuseChanged=false
+    state.rounds.forEach(r=>{
+      const fr=fsById.get(r.id)
+      if(fr&&'excuse' in fr&&(fr.excuse||null)!==(r.excuse||null)){r.excuse=fr.excuse;excuseChanged=true}
+    })
+    if(excuseChanged){lsSave();renderRoundsList()}
     if(fsRounds.length){
       const localIds=new Set(state.rounds.map(r=>r.id))
       const newRounds=fsRounds.filter(r=>!localIds.has(r.id))

@@ -16,6 +16,7 @@ import { scoreVal, calcTotal, parseScores, arrowsPerTarget, scoreValuesFor, DEFA
 import { calcAnalyseStats, stdDev, linReg, calcRoundPositionAvgs, calcDistanceInsights } from './stats.js'
 import { db, collection, getDocs } from './firebase-init.js'
 import { getViewableUsers, fetchViewedRounds } from './sharing.js'
+import { excuseText } from './excuses.js'
 
 // Pinch-to-zoom/pan af fullscreen-grafen. `viewportEl` er det faste,
 // touch-lyttende "vindue" (overflow:hidden) — `contentEl` er selve SVG'en
@@ -388,6 +389,11 @@ window.renderAnalyse=function(){
 
   if(state.viewingUid){
     html+=`<div class="viewing-banner">👁 ${t('analyse.viewingResultsFor',{name:esc(state.viewingName||'—')})}</div>`
+  }
+  // Rundens "Undskyldning" — kun når analysen viser præcis én runde.
+  const excuse=rounds.length===1?excuseText(rounds[0]):''
+  if(excuse){
+    html+=`<div class="excuse-banner"><span class="excuse-banner-lbl">${t('results.excuseBtn')}</span>${esc(excuse)}</div>`
   }
 
   // Nøgletal
