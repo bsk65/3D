@@ -15,7 +15,7 @@ import { t, getLocale } from './i18n.js'
 import { lsSave } from './storage.js'
 import { scoreVal, calcTotal, calcDistribution, findWinner, parseScores, arrowsPerTarget, scoreValuesFor } from './scoring.js'
 import { parseRoute, formatDuration, formatDistance } from './gps.js'
-import { db, doc, deleteDoc } from './firebase-init.js'
+import { db, doc, deleteDoc, setDoc, arrayUnion } from './firebase-init.js'
 import { removeVisitFromCourse } from './courses.js'
 import { playBurnEffect } from './burn.js'
 
@@ -157,10 +157,18 @@ function buildActualResults(round){
 
 // ─── ROUNDS LIST ──────────────────────────────────────────────────────────────
 // Fælles sletning (krydset på rundelisten og "Afbrænd" i runde-popup'en).
+// Id'et skrives også som "gravsten" i deletedRoundIds på egen profil — ellers
+// genuploader en anden enhed (der stadig har runden i localStorage) den ved
+// næste login via gensynkroniseringen i app-init.js, og sletningen fortrydes.
 function deleteRound(r){
   state.rounds=state.rounds.filter(x=>x.id!==r.id);lsSave();renderRoundsList()
-  if(state.user)deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id)).catch(e=>console.warn(e))
-  if(state.user&&r.courseId)deleteDoc(doc(db,'bane_stats',r.courseId,'runder',r.id)).catch(e=>console.warn(e))
+  if(state.user&&r.id)setDoc(doc(db,'users',state.user.uid),{deletedRoundIds:arrayUnion(r.id)},{merge:true}).catch(e=>console.warn(e))
+  // bane_stats-reglen kræver at runden stadig findes i egen rounds-samling, så
+  // banestatistikken skal slettes FØR selve runden — ellers afvises den.
+  if(state.user){
+    const statsDel=r.courseId?deleteDoc(doc(db,'bane_stats',r.courseId,'runder',r.id)).catch(e=>console.warn(e)):Promise.resolve()
+    statsDel.then(()=>deleteDoc(doc(db,'users',state.user.uid,'rounds',r.id))).catch(e=>console.warn(e))
+  }
   if(r.courseId)removeVisitFromCourse(r.courseId,r.id).catch(e=>console.warn(e))
 }
 

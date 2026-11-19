@@ -4,7 +4,7 @@
 // små window-onclick-handlere der ikke hørte hjemme i et af de øvrige
 // moduler. Importeres som ren side-effekt fra main.js.
 import { auth, db, storage, onAuthStateChanged, collection, doc, getDoc,
-         getDocs, updateDoc, setDoc, serverTimestamp, ref, uploadString, getDownloadURL } from './firebase-init.js'
+         getDocs, updateDoc, setDoc, deleteDoc, serverTimestamp, ref, uploadString, getDownloadURL } from './firebase-init.js'
 import { state } from './state.js'
 import { showToast } from './utils.js'
 import { renderFriendsList, renderQuickFriends } from './friends.js'
@@ -252,9 +252,24 @@ function onLogin(){
   autoSelectNearestCourse()
 
   // Hent runder fra Firestore
-  getDocs(collection(db,'users',state.user.uid,'rounds')).then(snap=>{
-    const fsIds=new Set(snap.docs.map(d=>d.id))
-    const fsRounds=snap.docs.map(d=>({...d.data(),id:d.id}))
+  // Profilen hentes med for deletedRoundIds-"gravstenene" (se deleteRound i
+  // results.js): runder slettet på en anden enhed fjernes lokalt her, og
+  // genuploades aldrig af gensynkroniseringen nedenfor.
+  Promise.all([
+    getDocs(collection(db,'users',state.user.uid,'rounds')),
+    getDoc(doc(db,'users',state.user.uid)).catch(()=>null)
+  ]).then(([snap,profSnap])=>{
+    const deleted=new Set(profSnap?.data()?.deletedRoundIds||[])
+    if(deleted.size&&state.rounds.some(r=>deleted.has(r.id))){
+      state.rounds=state.rounds.filter(r=>!deleted.has(r.id))
+      lsSave(); renderRoundsList()
+    }
+    // Ryd op i Firestore-kopier af slettede runder (fx genuploadet af en
+    // ældre app-version på en anden enhed før gravstenene fandtes).
+    snap.docs.filter(d=>deleted.has(d.id)).forEach(d=>deleteDoc(d.ref).catch(()=>{}))
+    const liveDocs=snap.docs.filter(d=>!deleted.has(d.id))
+    const fsIds=new Set(liveDocs.map(d=>d.id))
+    const fsRounds=liveDocs.map(d=>({...d.data(),id:d.id}))
     if(fsRounds.length){
       const localIds=new Set(state.rounds.map(r=>r.id))
       const newRounds=fsRounds.filter(r=>!localIds.has(r.id))
