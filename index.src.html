@@ -403,6 +403,15 @@
         <button class="btn btn-gold btn-sm" onclick="openFriendModal(null)" data-i18n="friends.addFriendBtn">+ Tilføj ven</button>
       </div>
 
+      <!-- MEETUPS SECTION — øverst, så aftaler ses med det samme -->
+      <div id="meetups-section" class="meetups-sec">
+        <div class="tab-header">
+          <span class="tab-title" data-i18n="meetups.header">Skal vi skyde sammen?</span>
+          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()" data-i18n="meetups.sectionSuggestBtn">+ Foreslå</button>
+        </div>
+        <div id="meetups-list"></div>
+      </div>
+
       <!-- NYHEDSBREV — synlig for alle brugere, kan til/frameldes når som helst -->
       <div class="card">
         <div class="trow">
@@ -419,15 +428,6 @@
           <span class="tab-title" data-i18n="sharing.title">Må jeg kigge med?</span>
         </div>
         <div id="sharing-list"></div>
-      </div>
-
-      <!-- MEETUPS SECTION -->
-      <div id="meetups-section" class="meetups-sec">
-        <div class="tab-header">
-          <span class="tab-title" data-i18n="meetups.header">Skal vi skyde sammen?</span>
-          <button class="btn btn-gold btn-sm" onclick="openMeetupModal()" data-i18n="meetups.sectionSuggestBtn">+ Foreslå</button>
-        </div>
-        <div id="meetups-list"></div>
       </div>
 
       <div id="admin-section" class="admin-sec admin-only hidden">
