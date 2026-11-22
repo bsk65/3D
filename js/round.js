@@ -36,8 +36,10 @@ export function tryOpenPendingRound(){
   setTimeout(()=>showRoundPopup({...r,shooters}),300)
 }
 
+// Kun chips i #p-list — .pchip bruges også af meetup-modtagerlisten
+// (#mu-selected-chips), som ellers ville blive talt med som deltagere.
 function getParticipants(){
-  return Array.from(document.querySelectorAll('.pchip')).map(c=>({
+  return Array.from(document.querySelectorAll('#p-list .pchip')).map(c=>({
     id:c.id.replace('chip-',''),
     name:c.querySelector('.pchip-name').textContent.replace('🎯 ','').trim(),
     isGuest:c.id.startsWith('chip-guest-')
@@ -47,17 +49,66 @@ function getParticipants(){
 window.addParticipant=function(id,name){
   if(document.getElementById(`chip-${id}`))return
   const div=document.createElement('div');div.className='pchip';div.id=`chip-${id}`
-  div.innerHTML=`<span class="pchip-name">🎯 ${esc(name)}</span><button class="pchip-rm" onclick="this.closest('.pchip').remove()">✕</button>`
+  div.innerHTML=`<span class="pchip-name">🎯 ${esc(name)}</span><button class="pchip-rm">✕</button>`
+  div.querySelector('.pchip-rm').addEventListener('click',()=>{div.remove();renderBoostList()})
   document.getElementById('p-list').appendChild(div)
+  renderBoostList()
 }
 
-// Skift af forbund ved rundeoprettelse sætter boost-grænsens standardværdi
-// til det nye regelsæts egen skala (fx WA:8 → DGS:4) — ellers arver DGS/andre
-// fremtidige regelsæt en urealistisk WA-standard, som aldrig ville kunne nås.
-document.getElementById('ruleset-sel')?.addEventListener('change',e=>{
-  const el=document.getElementById('boost-thresh')
-  if(el)el.value=boostThresholdFor(e.target.value)
-})
+// ─── POSITIV FORSTÆRKNING: GRÆNSE PR. SKYTTE ─────────────────────────────────
+// Hver deltager får sin egen grænse for den grønne prik. Sidst brugte grænse
+// huskes pr. (regelsæt, skytte-id) i localStorage, så en vens niveau ikke skal
+// tastes igen hver runde. Gæster huskes ikke (deres id er engangs).
+const BOOST_KEY='archery_boostThresholds'
+function loadBoostMemory(){try{return JSON.parse(localStorage.getItem(BOOST_KEY))||{}}catch(e){return {}}}
+function saveBoostMemory(m){try{localStorage.setItem(BOOST_KEY,JSON.stringify(m))}catch(e){}}
+function currentRuleset(){return document.getElementById('ruleset-sel')?.value||DEFAULT_RULESET}
+function rememberedThreshold(ruleset,id,isGuest){
+  const v=isGuest?null:loadBoostMemory()[`${ruleset}|${id}`]
+  return v!=null?v:boostThresholdFor(ruleset)
+}
+function setupShooters(){
+  if(!state.user)return []
+  return [{id:state.user.uid,name:state.profile?.name||'',isGuest:false,isMe:true},
+    ...getParticipants().filter(p=>p.id!==state.user.uid)]
+}
+
+// keepTyped=true bevarer allerede indtastede værdier (fx når en ven tilføjes);
+// false genindlæser fra hukommelse/standard (ved skift af forbund).
+export function renderBoostList(keepTyped=true){
+  const el=document.getElementById('boost-list');if(!el)return
+  const typed={}
+  if(keepTyped)el.querySelectorAll('input[data-sid]').forEach(i=>{typed[i.dataset.sid]=i.value})
+  const ruleset=currentRuleset()
+  el.innerHTML=''
+  setupShooters().forEach(p=>{
+    const row=document.createElement('div');row.className='boost-row'
+    const name=document.createElement('span');name.className='boost-row-name'
+    name.textContent=p.isMe?t('setup.boostYou',{name:p.name}):p.isGuest?t('setup.boostGuest',{name:p.name}):p.name
+    const inp=document.createElement('input');inp.type='number';inp.className='warn-thresh-input'
+    inp.min='-1';inp.max='11';inp.step='0.5';inp.dataset.sid=p.id;inp.dataset.guest=p.isGuest?'1':''
+    inp.value=typed[p.id]!=null?typed[p.id]:rememberedThreshold(ruleset,p.id,p.isGuest)
+    row.appendChild(name);row.appendChild(inp);el.appendChild(row)
+  })
+}
+window.renderBoostList=renderBoostList
+
+function readBoostThresholds(ruleset){
+  const out={},mem=loadBoostMemory()
+  document.querySelectorAll('#boost-list input[data-sid]').forEach(i=>{
+    const v=Number(i.value)
+    if(i.value===''||!Number.isFinite(v))return
+    out[i.dataset.sid]=v
+    if(!i.dataset.guest)mem[`${ruleset}|${i.dataset.sid}`]=v
+  })
+  saveBoostMemory(mem)
+  return out
+}
+
+// Skift af forbund sætter hver skyttes grænse til den husket værdi for det
+// nye regelsæt eller regelsættets egen standard (fx WA:8 → DGS:4) — ellers
+// arver DGS en urealistisk WA-grænse, som aldrig ville kunne nås.
+document.getElementById('ruleset-sel')?.addEventListener('change',()=>renderBoostList(false))
 
 // ─── START ROUND ──────────────────────────────────────────────────────────────
 window.startRound=async function(){
@@ -69,14 +120,18 @@ window.startRound=async function(){
   const gpsAuto=document.getElementById('gps-auto-sw').classList.contains('on')
   const gpsTrack=document.getElementById('gps-track-sw').classList.contains('on')
   const hideLiveResults=!document.getElementById('live-results-sw').classList.contains('on')
-  state.boostThreshold=Number(document.getElementById('boost-thresh').value)||8
   const ruleset=document.getElementById('ruleset-sel')?.value||DEFAULT_RULESET
   const apt=arrowsPerTarget(ruleset)
+  const thresholds=readBoostThresholds(ruleset)
 
   const parts=[{id:state.user.uid,name:state.profile.name,isGuest:false},...getParticipants().filter(p=>p.id!==state.user.uid)]
   state.course=courseId?(state.courses.find(c=>c.id===courseId)||null):null
 
-  const shooters=parts.map(p=>{const s=makeShooter(p.id,p.name,p.isGuest);normalizeScores(s,numTargets,apt);return s})
+  const shooters=parts.map(p=>{
+    const s=makeShooter(p.id,p.name,p.isGuest);normalizeScores(s,numTargets,apt)
+    s.boostThreshold=thresholds[p.id]??boostThresholdFor(ruleset)
+    return s
+  })
   let startIdx=startAt
   if(gpsAuto&&state.course?.targets){try{startIdx=findNearestTarget(state.course.targets,await getCurrentPosition())}catch(e){}}
 
@@ -102,6 +157,7 @@ window.showSetupPanel=function showSetupPanel(){
   // stiltiende medskytterne fra sidste opsætning (#p-list nulstilles ikke
   // andre steder, og SPA'en genindlæser aldrig DOM'en mellem runder).
   const pList=document.getElementById('p-list');if(pList)pList.innerHTML=''
+  renderBoostList(false)
   // "Vis resultater løbende" er som udgangspunkt slået til for hver ny runde.
   document.getElementById('live-results-sw')?.classList.add('on')
 }
@@ -152,7 +208,7 @@ export function renderShooters(){
   const zoneValues=scoreValuesFor(state.round.ruleset)
   const hideLive=!!state.round.hideLiveResults
   state.round.shooters.forEach((s,si)=>{
-    const total=calcTotal(s.scores),boosted=!hideLive&&state.boostEnabled&&isAtOrAboveThreshold(s.scores,state.boostThreshold),row=s.scores[tIdx]||Array(apt).fill(null)
+    const total=calcTotal(s.scores),boosted=!hideLive&&state.boostEnabled&&isAtOrAboveThreshold(s.scores,s.boostThreshold??boostThresholdFor(state.round.ruleset)),row=s.scores[tIdx]||Array(apt).fill(null)
     const card=document.createElement('div');card.className='shooter-card'
     const allArr=s.scores.flat().filter(v=>v!=null)
     const allAvg=allArr.length?(allArr.reduce((a,v)=>a+scoreVal(v),0)/allArr.length).toFixed(2):'—'
