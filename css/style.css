@@ -74,6 +74,10 @@ select option{background:var(--surf);}
 #p-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
 .pchip{display:flex;align-items:center;gap:8px;background:var(--surf2);border:1px solid var(--bord);border-radius:10px;padding:9px 12px;}
 .pchip-name{flex:1;font-weight:600;font-size:14px;}
+.boost-list-head{margin-top:8px;margin-bottom:6px;}
+.boost-list{display:flex;flex-direction:column;gap:6px;}
+.boost-row{display:flex;align-items:center;gap:8px;}
+.boost-row-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pchip-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:0 4px;}
 .ac-wrap{position:relative;margin-bottom:8px;}
 .ac-list{position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1px solid var(--bord);border-top:none;border-radius:0 0 var(--rs) var(--rs);z-index:50;max-height:150px;overflow-y:auto;}

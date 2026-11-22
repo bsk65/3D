@@ -118,6 +118,7 @@ export function serializeRound(round) {
     traversalOrder: round.traversalOrder, traversalPos: round.traversalPos||0,
     hideLiveResults: round.hideLiveResults||false,
     shooters: round.shooters.map(s => ({ id:s.id, name:s.name, isGuest:s.isGuest||false,
+      ...(s.boostThreshold!=null ? { boostThreshold: s.boostThreshold } : {}),
       scores: serializeScores(s.scores) }))
   }
 }

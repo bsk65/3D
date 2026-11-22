@@ -18,7 +18,7 @@ import { registerServiceWorker, enablePushNotifications, refreshPushTokenIfGrant
 import './analyse.js'
 import './round-import.js'
 import { tryOpenPendingRound, tryResumeRound, curTargetIdx, updateTopBar,
-         releaseWakeLock, renderShooters } from './round.js'
+         releaseWakeLock, renderShooters, renderBoostList } from './round.js'
 import { parseRoute, haversine, toggleGpsPause } from './gps.js'
 import { lsLoad, lsSave } from './storage.js'
 import { initLang, setLang, getLang, t, translations } from './i18n.js'
@@ -240,6 +240,7 @@ function onLogin(){
   }).catch(e=>console.warn('Hent venner:',e))
   renderFriendsList()
   renderQuickFriends()
+  renderBoostList(false)
   renderRoundsList()
   state.pendingRound=new URLSearchParams(window.location.search).get('round')||null
   if(state.pendingRound)tryOpenPendingRound()
@@ -364,6 +365,7 @@ window.toggleLang=function(){
   if(state.round&&roundNameDefaults.includes(state.round.name))state.round.name=t('setup.roundNameDefault')
 
   populateCourseDropdown()
+  renderBoostList()
   if(state.round){updateTopBar();renderShooters()}
   if(document.getElementById('tab-results').classList.contains('active'))renderRoundsList()
   if(!document.getElementById('results-panel').classList.contains('hidden')&&window._lastRound)renderResults(window._lastRound)
