@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script type="module" crossorigin src="/3D/assets/index-12tbJAA-.js"></script>
-    <link rel="stylesheet" crossorigin href="/3D/assets/index-jMTx3ekd.css">
+    <script type="module" crossorigin src="/3D/assets/index-aLYpynjh.js"></script>
+    <link rel="stylesheet" crossorigin href="/3D/assets/index-C0pBP5d5.css">
   </head>
 <body>
 
@@ -124,10 +124,8 @@
               <span data-i18n="setup.enableBoost">Aktiver positiv forstærkning</span>
               <div class="tswitch on" id="boost-enabled-sw"></div>
             </div>
-            <span data-i18n="setup.boostThreshPre">Grøn prik hvis gns. mindst</span>
-            <input type="number" id="boost-thresh" value="8" min="1" max="11"
-              class="warn-thresh-input" />
-            <span data-i18n="setup.boostThreshPost">point/pil</span>
+            <div class="boost-list-head" data-i18n="setup.boostThreshPerShooter">Grøn prik hvis gns. mindst (point/pil):</div>
+            <div id="boost-list" class="boost-list"></div>
           </div>
         </div>
 
